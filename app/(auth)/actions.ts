@@ -1,8 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/app/lib/prisma"; // Import Prisma client
-import bcrypt from "bcrypt"; // Use bcryptjs for consistency
+import { prisma } from "@/app/lib/prisma";
+import bcrypt from "bcrypt";
 import { createSession, deleteSession } from "../lib/sessions";
 import { redirect } from "next/navigation";
 
