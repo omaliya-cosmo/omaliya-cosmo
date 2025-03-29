@@ -1,25 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromToken } from "@/app/actions";
+import { cookies } from "next/headers";
+import { decrypt } from "@/app/lib/sessions";
+import { decryptAdminSession } from "./app/lib/adminSession";
 
-const protectedRoutes = [""];
-const publicRoutes = ["/login", "/signup"];
+// Define protected and public routes for both users and admins
+const protectedUserRoutes = ["/profile"];
+const publicUserRoutes = ["/login", "/register"];
+
+const protectedAdminRoutes = ["/admin", "/admin/settings"];
+const publicAdminRoutes = ["/admin/login"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  const isProtectedRoute = protectedRoutes.includes(path);
-  const isPublicRoute = publicRoutes.includes(path);
 
-  // Get customer session from the token and fetch customer details from DB
-  const customer = await getUserFromToken();
+  // Check if the route is for users or admins
+  const isProtectedUserRoute = protectedUserRoutes.includes(path);
+  const isPublicUserRoute = publicUserRoutes.includes(path);
 
-  // Redirect if the customer is not authorized for a protected route
-  if (isProtectedRoute && !customer) {
+  const isProtectedAdminRoute = protectedAdminRoutes.includes(path);
+  const isPublicAdminRoute = publicAdminRoutes.includes(path);
+
+  // Get session details
+  const cookieStore = await cookies();
+
+  const cookie = cookieStore.get("session")?.value;
+  const session = await decrypt(cookie);
+  const user = session?.customerId;
+
+  const adminCookie = cookieStore.get("admin_session")?.value;
+  const adminsession = await decryptAdminSession(adminCookie);
+  const admin = adminsession?.adminId;
+
+  // User Authentication
+  if (isProtectedUserRoute && !user) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
-
-  // Redirect if the customer is logged in but tries to access a public route
-  if (isPublicRoute && customer) {
+  if (isPublicUserRoute && user) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
+  }
+
+  // Admin Authentication
+  if (isProtectedAdminRoute && !admin) {
+    return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
+  }
+  if (isPublicAdminRoute && admin) {
+    return NextResponse.redirect(new URL("/admin", req.nextUrl));
   }
 
   return NextResponse.next();

@@ -1,13 +1,21 @@
-import { logout } from "./(auth)/actions";
-import { getUserFromToken } from "./actions";
+"use client";
 
-export default async function Home() {
-  const user = await getUserFromToken();
+import { logout } from "./(auth)/actions";
+import { getCustomerFromToken } from "./actions";
+import { useEffect } from "react";
+
+export default function Home() {
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      const userData = await getCustomerFromToken();
+      console.log("Customer:", userData);
+    };
+    fetchAdmin();
+  }, []);
 
   return (
     <div>
       <h1>Omaliya Cosmetics</h1>
-      <h2>{user?.firstName}</h2>
       <button onClick={logout}>Log Out</button>
     </div>
   );
