@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { decrypt } from "@/app/lib/sessions";
-import { decryptAdminSession } from "./app/lib/adminSession";
+import { decryptAdminSession } from "@/app/lib/adminSession";
 
-// Define protected and public routes for both users and admins
+// Define protected and public routes
 const protectedUserRoutes = ["/profile"];
 const publicUserRoutes = ["/login", "/register"];
 
@@ -12,40 +12,61 @@ const publicAdminRoutes = ["/admin/login"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-
-  // Check if the route is for users or admins
-  const isProtectedUserRoute = protectedUserRoutes.includes(path);
-  const isPublicUserRoute = publicUserRoutes.includes(path);
-
-  const isProtectedAdminRoute = protectedAdminRoutes.includes(path);
-  const isPublicAdminRoute = publicAdminRoutes.includes(path);
-
-  // Get session details
+  const response = NextResponse.next();
   const cookieStore = await cookies();
 
-  const cookie = cookieStore.get("session")?.value;
-  const session = await decrypt(cookie);
+  // Retrieve session cookies
+  const sessionCookie = cookieStore.get("session")?.value;
+  const adminCookie = cookieStore.get("admin_session")?.value;
+
+  // Decrypt user session
+  const session = sessionCookie ? await decrypt(sessionCookie) : null;
   const user = session?.customerId;
 
-  const adminCookie = cookieStore.get("admin_session")?.value;
-  const adminsession = await decryptAdminSession(adminCookie);
-  const admin = adminsession?.adminId;
+  // Decrypt admin session
+  const adminSession = adminCookie
+    ? await decryptAdminSession(adminCookie)
+    : null;
+  const admin = adminSession?.adminId;
 
-  // User Authentication
-  if (isProtectedUserRoute && !user) {
+  // Check for existing country cookie
+  let country = cookieStore.get("user_country")?.value;
+
+  if (!country) {
+    try {
+      const geoResponse = await fetch("http://ip-api.com/json");
+      const data = await geoResponse.json();
+      country = data.countryCode || "US";
+    } catch (error) {
+      country = "US"; // Default fallback
+    }
+
+    response.cookies.set("user_country", country || "US", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+  }
+
+  // User Authentication Logic
+  if (protectedUserRoutes.includes(path) && !user) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
-  if (isPublicUserRoute && user) {
+  if (publicUserRoutes.includes(path) && user) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
-  // Admin Authentication
-  if (isProtectedAdminRoute && !admin) {
+  // Admin Authentication Logic
+  if (protectedAdminRoutes.includes(path) && !admin) {
     return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
   }
-  if (isPublicAdminRoute && admin) {
+  if (publicAdminRoutes.includes(path) && admin) {
     return NextResponse.redirect(new URL("/admin", req.nextUrl));
   }
 
-  return NextResponse.next();
+  return response;
 }
+
+// Config to match all routes except static files and API routes
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};

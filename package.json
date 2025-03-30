@@ -10,25 +10,36 @@
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/bcrypt": "^5.0.2",
+    "@types/js-cookie": "^3.0.6",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
+    "cookie": "^1.0.2",
     "jose": "^6.0.10",
+    "js-cookie": "^3.0.5",
     "mongodb": "^6.15.0",
     "next": "15.2.4",
+    "postcss": "^8.5.3",
     "prisma": "^6.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-quill-new": "^3.4.6",
+    "react-toastify": "^11.0.5",
+    "ts-node": "^10.9.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/cookie": "^1.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4.0.17",
+    "typescript": "^5.8.2"
   }
 }

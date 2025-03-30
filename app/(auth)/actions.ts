@@ -19,14 +19,8 @@ const loginSchema = z.object({
 const signupSchema = z
   .object({
     email: z.string().email({ message: "Invalid email address" }).trim(),
-    password: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters" })
-      .trim(),
-    confirmPassword: z
-      .string()
-      .min(8, { message: "Confirm password must be at least 8 characters" })
-      .trim(),
+    password: z.string().trim(),
+    confirmPassword: z.string().trim(),
     firstName: z.string().min(1, { message: "First name is required" }).trim(),
     lastName: z.string().min(1, { message: "Last name is required" }).trim(),
   })
