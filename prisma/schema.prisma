@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  imageUrls   String[] @map("image_urls")
+  categoryId  String @db.ObjectId @map("category_id")
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  reviews     Review[]
+  priceLKR    Float @map("price_lkr")
+  priceUSD    Float @map("price_usd")
+  stock       Int @map("stock")
+  orderItems  OrderItem[]
+}
+
+model ProductCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  products    Product[]
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String @db.ObjectId @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+  userId    String @db.ObjectId @map("user_id")
+  customer  Customer @relation(fields: [userId], references: [id])
+  rating    Int
+  review    String?
+  date      DateTime @default(now()) @map("date")
+}
+
+model Customer {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName     String? @map("first_name")
+  lastName      String? @map("last_name")
+  email         String?  @unique
+  phoneNumber   String?  @map("phone_number")
+  passwordHash  String? @map("password_hash")
+  addressLine1  String? @map("address_line1")
+  addressLine2  String? @map("address_line2")
+  city          String?
+  state         String?
+  postalCode    String?
+  country       String? @map("country")
+  isRegistered  Boolean @default(false) @map("is_registered")
+  registeredAt  DateTime @default(now()) @map("registered_at")
+  orders        Order[]
+  reviews       Review[]
+}
+
+model Order {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  customerId  String @db.ObjectId @map("customer_id")
+  customer    Customer @relation(fields: [customerId], references: [id])
+  products    OrderItem[]
+  orderDate   DateTime @default(now()) @map("order_date")
+  deliveredAt DateTime? @map("delivered_at")
+  total       Float
+  status      OrderStatus @default(PENDING)
+  notes       String?
+}
+
+model OrderItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String @db.ObjectId @map("order_id")
+  order     Order @relation(fields: [orderId], references: [id])
+  productId String @db.ObjectId @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int @map("quantity")
+}
+
+model Admin {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  username      String   @unique
+  passwordHash  String @map("password_hash")
+  image         String?
+}
+
+model Settings {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  phoneNumber String? @map("phone_number")
+  email       String?
+  links       String[]
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  CANCELED
+  DELIVERED
+  RETURN
+}
