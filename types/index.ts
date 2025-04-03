@@ -17,6 +17,8 @@ export interface Product {
   reviews?: Review[];
   priceLKR: number;
   priceUSD: number;
+  discountPriceLKR: number | null;
+  discountPriceUSD: number | null;
   stock: number;
   orderItems?: OrderItem[];
 }

@@ -14,18 +14,8 @@ import {
 } from "react-icons/fi";
 import axios from "axios";
 
-import { ProductCategory } from "@/types"; // Adjust the import path as necessary
+import { Product, ProductCategory } from "@/types"; // Adjust the import path as necessary
 
-interface Product {
-  _id: string;
-  name: string;
-  categoryId: string;
-  priceLKR: number;
-  priceUSD: number;
-  category: string;
-  inStock: boolean;
-  imageUrl?: string;
-}
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +34,7 @@ const ProductsPage = () => {
       .get("/api/products")
       .then((res) => {
         setProducts(res.data.products);
+        console.log(res.data.products);
         setLoading(false);
       })
       .catch((err) => {
@@ -70,16 +61,10 @@ const ProductsPage = () => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
     try {
-      const res = await fetch(`/api/products/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await axios.delete(`/api/products/${id}`);
 
-      if (!res.ok) throw new Error("Failed to delete product");
-
-      setProducts(products.filter((product) => product._id !== id));
+      fetchProducts();
+      alert("Product deleted successfully");
     } catch (error) {
       console.error("Error deleting product:", error);
       alert("Failed to delete product");
@@ -96,7 +81,7 @@ const ProductsPage = () => {
     .filter(
       (product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (filterCategory ? product.category === filterCategory : true)
+        (filterCategory ? product.categoryId === filterCategory : true)
     )
     .sort((a, b) => {
       if (sortField === "name") {
@@ -339,13 +324,13 @@ const ProductsPage = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProducts.map((product) => (
-                  <tr key={product._id} className="hover:bg-gray-50">
+                  <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
-                          {product.imageUrl ? (
+                          {product.imageUrls && product.imageUrls.length > 0 ? (
                             <img
-                              src={product.imageUrl}
+                              src={product.imageUrls[0]}
                               alt={product.name}
                               className="h-10 w-10 object-cover"
                             />
@@ -376,26 +361,20 @@ const ProductsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.inStock
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {product.inStock ? "In Stock" : "Out of Stock"}
-                      </span>
+                      <div className="text-sm text-gray-500 capitalize">
+                        {product.stock}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
-                        href={`/admin/products/${product._id}`}
+                        href={`/admin/inventory/products/${product.id}`}
                         className="text-indigo-600 hover:text-indigo-900 inline-flex items-center mr-4"
                       >
                         <FiEdit2 className="mr-1" size={16} />
                         Edit
                       </Link>
                       <button
-                        onClick={() => handleDelete(product._id)}
+                        onClick={() => handleDelete(product.id)}
                         className="text-red-600 hover:text-red-900 inline-flex items-center"
                       >
                         <FiTrash2 className="mr-1" size={16} />
