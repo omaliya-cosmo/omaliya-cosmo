@@ -1,43 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from "@/app/lib/prisma";
+import { NextRequest } from "next/server";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const orderId = params.orderId;
+    const { orderId } = params;
 
-    // Get a specific order with its items and product details
+    // Fetch the order along with its customer and items
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         customer: true,
-        products: {
+        items: {
           include: {
-            product: true
-          }
-        }
-      }
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {
-      return NextResponse.json(
-        { success: false, message: 'Order not found' },
-        { status: 404 }
-      );
+      return new Response(JSON.stringify({ error: "Order not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    return NextResponse.json({ success: true, order });
+    // Transform the order items to include product details
+    const transformedOrder = {
+      ...order,
+      items: order.items.map((item) => ({
+        productId: item.product.id,
+        name: item.product.name,
+        image: item.product.images[0] || null,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    };
+
+    return new Response(JSON.stringify({ order: transformedOrder }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error fetching order:', error);
-    return NextResponse.json(
-      { success: false, message: 'Failed to fetch order' },
-      { status: 500 }
+    console.error("Error fetching order:", error);
+    return new Response(JSON.stringify({ error: "Failed to fetch order" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const { orderId } = params;
+    const body = await request.json();
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: body,
+    });
+
+    return new Response(JSON.stringify({ order: updatedOrder }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: "Failed to update order" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const { orderId } = params;
+
+    await prisma.order.delete({
+      where: { id: orderId },
+    });
+
+    return new Response(
+      JSON.stringify({ message: "Order deleted successfully" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
     );
-  } finally {
-    await prisma.$disconnect();
+  } catch (error) {
+    return new Response(JSON.stringify({ error: "Failed to delete order" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import Image from 'next/image';
-import Link from 'next/link';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { useCountry } from '../lib/hooks/useCountry';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import Image from "next/image";
+import Link from "next/link";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useCountry } from "../lib/hooks/useCountry";
 
 interface CartItem {
   _id: string;
@@ -42,17 +42,17 @@ export default function CheckoutPage() {
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
-  
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    addressLine1: '',
-    addressLine2: '',  // Optional second address line
-    city: '',
-    postalCode: '',
-    country: '',
-    paymentMethod: 'payhere'  // Default to PayHere instead of credit-card
+    firstName: "",
+    lastName: "",
+    email: "",
+    addressLine1: "",
+    addressLine2: "", // Optional second address line
+    city: "",
+    postalCode: "",
+    country: "",
+    paymentMethod: "payhere", // Default to PayHere instead of credit-card
   });
 
   const [subtotal, setSubtotal] = useState(0);
@@ -68,7 +68,9 @@ export default function CheckoutPage() {
   const fetchCartData = async () => {
     try {
       setLoading(true);
-      const { data: cartData } = await axios.get<{ items: CartItem[] }>('/api/cart');
+      const { data: cartData } = await axios.get<{ items: CartItem[] }>(
+        "/api/cart"
+      );
       const cartItemsFromApi = cartData.items || [];
 
       if (cartItemsFromApi.length === 0) {
@@ -78,10 +80,15 @@ export default function CheckoutPage() {
       }
 
       const productIds = cartItemsFromApi.map((item) => item.productId);
-      const { data: productsData } = await axios.post<Product[]>('/api/products/batch', { productIds });
+      const { data: productsData } = await axios.post<Product[]>(
+        "/api/products/batch",
+        { productIds }
+      );
 
       const categoryIds = [
-        ...new Set(productsData.map((product) => product.categoryId).filter(Boolean)),
+        ...new Set(
+          productsData.map((product) => product.categoryId).filter(Boolean)
+        ),
       ] as string[];
 
       const categoryPromises = categoryIds.map((categoryId) =>
@@ -90,44 +97,54 @@ export default function CheckoutPage() {
       const categoryResponses = await Promise.all(categoryPromises);
       const categories = categoryResponses.map((res) => res.data);
 
-      const mergedItems: DisplayCartItem[] = cartItemsFromApi.map((cartItem) => {
-        const product = productsData.find((p) => p.id === cartItem.productId) || {
-          id: cartItem.productId,
-          name: 'Unknown Product',
-          price: 0,
-          priceLKR: 0,
-          priceUSD: 0,
-          categoryId: '',
-        };
-        const category = categories.find((cat) => cat.id === product.categoryId) || {
-          id: product.categoryId || '',
-          name: 'Unknown Category',
-          description: 'No description available',
-        };
-        return { ...cartItem, ...product, category };
-      });
+      const mergedItems: DisplayCartItem[] = cartItemsFromApi.map(
+        (cartItem) => {
+          const product = productsData.find(
+            (p) => p.id === cartItem.productId
+          ) || {
+            id: cartItem.productId,
+            name: "Unknown Product",
+            price: 0,
+            priceLKR: 0,
+            priceUSD: 0,
+            categoryId: "",
+          };
+          const category = categories.find(
+            (cat) => cat.id === product.categoryId
+          ) || {
+            id: product.categoryId || "",
+            name: "Unknown Category",
+            description: "No description available",
+          };
+          return { ...cartItem, ...product, category };
+        }
+      );
 
       setCartItems(mergedItems);
-      
+
       const calculatedSubtotal = mergedItems.reduce(
-        (sum, item) => sum + (country === 'LK' ? item.priceLKR : item.priceUSD) * item.quantity,
+        (sum, item) =>
+          sum +
+          (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
         0
       );
-      const calculatedTax = calculatedSubtotal * 0.07; 
-      
+      const calculatedTax = calculatedSubtotal * 0.07;
+
       setSubtotal(calculatedSubtotal);
       setTax(calculatedTax);
       setTotal(calculatedSubtotal + calculatedTax - discount);
-      
+
       setLoading(false);
     } catch (err: any) {
-      console.error('Error fetching cart:', err);
+      console.error("Error fetching cart:", err);
       setError(err.message);
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -140,38 +157,48 @@ export default function CheckoutPage() {
     try {
       setProcessingOrder(true);
       setError(null);
-      
-      const response = await axios.post('/api/checkout', {
+
+      // Format cart items to match the schema
+      const formattedCartItems = cartItems.map((item) => ({
+        id: item.id || item.productId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: country === "LK" ? item.priceLKR : item.priceUSD,
+        name: item.name,
+        priceLKR: item.priceLKR,
+        priceUSD: item.priceUSD,
+      }));
+
+      const response = await axios.post("/api/checkout", {
         ...formData,
-        address: formData.addressLine1 + (formData.addressLine2 ? ', ' + formData.addressLine2 : ''),
-        cartItems,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        cartItems: formattedCartItems,
         orderTotal: total,
-        currency: country === 'LK' ? 'LKR' : 'USD'
+        currency: country === "LK" ? "LKR" : "USD",
+        subtotal,
+        shipping: 0,
+        tax,
       });
-      
+
       if (response.data.success) {
-        // Clear cart from client-side storage (cookies or localStorage)
-        document.cookie = 'cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        // OR if using localStorage: localStorage.removeItem('cart');
-        
-        // Also clear in-memory cart state
+        // Clear cart from client-side storage
+        document.cookie =
+          "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setCartItems([]);
-        
-        toast.success('Order placed successfully!', {
-          position: 'bottom-right',
+
+        toast.success("Order placed successfully!", {
+          position: "bottom-right",
         });
-        
-        // Extract the order ID from the response
-        const orderId = response.data.orderId;
-        
-        // Pass the order ID to the order confirmation page
-        router.push(`/order-confirmation?orderId=${orderId}`);
+
+        router.push(`/order-confirmation?orderId=${response.data.orderId}`);
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to place order';
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to place order";
       setError(errorMessage);
       toast.error(errorMessage, {
-        position: 'bottom-right',
+        position: "bottom-right",
       });
     } finally {
       setProcessingOrder(false);
@@ -194,9 +221,11 @@ export default function CheckoutPage() {
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Checkout</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-white">
+              Checkout
+            </h1>
           </div>
-          
+
           <div className="text-center py-16 px-4">
             <div className="mb-8">
               <div className="w-32 h-32 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
@@ -216,7 +245,9 @@ export default function CheckoutPage() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Your cart is empty</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+              Your cart is empty
+            </h2>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
               Please add items to your cart before proceeding to checkout.
             </p>
@@ -235,10 +266,12 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <ToastContainer />
-      
+
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Checkout</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white">
+            Checkout
+          </h1>
           <p className="text-purple-200 mt-2">Complete your purchase</p>
         </div>
 
@@ -248,13 +281,17 @@ export default function CheckoutPage() {
             <div className="md:col-span-2">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Contact Information</h2>
-                  
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Contact Information
+                  </h2>
+
                   <div className="space-y-4">
                     {/* Form fields with improved contrast */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-1">First Name</label>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          First Name
+                        </label>
                         <input
                           type="text"
                           name="firstName"
@@ -265,7 +302,9 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-1">Last Name</label>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Last Name
+                        </label>
                         <input
                           type="text"
                           name="lastName"
@@ -276,9 +315,11 @@ export default function CheckoutPage() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-800 mb-1">Email Address</label>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">
+                        Email Address
+                      </label>
                       <input
                         type="email"
                         name="email"
@@ -290,13 +331,17 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Address</h2>
-                  
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Shipping Address
+                  </h2>
+
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-800 mb-1">Address Line 1</label>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">
+                        Address Line 1
+                      </label>
                       <input
                         type="text"
                         name="addressLine1"
@@ -307,10 +352,13 @@ export default function CheckoutPage() {
                         placeholder="Street address, P.O. box, company name"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-800 mb-1">
-                        Address Line 2 <span className="text-gray-500 text-xs">(Optional)</span>
+                        Address Line 2{" "}
+                        <span className="text-gray-500 text-xs">
+                          (Optional)
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -321,10 +369,12 @@ export default function CheckoutPage() {
                         placeholder="Apartment, suite, unit, building, floor, etc."
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="md:col-span-1">
-                        <label className="block text-sm font-medium text-gray-800 mb-1">City</label>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          City
+                        </label>
                         <input
                           type="text"
                           name="city"
@@ -335,7 +385,9 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div className="md:col-span-1">
-                        <label className="block text-sm font-medium text-gray-800 mb-1">Postal Code</label>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Postal Code
+                        </label>
                         <input
                           type="text"
                           name="postalCode"
@@ -346,7 +398,9 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div className="md:col-span-1">
-                        <label className="block text-sm font-medium text-gray-800 mb-1">Country</label>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Country
+                        </label>
                         <select
                           name="country"
                           value={formData.country}
@@ -365,55 +419,86 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Payment Method</h2>
-                  
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Payment Method
+                  </h2>
+
                   <div className="space-y-3">
                     <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
                       <input
                         type="radio"
                         name="paymentMethod"
                         value="payhere"
-                        checked={formData.paymentMethod === 'payhere'}
+                        checked={formData.paymentMethod === "payhere"}
                         onChange={handleInputChange}
                         className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                       />
                       <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-800">PayHere</span>
-                        <span className="block text-xs text-gray-600">Secure online payment gateway for Sri Lanka</span>
+                        <span className="block text-sm font-medium text-gray-800">
+                          PayHere
+                        </span>
+                        <span className="block text-xs text-gray-600">
+                          Secure online payment gateway for Sri Lanka
+                        </span>
                       </div>
                       <div className="ml-auto flex space-x-1">
                         <div className="w-8 h-5 bg-blue-600 rounded"></div>
                         <div className="w-8 h-5 bg-gray-800 rounded"></div>
                       </div>
                     </label>
-                    
+
                     <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
                       <input
                         type="radio"
                         name="paymentMethod"
                         value="koko"
-                        checked={formData.paymentMethod === 'koko'}
+                        checked={formData.paymentMethod === "koko"}
                         onChange={handleInputChange}
                         className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                       />
                       <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-800">KOKO Payment</span>
-                        <span className="block text-xs text-gray-600">Pay using KOKO digital wallet</span>
+                        <span className="block text-sm font-medium text-gray-800">
+                          KOKO Payment
+                        </span>
+                        <span className="block text-xs text-gray-600">
+                          Pay using KOKO digital wallet
+                        </span>
                       </div>
                       <div className="ml-auto">
                         <div className="w-8 h-5 bg-purple-500 rounded"></div>
                       </div>
                     </label>
+
+                    <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={formData.paymentMethod === "cod"}
+                        onChange={handleInputChange}
+                        className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                      />
+                      <div className="ml-3">
+                        <span className="block text-sm font-medium text-gray-800">
+                          Cash On Delivery
+                        </span>
+                        <span className="block text-xs text-gray-600">
+                          Pay after recieving the product
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
-                
+
                 <button
                   type="submit"
                   disabled={processingOrder}
                   className={`w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium py-4 px-6 rounded-xl ${
-                    processingOrder ? 'opacity-70 cursor-wait' : 'hover:shadow-lg transform hover:-translate-y-0.5'
+                    processingOrder
+                      ? "opacity-70 cursor-wait"
+                      : "hover:shadow-lg transform hover:-translate-y-0.5"
                   } transition-all duration-150`}
                 >
                   {processingOrder ? (
@@ -422,10 +507,10 @@ export default function CheckoutPage() {
                       Processing Order...
                     </div>
                   ) : (
-                    'Complete Order'
+                    "Complete Order"
                   )}
                 </button>
-                
+
                 {error && (
                   <div className="mt-4 bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
                     <div className="flex items-center">
@@ -449,15 +534,20 @@ export default function CheckoutPage() {
                 )}
               </form>
             </div>
-            
+
             {/* Right side - Order Summary */}
             <div className="md:col-span-1">
               <div className="bg-gray-50 border border-gray-200 rounded-xl shadow-md p-6 sticky top-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Order Summary</h2>
-                
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Order Summary
+                </h2>
+
                 <div className="space-y-4 mb-6">
                   {cartItems.map((item) => (
-                    <div key={item._id} className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100">
+                    <div
+                      key={item._id}
+                      className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100"
+                    >
                       <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                         {item.image ? (
                           <Image
@@ -486,82 +576,85 @@ export default function CheckoutPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-800 truncate">{item.name}</h3>
-                        <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                        <h3 className="text-sm font-medium text-gray-800 truncate">
+                          {item.name}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Qty: {item.quantity}
+                        </p>
                       </div>
-                      
+
                       <div className="text-sm font-medium text-gray-800">
-                        {country === 'LK' 
+                        {country === "LK"
                           ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
-                          : `$${(item.priceUSD * item.quantity).toFixed(2)}`
-                        }
+                          : `$${(item.priceUSD * item.quantity).toFixed(2)}`}
                       </div>
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="border-t border-gray-300 pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">Subtotal</span>
                     <span className="font-medium text-gray-800">
-                      {country === 'LK' 
+                      {country === "LK"
                         ? `Rs ${subtotal.toFixed(2)}`
-                        : `$${subtotal.toFixed(2)}`
-                      }
+                        : `$${subtotal.toFixed(2)}`}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">Shipping</span>
                     <span className="font-medium text-green-600">Free</span>
                   </div>
-                  
+
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">Tax (7%)</span>
                     <span className="font-medium text-gray-800">
-                      {country === 'LK' 
+                      {country === "LK"
                         ? `Rs ${tax.toFixed(2)}`
-                        : `$${tax.toFixed(2)}`
-                      }
+                        : `$${tax.toFixed(2)}`}
                     </span>
                   </div>
-                  
+
                   {discount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
                       <span className="font-medium">
-                        {country === 'LK' 
+                        {country === "LK"
                           ? `-Rs ${discount.toFixed(2)}`
-                          : `-$${discount.toFixed(2)}`
-                        }
+                          : `-$${discount.toFixed(2)}`}
                       </span>
                     </div>
                   )}
                 </div>
-                
+
                 <div className="border-t border-gray-300 mt-4 pt-4 bg-white p-3 rounded-lg">
                   <div className="flex justify-between">
-                    <span className="text-base font-bold text-gray-800">Total</span>
+                    <span className="text-base font-bold text-gray-800">
+                      Total
+                    </span>
                     <span className="text-base font-bold text-purple-700">
-                      {country === 'LK' 
+                      {country === "LK"
                         ? `Rs ${total.toFixed(2)}`
-                        : `$${total.toFixed(2)}`
-                      }
+                        : `$${total.toFixed(2)}`}
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 pt-4 border-t border-gray-300">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-800">Currency</span>
+                    <span className="text-sm font-medium text-gray-800">
+                      Currency
+                    </span>
                     <span className="text-sm font-medium px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                      {country === 'LK' ? 'LKR (Rs)' : 'USD ($)'}
+                      {country === "LK" ? "LKR (Rs)" : "USD ($)"}
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 pt-4 border-t border-gray-300">
                   <Link
                     href="/cart"

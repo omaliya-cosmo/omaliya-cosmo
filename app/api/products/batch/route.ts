@@ -2,6 +2,11 @@ import { prisma } from "@/app/lib/prisma"; // Adjust import path as needed
 
 export async function POST(req: Request) {
   try {
+    const url = new URL(req.url);
+    const searchParams = url.searchParams;
+    const includeReviews = searchParams.get("reviews") === "true";
+    const includeCategory = searchParams.get("category") === "true";
+
     const { productIds } = await req.json();
 
     if (!Array.isArray(productIds) || productIds.length === 0) {
@@ -17,6 +22,10 @@ export async function POST(req: Request) {
     // Fetch products from the database
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
+      include: {
+        reviews: includeReviews,
+        category: includeCategory,
+      },
     });
 
     return new Response(JSON.stringify(products), {

@@ -77,11 +77,28 @@ model Order {
   customer       Customer     @relation(fields: [customerId], references: [id])
   orderDate      DateTime     @default(now()) @map("order_date") // Order date
   deliveredAt    DateTime?    @map("delivered_at") // Optional delivery date
+  subtotal       Float        // Subtotal amount
+  shipping       Float        // Shipping cost
   total          Float        // Total order amount
+  currency       Currency      // Currency of the order
   status         OrderStatus  @default(PENDING) // Order status
   notes          String?      // Optional notes
-  items          Json[]       // Array of order items
+  items          OrderItem[]  // Relation to order items
   trackingNumber String?      @map("tracking_number") // Optional tracking number
+  paymentMethod  PaymentMethod @map("payment_method") // Payment method
+}
+
+// Enum for payment methods
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  PAY_HERE
+  KOKO
+}
+
+// Enum for currencies
+enum Currency {
+  LKR
+  USD
 }
 
 // PromoCode model
@@ -131,6 +148,16 @@ model Settings {
   phoneNumber String?  @map("phone_number") // Optional phone number
   email       String?  // Optional email address
   links       String[] // Array of links (e.g., social media)
+}
+
+// OrderItem model
+model OrderItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String   @db.ObjectId @map("product_id")
+  quantity  Int
+  price     Float    // Price at time of order
 }
 
 // Enum for order statuses

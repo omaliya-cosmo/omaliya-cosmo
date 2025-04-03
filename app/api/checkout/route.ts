@@ -1,24 +1,21 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient, OrderStatus } from '@prisma/client';
-import { cookies } from 'next/headers';
+import { NextResponse } from "next/server";
+import {
+  PrismaClient,
+  OrderStatus,
+  PaymentMethod,
+  Currency,
+} from "@prisma/client";
+import { cookies } from "next/headers";
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // Define the type for cart items
-    type CartItem = {
-      productId: string;
-      quantity: number;
-    };
-
-    // Extract order data from the request body
-    const { 
-      firstName, 
-      lastName, 
-      email, 
+    const {
+      firstName,
+      lastName,
+      email,
       addressLine1,
       addressLine2,
       city,
@@ -27,112 +24,112 @@ export async function POST(request: Request) {
       paymentMethod,
       cartItems,
       orderTotal,
-      currency
-    }: { 
-      firstName: string; 
-      lastName: string; 
-      email: string; 
-      addressLine1: string; 
-      addressLine2?: string; 
-      city: string; 
-      postalCode?: string; 
-      country: string; 
-      paymentMethod: string; 
-      cartItems: CartItem[]; 
-      orderTotal: number; 
-      currency: string; 
+      currency,
     } = body;
-    
+
     // Validate required fields
-    if (!firstName || !lastName || !email || !addressLine1 || !city || !cartItems || !orderTotal) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !addressLine1 ||
+      !city ||
+      !cartItems ||
+      !orderTotal
+    ) {
       return NextResponse.json(
-        { success: false, message: 'Missing required order information' },
+        { success: false, message: "Missing required order information" },
         { status: 400 }
       );
     }
 
-    // Step 1: Process customer outside of transaction
-    let customer = await prisma.customer.findUnique({
-      where: { email }
+    // Create or update customer
+    const customer = await prisma.customer.upsert({
+      where: { email },
+      create: {
+        firstName,
+        lastName,
+        email,
+        addressLine1,
+        addressLine2,
+        city,
+        postalCode,
+        country: customerCountry,
+        isRegistered: false,
+      },
+      update: {
+        firstName,
+        lastName,
+        addressLine1,
+        addressLine2,
+        city,
+        postalCode,
+        country: customerCountry,
+      },
     });
 
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          firstName,
-          lastName,
-          email,
-          addressLine1,
-          addressLine2,
-          city,
-          postalCode,
-          country: customerCountry,
-          isRegistered: false // Guest checkout
-        }
-      });
-    }
-    
-    // Step 2: Create the order
+    // Format order items
+    const orderItems = cartItems.map((item: any) => ({
+      productId: item.id || item.productId,
+      quantity: item.quantity,
+      price: currency === "LKR" ? item.priceLKR : item.priceUSD,
+      name: item.name,
+      subtotal:
+        (currency === "LKR" ? item.priceLKR : item.priceUSD) * item.quantity,
+    }));
+
+    // Calculate order totals
+    const subtotal = orderItems.reduce(
+      (sum: number, item: any) => sum + item.subtotal,
+      0
+    );
+    const shipping = 0; // Free shipping
+    const total = orderTotal;
+
+    // Create the order
     const newOrder = await prisma.order.create({
       data: {
         customerId: customer.id,
-        total: orderTotal,
+        orderDate: new Date(),
+        subtotal,
+        shipping,
+        total,
+        currency: currency === "LKR" ? Currency.LKR : Currency.USD,
         status: OrderStatus.PENDING,
-        notes: `Payment method: ${paymentMethod}, Currency: ${currency}`
-      }
+        paymentMethod:
+          paymentMethod === "cod"
+            ? PaymentMethod.CASH_ON_DELIVERY
+            : paymentMethod === "koko"
+            ? PaymentMethod.KOKO
+            : PaymentMethod.PAY_HERE,
+        items: orderItems,
+      },
     });
-    
-    // Step 3: Create order items
-    const orderItemsPromises = cartItems.map(item => 
-      prisma.orderItem.create({
-        data: {
-          orderId: newOrder.id,
-          productId: item.productId,
-          quantity: item.quantity
-        }
-      })
-    );
-    
-    await Promise.all(orderItemsPromises);
-    
-    // Step 4: Fetch the complete order with all details for the confirmation page
+
     const completeOrder = await prisma.order.findUnique({
       where: { id: newOrder.id },
-      include: {
-        customer: true,
-        products: {
-          include: {
-            product: true
-          }
-        }
-      }
+      include: { customer: true },
     });
-    
-    console.log('Order created:', newOrder.id);
-    
+
     // Create response with cookie clearing
-    const response = NextResponse.json({ 
+    const response = NextResponse.json({
       success: true,
-      message: 'Order placed successfully',
+      message: "Order placed successfully",
       orderId: newOrder.id,
       orderDate: newOrder.orderDate,
       orderStatus: newOrder.status,
-      order: completeOrder // Include full order details
+      order: completeOrder,
     });
-    
-    // Clear the cart cookie by setting it to empty with expired date
-    cookies().set({
-      name: 'cart',
-      value: '',
-      expires: new Date(0), // Set to epoch time to expire immediately
-      path: '/',
-    });
-    
+
+    // Clear the cart cookie
+    const cookieStore = await cookies();
+    cookieStore.set("cart", "", { expires: new Date(0), path: "/" });
+
     return response;
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error("Checkout error:", error);
     return NextResponse.json(
-      { success: false, message: 'Checkout failed. Please try again.' },
+      { success: false, message: "Checkout failed. Please try again." },
       { status: 500 }
     );
   } finally {

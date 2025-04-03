@@ -11,31 +11,22 @@ import {
   FiPackage,
 } from "react-icons/fi";
 import axios from "axios";
-import { Customer } from "@prisma/client";
+import { Customer, Order as PrismaOrder, Product } from "@prisma/client";
 
-interface Order {
-  id: string;
-  customerId: string;
-  products: { productId: string; quantity: number }[];
-  orderDate: string;
-  total: number;
-  status: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
+interface Order extends PrismaOrder {
+  customer: Customer; // Include the customer relation
 }
 
 const ReceivedOrdersPage = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<
+    (Order & { items: { name: string; quantity: number }[] | any[] })[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("order_date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [products, setProducts] = useState<Product[]>([]); // Adjust type as needed
-  const [customers, setCustomers] = useState<Customer[]>([]); // Adjust type as needed
 
   const router = useRouter();
 
@@ -45,17 +36,6 @@ const ReceivedOrdersPage = () => {
       .get("/api/products")
       .then((res) => {
         setProducts(res.data.products);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-
-    axios
-      .get("/api/customers")
-      .then((res) => {
-        setCustomers(res.data.customers);
         setLoading(false);
       })
       .catch((err) => {
@@ -105,35 +85,30 @@ const ReceivedOrdersPage = () => {
     return product ? product.name : ""; // Default to "" if not found
   };
 
-  const getCustomer = (customerId: string) => {
-    const customer = customers.find((customer) => customer.id === customerId);
-    return customer; // Default to "" if not found
-  };
-
   // Filter and sort orders
-  // const filteredOrders = orders
-  //   .filter((order) =>
-  //     order.customer_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  //   )
-  //   .sort((a, b) => {
-  //     if (sortField === "order_date") {
-  //       return sortDirection === "asc"
-  //         ? new Date(a.order_date).getTime() - new Date(b.order_date).getTime()
-  //         : new Date(b.order_date).getTime() - new Date(a.order_date).getTime();
-  //     } else if (sortField === "total") {
-  //       return sortDirection === "asc" ? a.total - b.total : b.total - a.total;
-  //     }
-  //     return 0;
-  //   });
+  const filteredOrders = orders
+    .filter((order) =>
+      order.customerId?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortField === "order_date") {
+        return sortDirection === "asc"
+          ? new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime()
+          : new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
+      } else if (sortField === "total") {
+        return sortDirection === "asc" ? a.total - b.total : b.total - a.total;
+      }
+      return 0;
+    });
 
-  // const handleSort = (field: string) => {
-  //   if (sortField === field) {
-  //     setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-  //   } else {
-  //     setSortField(field);
-  //     setSortDirection("asc");
-  //   }
-  // };
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
   return (
     <>
@@ -222,7 +197,7 @@ const ReceivedOrdersPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr
                     key={order.id}
                     className="hover:bg-gray-50 odd:bg-white even:bg-gray-50"
@@ -244,21 +219,25 @@ const ReceivedOrdersPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.products.map((product) => (
+                      {order.items.map((product) => (
                         <div>
-                          {getProductName(product.productId)} -{" "}
-                          {product.quantity}
+                          {typeof product === "object" &&
+                          product !== null &&
+                          "name" in product &&
+                          "quantity" in product
+                            ? `${product.name} - ${product.quantity}`
+                            : ""}
                         </div>
                       ))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getCustomer(order.customerId)?.firstName}
+                      {order.customer.firstName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getCustomer(order.customerId)?.email}
+                      {order.customer.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getCustomer(order.customerId)?.phoneNumber}
+                      {order.customer.phoneNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       Rs {order.total.toFixed(2)}

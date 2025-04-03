@@ -7,6 +7,7 @@ import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
+import { Product, ProductCategory } from "@prisma/client";
 
 // Define the cart item structure from the cart API
 interface CartItem {
@@ -15,27 +16,9 @@ interface CartItem {
   quantity: number;
 }
 
-// Define the category structure from the category API
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-}
-
-// Define the product structure from the products API, with only categoryId initially
-interface Product {
-  id?: string;
-  name: string;
-  price: number;
-  priceLKR: number;
-  priceUSD: number;
-  categoryId?: string; // Changed from category object to categoryId
-  image?: string;
-}
-
 // Combined structure for display purposes
 interface DisplayCartItem extends CartItem, Product {
-  category?: Category; // Add category object to the display item
+  category?: ProductCategory; // Add category object to the display item
 }
 
 const CartPage = () => {
@@ -58,7 +41,8 @@ const CartPage = () => {
     0
   );
   const tax = subtotal * 0.07; // 7% tax
-  const total = subtotal + tax - discount;
+  const discountAmount = (subtotal * discount) / 100;
+  const total = subtotal + tax - discountAmount;
 
   useEffect(() => {
     fetchCartData();
@@ -81,25 +65,12 @@ const CartPage = () => {
       // Fetch product details for all productIds in the cart
       const productIds = cartItemsFromApi.map((item) => item.productId);
       const { data: productsData } = await axios.post<Product[]>(
-        "/api/products/batch",
+        "/api/products/batch?category=true",
         { productIds }
       );
+      console.log(productsData);
 
-      // Extract unique category IDs from products
-      const categoryIds = [
-        ...new Set(
-          productsData.map((product) => product.categoryId).filter(Boolean)
-        ),
-      ] as string[];
-
-      // Fetch category details for all categoryIds
-      const categoryPromises = categoryIds.map((categoryId) =>
-        axios.get<Category>(`/api/categories/${categoryId}`)
-      );
-      const categoryResponses = await Promise.all(categoryPromises);
-      const categories = categoryResponses.map((res) => res.data);
-
-      // Merge cart items with product details and category names
+      // Merge cart items with product details
       const mergedItems: DisplayCartItem[] = cartItemsFromApi.map(
         (cartItem) => {
           const product = productsData.find(
@@ -107,23 +78,23 @@ const CartPage = () => {
           ) || {
             id: cartItem.productId,
             name: "Unknown Product",
+            description: "No description available",
+            imageUrls: [],
             price: 0,
             priceLKR: 0,
             priceUSD: 0,
+            discountPriceLKR: null,
+            discountPriceUSD: null,
             categoryId: "",
+            category: undefined,
+            stock: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           };
-          const category = categories.find(
-            (cat) => cat.id === product.categoryId
-          ) || {
-            id: product.categoryId || "",
-            name: "Unknown Category",
-            description: "No description avalaible",
-          };
-          return { ...cartItem, ...product, category };
+          return { ...cartItem, ...product };
         }
       );
 
-      console.log(mergedItems);
       setCartItems(mergedItems);
     } catch (err: any) {
       console.error("Error fetching cart:", err);
@@ -132,6 +103,7 @@ const CartPage = () => {
       setLoading(false);
     }
   };
+
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     try {
@@ -201,7 +173,7 @@ const CartPage = () => {
     try {
       setApplyingPromo(true);
       setError(null);
-      const { data } = await axios.post("/api/promo/validate", {
+      const { data } = await axios.post("/api/promocodes/validate", {
         code: promoCode,
       });
       setDiscount(data.discount || 0);
@@ -215,25 +187,6 @@ const CartPage = () => {
       });
     } finally {
       setApplyingPromo(false);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (cartItems.length === 0) return;
-    try {
-      setProcessingCheckout(true);
-      const response = await axios.post("/api/checkout", {
-        items: cartItems,
-        country,
-      });
-      toast.success("Checkout successful!", { position: "bottom-right" });
-      redirect(response.data.redirectUrl); // Redirect to the checkout URL
-    } catch (err: any) {
-      toast.error(err.message || "Checkout failed", {
-        position: "bottom-right",
-      });
-    } finally {
-      setProcessingCheckout(false);
     }
   };
 
@@ -307,9 +260,9 @@ const CartPage = () => {
                   <div className="grid grid-cols-12 gap-4 items-center">
                     <div className="col-span-12 md:col-span-6 flex items-center space-x-4">
                       <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-coloRs ">
-                        {item.image ? (
+                        {item.imageUrls.length > 0 ? (
                           <Image
-                            src={item.image}
+                            src={item.imageUrls[0]}
                             alt={item.name}
                             width={80}
                             height={80}
@@ -534,7 +487,7 @@ const CartPage = () => {
                           d="M5 13l4 4L19 7"
                         />
                       </svg>
-                      Discount applied: Rs {discount.toFixed(2)}
+                      Discount applied: {discount} %
                     </div>
                   )}
                 </div>
@@ -593,7 +546,7 @@ const CartPage = () => {
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
                         <span className="font-medium">
-                          -Rs {discount.toFixed(2)}
+                          - Rs {(subtotal * (discount / 100)).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -613,18 +566,22 @@ const CartPage = () => {
                     </p>
                   </div>
 
-                  <Link 
-                    href="/checkout" 
+                  <Link
+                    href="/checkout"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center"
                   >
                     <span>Proceed to Checkout</span>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      className="h-5 w-5 ml-2" 
-                      viewBox="0 0 20 20" 
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 ml-2"
+                      viewBox="0 0 20 20"
                       fill="currentColor"
                     >
-                      <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </Link>
 
