@@ -219,7 +219,22 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
-    // handle payment
+    if (cartItems.length === 0) return;
+    try {
+      setProcessingCheckout(true);
+      const response = await axios.post("/api/checkout", {
+        items: cartItems,
+        country,
+      });
+      toast.success("Checkout successful!", { position: "bottom-right" });
+      redirect(response.data.redirectUrl); // Redirect to the checkout URL
+    } catch (err: any) {
+      toast.error(err.message || "Checkout failed", {
+        position: "bottom-right",
+      });
+    } finally {
+      setProcessingCheckout(false);
+    }
   };
 
   return (
@@ -598,59 +613,20 @@ const CartPage = () => {
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleCheckout}
-                    disabled={processingCheckout || cartItems.length === 0}
-                    className={`w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 px-6 rounded-xl font-medium flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-                      processingCheckout || cartItems.length === 0
-                        ? "opacity-70 cuRs or-not-allowed"
-                        : ""
-                    }`}
+                  <Link 
+                    href="/checkout" 
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center"
                   >
-                    {processingCheckout ? (
-                      <>
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Proceed to Checkout
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 ml-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 8l4 4m0 0l-4 4m4-4H3"
-                          />
-                        </svg>
-                      </>
-                    )}
-                  </button>
+                    <span>Proceed to Checkout</span>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className="h-5 w-5 ml-2" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
 
                   <div className="mt-4 flex items-center justify-center space-x-2">
                     <span className="text-gray-500 text-sm">
