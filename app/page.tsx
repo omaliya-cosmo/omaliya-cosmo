@@ -48,6 +48,7 @@ export default function Home() {
     // Fetch products data
     axios
       .get(`/api/products${sort !== 'default' ? `?sort=${sort}` : ''}`)
+
       .then((res) => {
         setProducts(res.data.products);
         setLoading(false);
@@ -79,6 +80,7 @@ export default function Home() {
         (sum: number, item: any) => sum + item.quantity,
         0
       ) || 0;
+
       setCartCount(totalItems);
     } catch (error) {
       console.error("Error fetching cart:", error);
@@ -97,6 +99,7 @@ export default function Home() {
       });
       return;
     }
+
 
     try {
       await axios.post("/api/cart", {
@@ -172,6 +175,7 @@ export default function Home() {
       </main>
 
       <Footer />
+
     </div>
   );
 }
