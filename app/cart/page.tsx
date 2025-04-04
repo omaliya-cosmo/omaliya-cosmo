@@ -88,7 +88,6 @@ const CartPage = () => {
         "/api/products/batch?category=true",
         { productIds }
       );
-      console.log(productsData);
 
       // Merge cart items with product details
       const mergedItems: DisplayCartItem[] = cartItemsFromApi.map(
