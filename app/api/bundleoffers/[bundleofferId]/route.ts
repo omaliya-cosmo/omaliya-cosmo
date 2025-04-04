@@ -8,6 +8,13 @@ export async function DELETE(
   const { bundleofferId } = params;
 
   try {
+    // Delete related records in ProductsOnBundles
+    await prisma.productsOnBundles.deleteMany({
+      where: {
+        bundleId: bundleofferId,
+      },
+    });
+
     // Delete the bundle offer by ID
     const deletedBundleOffer = await prisma.bundleOffer.delete({
       where: {

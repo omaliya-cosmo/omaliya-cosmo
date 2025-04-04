@@ -28,6 +28,7 @@ model Product {
   createdAt         DateTime         @default(now()) @map("created_at") // Timestamp for creation
   updatedAt         DateTime         @updatedAt @map("updated_at") // Timestamp for last update
   orderItems        OrderItem[]      // Relation to order items
+  bundleOffers      ProductsOnBundles[] // Relation to bundle offers
 }
 
 // ProductCategory model
@@ -48,7 +49,7 @@ model Review {
   customer  Customer  @relation(fields: [userId], references: [id])
   rating    Int       // Rating out of 5
   review    String?   // Optional review text
-  date      DateTime  @default(now()) @map("date") // Review date
+  date      DateTime  @default(now()) // Review date
 }
 
 // Customer model
@@ -63,8 +64,8 @@ model Customer {
   addressLine2  String?   @map("address_line2") // Optional address line 2
   city          String?   // Optional city
   state         String?   // Optional state
-  postalCode    String?   // Optional postal code
-  country       String?   @map("country") // Optional country
+  postalCode    String?   @map("postal_code") // Optional postal code
+  country       String?   // Optional country
   isRegistered  Boolean   @default(false) @map("is_registered") // Registration status
   registeredAt  DateTime  @default(now()) @map("registered_at") // Registration timestamp
   orders        Order[]   // Relation to orders
@@ -124,15 +125,23 @@ model Videos {
 
 // BundleOffer model
 model BundleOffer {
-  id              String    @id @default(auto()) @map("_id") @db.ObjectId
-  bundleName      String    @map("bundle_name") // Name of the bundle
-  productIds      String[]  @db.ObjectId @map("product_ids") // Array of product IDs
-  originalPriceLKR Float    @map("original_price_lkr") // Original price in LKR
-  originalPriceUSD Float    @map("original_price_usd") // Original price in USD
-  offerPriceLKR   Float     @map("offer_price_lkr") // Offer price in LKR
-  offerPriceUSD   Float     @map("offer_price_usd") // Offer price in USD
-  endDate         DateTime  @map("end_date") // Offer end date
-  createdAt       DateTime  @default(now()) @map("created_at") // Timestamp for creation
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  bundleName      String       @map("bundle_name") // Name of the bundle
+  originalPriceLKR Float       @map("original_price_lkr") // Original price in LKR
+  originalPriceUSD Float       @map("original_price_usd") // Original price in USD
+  offerPriceLKR   Float        @map("offer_price_lkr") // Offer price in LKR
+  offerPriceUSD   Float        @map("offer_price_usd") // Offer price in USD
+  endDate         DateTime     @map("end_date") // Offer end date
+  createdAt       DateTime     @default(now()) @map("created_at") // Timestamp for creation
+  products        ProductsOnBundles[] // Relation to products
+}
+
+model ProductsOnBundles {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     String      @db.ObjectId @map("product_id")
+  bundle        BundleOffer @relation(fields: [bundleId], references: [id])
+  bundleId      String      @db.ObjectId @map("bundle_id")
 }
 
 // Admin model
@@ -169,5 +178,4 @@ enum OrderStatus {
   SHIPPED
   CANCELED
   DELIVERED
-  RETURN
 }

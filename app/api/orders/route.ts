@@ -13,6 +13,11 @@ export async function GET(request: NextRequest) {
       },
       include: {
         customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
       },
     });
 

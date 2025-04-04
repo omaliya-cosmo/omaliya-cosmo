@@ -4,12 +4,19 @@ import React, { useEffect, useState } from "react";
 import { FiTrash2, FiPlus } from "react-icons/fi";
 import axios from "axios";
 
-import { PromoCode } from "@prisma/client";
-import { BundleOffer } from "@prisma/client";
+import {
+  Product,
+  ProductsOnBundles as PrismaProductsOnBundles,
+  PromoCode,
+} from "@prisma/client";
+import { BundleOffer as PrismaBundleOffer } from "@prisma/client";
 
-interface Product {
-  id: string;
-  name: string;
+interface ProductsOnBundles extends PrismaProductsOnBundles {
+  product: Product;
+}
+
+interface BundleOffer extends PrismaBundleOffer {
+  products: ProductsOnBundles[];
 }
 
 const SettingsPage = () => {
@@ -125,7 +132,10 @@ const SettingsPage = () => {
       };
 
       const res = await axios.post("/api/bundleoffers", updatedBundle);
-      fetchBundleOffers();
+
+      fetchBundleOffers(); // Refresh the bundle offers list
+
+      // Reset the form and close the modal
       setNewBundle({
         bundleName: "",
         productIds: [],
@@ -296,12 +306,8 @@ const SettingsPage = () => {
                 </h2>
                 <p className="text-sm text-gray-600">
                   Products:{" "}
-                  {bundle.productIds
-                    .map(
-                      (id) =>
-                        products.find((product) => product.id === id)?.name
-                    )
-                    .filter(Boolean)
+                  {bundle.products
+                    .map((product) => product.product.name)
                     .join(", ")}
                 </p>
                 <p className="text-sm text-gray-600">

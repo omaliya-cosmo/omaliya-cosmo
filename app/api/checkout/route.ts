@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/app/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -42,8 +40,24 @@ export async function POST(request: Request) {
       where: { email },
     });
 
-    // If the customer does not exist, create a new one
-    if (!customer) {
+    // If the customer exists, update their details
+    if (customer) {
+      customer = await prisma.customer.update({
+        where: { email },
+        data: {
+          firstName,
+          lastName,
+          phoneNumber,
+          addressLine1,
+          addressLine2,
+          city,
+          state,
+          postalCode,
+          country,
+        },
+      });
+    } else {
+      // If the customer does not exist, create a new one
       customer = await prisma.customer.create({
         data: {
           email,
@@ -86,8 +100,6 @@ export async function POST(request: Request) {
     );
 
     const total = subtotal + shipping;
-
-    console.log("Subtotal:", paymentMethod);
 
     // Create the order
     const order = await prisma.order.create({

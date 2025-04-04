@@ -32,7 +32,6 @@ export default function CheckoutPage() {
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
-  console.log(getCustomerFromToken());
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -142,10 +141,10 @@ export default function CheckoutPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    console.log(cartItems);
 
     if (name == "country") {
       setShipping(shippingFees.find((fee) => fee.country === value)?.fee ?? 0);
+      setTotal(subtotal + shipping - discount);
     }
 
     setFormData({
@@ -656,9 +655,8 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
                       <span className="font-medium">
-                        {country === "LK"
-                          ? `-Rs ${discount.toFixed(2)}`
-                          : `-$${discount.toFixed(2)}`}
+                        {country === "LK" ? "- Rs" : "- $"}{" "}
+                        {(subtotal * (discount / 100)).toFixed(2)}`
                       </span>
                     </div>
                   )}
