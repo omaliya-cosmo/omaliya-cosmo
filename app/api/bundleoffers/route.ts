@@ -5,7 +5,9 @@ import { prisma } from "@/app/lib/prisma"; // Adjust the import path as necessar
 export async function GET() {
   try {
     // Fetch all bundle offers from the database
-    const bundleOffers = await prisma.bundleOffer.findMany();
+    const bundleOffers = await prisma.bundleOffer.findMany({
+      include: { products: { include: { product: true } } },
+    });
 
     // Return the bundle offers as a JSON response
     return NextResponse.json(bundleOffers, { status: 200 });
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
     if (
       !bundleName ||
       !Array.isArray(productIds) ||
+      productIds.some((id) => typeof id !== "string") || // Ensure productIds are strings
       typeof originalPriceLKR !== "number" ||
       typeof originalPriceUSD !== "number" ||
       typeof offerPriceLKR !== "number" ||
@@ -45,16 +48,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Invalid input. Required: bundleName (string), productIds (array), originalPriceLKR (number), originalPriceUSD (number), offerPriceLKR (number), offerPriceUSD (number), endDate (valid ISO-8601 string)",
+            "Invalid input. Required: bundleName (string), productIds (array of strings), originalPriceLKR (number), originalPriceUSD (number), offerPriceLKR (number), offerPriceUSD (number), endDate (valid ISO-8601 string)",
         },
         { status: 400 }
       );
     }
 
+    // Create the bundle offer
     const bundleOffer = await prisma.bundleOffer.create({
       data: {
         bundleName,
-        productIds,
         originalPriceLKR,
         originalPriceUSD,
         offerPriceLKR,
@@ -63,8 +66,20 @@ export async function POST(request: Request) {
       },
     });
 
+    // Create entries in ProductsOnBundles for each product
+    const productsOnBundles = await prisma.productsOnBundles.createMany({
+      data: productIds.map((productId: string) => ({
+        productId,
+        bundleId: bundleOffer.id,
+      })),
+    });
+
     return NextResponse.json(
-      { message: "Bundle offer created successfully", bundleOffer },
+      {
+        message: "Bundle offer created successfully",
+        bundleOffer,
+        productsOnBundles,
+      },
       { status: 201 }
     );
   } catch (error) {
