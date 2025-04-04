@@ -28,7 +28,7 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(0);
   const [categories, setCategories] = useState([]);
   const [sort, setSort] = useState("default");
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -40,14 +40,14 @@ export default function Home() {
 
   useEffect(() => {
     // Load saved view mode from localStorage if available
-    const savedViewMode = localStorage.getItem('productViewMode');
-    if (savedViewMode === 'grid' || savedViewMode === 'list') {
+    const savedViewMode = localStorage.getItem("productViewMode");
+    if (savedViewMode === "grid" || savedViewMode === "list") {
       setViewMode(savedViewMode);
     }
-    
+
     // Fetch products data
     axios
-      .get(`/api/products${sort !== 'default' ? `?sort=${sort}` : ''}`)
+      .get(`/api/products${sort !== "default" ? `?sort=${sort}` : ""}`)
 
       .then((res) => {
         setProducts(res.data.products);
@@ -76,10 +76,11 @@ export default function Home() {
     try {
       const res = await axios.get("/api/cart");
       const data = res.data;
-      const totalItems = data.items?.reduce(
-        (sum: number, item: any) => sum + item.quantity,
-        0
-      ) || 0;
+      const totalItems =
+        data.items?.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0
+        ) || 0;
 
       setCartCount(totalItems);
     } catch (error) {
@@ -93,13 +94,16 @@ export default function Home() {
   }
 
   const addToCart = async (product: Product) => {
-    if (!product || typeof product.id !== 'string' || typeof product.name !== 'string') {
+    if (
+      !product ||
+      typeof product.id !== "string" ||
+      typeof product.name !== "string"
+    ) {
       toast.error("Invalid product details", {
         position: "bottom-right",
       });
       return;
     }
-
 
     try {
       await axios.post("/api/cart", {
@@ -113,7 +117,8 @@ export default function Home() {
         autoClose: 3000,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Error adding to cart";
+      const errorMessage =
+        error instanceof Error ? error.message : "Error adding to cart";
       toast.error(errorMessage, {
         position: "bottom-right",
       });
@@ -125,25 +130,22 @@ export default function Home() {
     setSort(newSort);
   };
 
-  const handleViewModeChange = (newMode: 'grid' | 'list') => {
+  const handleViewModeChange = (newMode: "grid" | "list") => {
     setViewMode(newMode);
-    localStorage.setItem('productViewMode', newMode);
+    localStorage.setItem("productViewMode", newMode);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <ToastContainer />
-      
-      <Header 
-        userData={userData} 
-        cartCount={cartCount} 
-      />
+
+      <Header userData={userData} cartCount={cartCount} />
 
       <main className="flex-grow">
         <HeroSection />
-        
+
         <CategoriesSection />
-        
+
         <div className="container mx-auto px-4 my-8">
           <div className="flex justify-end mb-6">
             <ProductsSorting
@@ -154,8 +156,8 @@ export default function Home() {
             />
           </div>
         </div>
-        
-        <FeaturedProducts 
+
+        <FeaturedProducts
           products={products}
           loading={loading}
           error={error}
@@ -164,18 +166,17 @@ export default function Home() {
           country={country || ""}
           viewMode={viewMode}
         />
-        
+
         <BenefitsBanner />
-        
+
         <FeaturedCollection />
-        
+
         <Testimonials />
-        
+
         <Newsletter />
       </main>
 
       <Footer />
-
     </div>
   );
 }

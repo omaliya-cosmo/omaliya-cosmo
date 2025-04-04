@@ -21,6 +21,25 @@ interface DisplayCartItem extends CartItem, Product {
   category?: ProductCategory; // Add category object to the display item
 }
 
+const shipping = [
+  {
+    country: "Sri Lanka",
+    fee: 500, // LKR
+  },
+  {
+    country: "USA",
+    fee: 30, // USD
+  },
+  {
+    country: "India",
+    fee: 25, // USD
+  },
+  {
+    country: "Korea",
+    fee: 35, // USD
+  },
+];
+
 const CartPage = () => {
   const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -40,9 +59,10 @@ const CartPage = () => {
       sum + (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
     0
   );
-  const tax = subtotal * 0.07; // 7% tax
+  const [shippingFee, setShippingFee] = useState(0);
+
   const discountAmount = (subtotal * discount) / 100;
-  const total = subtotal + tax - discountAmount;
+  const total = subtotal + shippingFee - discountAmount;
 
   useEffect(() => {
     fetchCartData();
@@ -536,12 +556,22 @@ const CartPage = () => {
                     </div>
                     <div className="flex justify-between text-gray-600">
                       <span>Shipping</span>
-                      <span className="font-medium text-green-600">Free</span>
+                      <select
+                        className="font-medium text-green-600 bg-transparent border-none outline-none"
+                        value={shippingFee}
+                        onChange={(e) => setShippingFee(Number(e.target.value))}
+                      >
+                        {shipping.map((option) => (
+                          <option key={option.country} value={option.fee}>
+                            {option.country} -{" "}
+                            {country === "LK"
+                              ? `Rs ${option.fee}`
+                              : `$ ${option.fee}`}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Estimated Tax</span>
-                      <span className="font-medium">Rs {tax.toFixed(2)}</span>
-                    </div>
+
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>

@@ -8,55 +8,69 @@ import Link from "next/link";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
+import { Product } from "@prisma/client";
+import Cookies from "js-cookie"; // Import js-cookie to handle cookies
+import { getCustomerFromToken } from "../actions";
 
-interface CartItem {
-  _id: string;
+interface CartItem extends Product {
   productId: string;
   quantity: number;
 }
 
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface Product {
-  id?: string;
-  name: string;
-  price: number;
-  priceLKR: number;
-  priceUSD: number;
-  categoryId?: string;
-  image?: string;
-}
-
-interface DisplayCartItem extends CartItem, Product {
-  category?: Category;
-}
+const shippingFees = [
+  { country: "Sri Lanka", fee: 500 },
+  { country: "USA", fee: 15 },
+  { country: "UK", fee: 20 },
+  { country: "Australia", fee: 25 },
+  { country: "Canada", fee: 30 },
+];
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
+  console.log(getCustomerFromToken());
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
     addressLine1: "",
-    addressLine2: "", // Optional second address line
+    addressLine2: "",
     city: "",
+    state: "",
     postalCode: "",
     country: "",
-    paymentMethod: "payhere", // Default to PayHere instead of credit-card
+    paymentMethod: "PAY_HERE",
   });
 
+  useEffect(() => {
+    async function loadCustomerData() {
+      const customerData = await getCustomerFromToken();
+      if (customerData) {
+        setFormData((prev) => ({
+          ...prev,
+          firstName: customerData.firstName || "",
+          lastName: customerData.lastName || "",
+          email: customerData.email || "",
+          phoneNumber: customerData.phoneNumber || "",
+          addressLine1: customerData.addressLine1 || "",
+          addressLine2: customerData.addressLine2 || "",
+          city: customerData.city || "",
+          state: customerData.state || "",
+          postalCode: customerData.postalCode || "",
+          country: customerData.country || "",
+        }));
+      }
+    }
+    loadCustomerData();
+  }, []);
+
   const [subtotal, setSubtotal] = useState(0);
-  const [tax, setTax] = useState(0);
   const [shipping, setShipping] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
@@ -85,40 +99,18 @@ export default function CheckoutPage() {
         { productIds }
       );
 
-      const categoryIds = [
-        ...new Set(
-          productsData.map((product) => product.categoryId).filter(Boolean)
-        ),
-      ] as string[];
-
-      const categoryPromises = categoryIds.map((categoryId) =>
-        axios.get<Category>(`/api/categories/${categoryId}`)
-      );
-      const categoryResponses = await Promise.all(categoryPromises);
-      const categories = categoryResponses.map((res) => res.data);
-
-      const mergedItems: DisplayCartItem[] = cartItemsFromApi.map(
-        (cartItem) => {
-          const product = productsData.find(
-            (p) => p.id === cartItem.productId
-          ) || {
-            id: cartItem.productId,
-            name: "Unknown Product",
-            price: 0,
-            priceLKR: 0,
-            priceUSD: 0,
-            categoryId: "",
-          };
-          const category = categories.find(
-            (cat) => cat.id === product.categoryId
-          ) || {
-            id: product.categoryId || "",
-            name: "Unknown Category",
-            description: "No description available",
-          };
-          return { ...cartItem, ...product, category };
-        }
-      );
+      const mergedItems = cartItemsFromApi.map((cartItem) => {
+        const product = productsData.find(
+          (p) => p.id === cartItem.productId
+        ) || {
+          id: cartItem.productId,
+          name: "Unknown Product",
+          price: 0,
+          priceLKR: 0,
+          priceUSD: 0,
+        };
+        return { ...cartItem, ...product };
+      });
 
       setCartItems(mergedItems);
 
@@ -128,11 +120,15 @@ export default function CheckoutPage() {
           (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
         0
       );
-      const calculatedTax = calculatedSubtotal * 0.07;
+
+      // Retrieve promo code discount from cookies
+      const promoCodeDiscount = parseFloat(
+        Cookies.get("promoCodeDiscount") || "0"
+      );
+      setDiscount(promoCodeDiscount);
 
       setSubtotal(calculatedSubtotal);
-      setTax(calculatedTax);
-      setTotal(calculatedSubtotal + calculatedTax - discount);
+      setTotal(calculatedSubtotal + shipping - promoCodeDiscount);
 
       setLoading(false);
     } catch (err: any) {
@@ -146,6 +142,12 @@ export default function CheckoutPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    console.log(cartItems);
+
+    if (name == "country") {
+      setShipping(shippingFees.find((fee) => fee.country === value)?.fee ?? 0);
+    }
+
     setFormData({
       ...formData,
       [name]: value,
@@ -158,31 +160,38 @@ export default function CheckoutPage() {
       setProcessingOrder(true);
       setError(null);
 
-      // Format cart items to match the schema
-      const formattedCartItems = cartItems.map((item) => ({
-        id: item.id || item.productId,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: country === "LK" ? item.priceLKR : item.priceUSD,
-        name: item.name,
-        priceLKR: item.priceLKR,
-        priceUSD: item.priceUSD,
-      }));
-
-      const response = await axios.post("/api/checkout", {
-        ...formData,
+      // Prepare customer details
+      const customerDetails = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
         addressLine1: formData.addressLine1,
         addressLine2: formData.addressLine2,
-        cartItems: formattedCartItems,
-        orderTotal: total,
-        currency: country === "LK" ? "LKR" : "USD",
-        subtotal,
-        shipping: 0,
-        tax,
-      });
+        city: formData.city,
+        state: formData.state,
+        postalCode: formData.postalCode,
+        country: formData.country,
+      };
 
-      if (response.data.success) {
-        // Clear cart from client-side storage
+      // Prepare order data
+      const orderData = {
+        customerDetails,
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+        paymentMethod: formData.paymentMethod.toUpperCase(),
+        currency: country === "LK" ? "LKR" : "USD",
+        shipping,
+        notes: "Please deliver between 9 AM and 5 PM", // Example note
+      };
+
+      // Send order data to the backend
+      const response = await axios.post("/api/checkout", orderData);
+
+      if (response.status === 200) {
+        // Clear cart cookies
         document.cookie =
           "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setCartItems([]);
@@ -191,11 +200,12 @@ export default function CheckoutPage() {
           position: "bottom-right",
         });
 
-        router.push(`/order-confirmation?orderId=${response.data.orderId}`);
+        // Redirect to order confirmation page
+        router.push(`/order-confirmation?orderId=${response.data.order.id}`);
       }
     } catch (err: any) {
       const errorMessage =
-        err.response?.data?.message || err.message || "Failed to place order";
+        err.response?.data?.error || err.message || "Failed to place order";
       setError(errorMessage);
       toast.error(errorMessage, {
         position: "bottom-right",
@@ -315,20 +325,35 @@ export default function CheckoutPage() {
                         />
                       </div>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-800 mb-1">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                      />
-                    </div>
+                    {country == "LK" ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Phone Number
+                        </label>
+                        <input
+                          type="phoneNumber"
+                          name="phoneNumber"
+                          value={formData.phoneNumber}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -353,21 +378,36 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-800 mb-1">
-                        Address Line 2{" "}
-                        <span className="text-gray-500 text-xs">
-                          (Optional)
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        name="addressLine2"
-                        value={formData.addressLine2}
-                        onChange={handleInputChange}
-                        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                        placeholder="Apartment, suite, unit, building, floor, etc."
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Address Line 2{" "}
+                          <span className="text-gray-500 text-xs">
+                            (Optional)
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          name="addressLine2"
+                          value={formData.addressLine2}
+                          onChange={handleInputChange}
+                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                          placeholder="Apartment, suite, unit, building, floor, etc."
+                        />
+                      </div>
+                      <div className="md:col-span-1">
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          State/Province/Region
+                        </label>
+                        <input
+                          type="text"
+                          name="state"
+                          value={formData.state}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -409,11 +449,11 @@ export default function CheckoutPage() {
                           className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
                         >
                           <option value="">Select a country</option>
-                          <option value="LK">Sri Lanka</option>
-                          <option value="US">United States</option>
-                          <option value="GB">United Kingdom</option>
-                          <option value="AU">Australia</option>
-                          <option value="CA">Canada</option>
+                          {shippingFees.map((fee) => (
+                            <option key={fee.country} value={fee.country}>
+                              {fee.country}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -430,8 +470,8 @@ export default function CheckoutPage() {
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="payhere"
-                        checked={formData.paymentMethod === "payhere"}
+                        value="PAY_HERE"
+                        checked={formData.paymentMethod === "PAY_HERE"}
                         onChange={handleInputChange}
                         className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                       />
@@ -453,8 +493,8 @@ export default function CheckoutPage() {
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="koko"
-                        checked={formData.paymentMethod === "koko"}
+                        value="KOKO"
+                        checked={formData.paymentMethod === "KOKO"}
                         onChange={handleInputChange}
                         className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                       />
@@ -475,8 +515,8 @@ export default function CheckoutPage() {
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="cod"
-                        checked={formData.paymentMethod === "cod"}
+                        value="CASH_ON_DELIVERY"
+                        checked={formData.paymentMethod === "CASH_ON_DELIVERY"}
                         onChange={handleInputChange}
                         className="h-5 w-5 text-purple-600 focus:ring-purple-500"
                       />
@@ -545,13 +585,13 @@ export default function CheckoutPage() {
                 <div className="space-y-4 mb-6">
                   {cartItems.map((item) => (
                     <div
-                      key={item._id}
+                      key={item.productId}
                       className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100"
                     >
                       <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.image ? (
+                        {item.imageUrls ? (
                           <Image
-                            src={item.image}
+                            src={item.imageUrls[0]}
                             alt={item.name}
                             width={64}
                             height={64}
@@ -607,15 +647,8 @@ export default function CheckoutPage() {
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">Shipping</span>
-                    <span className="font-medium text-green-600">Free</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">Tax (7%)</span>
-                    <span className="font-medium text-gray-800">
-                      {country === "LK"
-                        ? `Rs ${tax.toFixed(2)}`
-                        : `$${tax.toFixed(2)}`}
+                    <span className="font-medium text-green-600">
+                      {shipping}
                     </span>
                   </div>
 

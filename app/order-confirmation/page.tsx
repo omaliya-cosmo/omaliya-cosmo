@@ -8,19 +8,20 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
-import { Order as PrismaOrder, Customer } from "@prisma/client";
+import {
+  Order as PrismaOrder,
+  Customer,
+  OrderItem as PrismaOrderItem,
+  Product,
+} from "@prisma/client";
 
-interface OrderItem {
-  productId: string;
-  name: string;
-  image: string;
-  quantity: number;
-  price: number;
+interface OrderItem extends PrismaOrderItem {
+  product: Product;
 }
 
-interface Order extends Omit<PrismaOrder, "items"> {
+interface Order extends PrismaOrder {
   customer?: Customer;
-  items: OrderItem[];
+  items?: OrderItem[];
 }
 
 const OrderConfirmationPage = () => {
@@ -42,40 +43,13 @@ const OrderConfirmationPage = () => {
     const fetchOrderDetails = async () => {
       try {
         const { data } = await axios.get(`/api/orders/${orderId}`);
-        console.log(data.order);
-        // Get product details for each item in the order
-        const productIds = data.order.items.map((item: any) => item.productId);
-        const { data: productsData } = await axios.post(
-          "/api/products/batch?category=true",
-          { productIds }
-        );
+        console.log("Order data:", data);
 
-        // Merge product details with order items
-        data.order.items = data.order.items.map((item: any) => {
-          const product =
-            productsData?.products?.find((p: any) => p.id === item.productId) ||
-            null;
-          return {
-            ...item,
-            name: product?.name || "Unknown Product",
-            image: product?.images?.[0] || null,
-          };
-        });
-
-        if (!data || !data.order) {
+        if (!data) {
           throw new Error("Order data not found");
         }
 
-        // Parse dates from the API response
-        const order = {
-          ...data.order,
-          orderDate: new Date(data.order.orderDate),
-          deliveredAt: data.order.deliveredAt
-            ? new Date(data.order.deliveredAt)
-            : null,
-        };
-
-        setOrderDetails(order);
+        setOrderDetails(data);
       } catch (err) {
         console.error("Error fetching order details:", err);
         setError(
@@ -90,8 +64,6 @@ const OrderConfirmationPage = () => {
 
     fetchOrderDetails();
   }, [orderId]);
-
-  const displayData = orderDetails;
 
   // Make sure we have all required values
   const formatAmount = (amount: number): string => {
@@ -192,20 +164,22 @@ const OrderConfirmationPage = () => {
               <div>
                 <p className="text-sm text-gray-600 mb-1">Order Number</p>
                 <p className="text-lg font-semibold text-gray-800">
-                  {displayData?.id}
+                  {orderDetails?.id}
                 </p>
               </div>
 
               <div className="mt-4 sm:mt-0">
                 <p className="text-sm text-gray-600 mb-1">Order Date</p>
                 <p className="text-lg font-semibold text-gray-800">
-                  {displayData?.orderDate.toLocaleDateString()}
+                  {orderDetails?.orderDate
+                    ? new Date(orderDetails.orderDate).toLocaleString()
+                    : ""}
                 </p>
               </div>
 
               <div className="mt-4 sm:mt-0">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {displayData?.status}
+                  {orderDetails?.status}
                 </span>
               </div>
             </div>
@@ -217,15 +191,18 @@ const OrderConfirmationPage = () => {
               </h2>
 
               <div className="space-y-4">
-                {orderDetails?.items.map((item) => (
+                {orderDetails?.items?.map((item: OrderItem) => (
                   <div
                     key={item.productId}
                     className="flex items-center border border-gray-200 rounded-lg p-4"
                   >
                     <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                       <Image
-                        src={item.image || "/images/product-placeholder.jpg"}
-                        alt={item.name}
+                        src={
+                          item.product.imageUrls[0] ||
+                          "/images/product-placeholder.jpg"
+                        }
+                        alt={item.product.name}
                         width={64}
                         height={64}
                         className="w-full h-full object-cover"
@@ -233,7 +210,7 @@ const OrderConfirmationPage = () => {
                     </div>
                     <div className="ml-4 flex-1">
                       <h3 className="text-sm font-medium text-gray-800">
-                        {item.name}
+                        {item.product.name}
                       </h3>
                       <p className="text-xs text-gray-500">
                         Quantity: {item.quantity}
@@ -266,33 +243,22 @@ const OrderConfirmationPage = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium text-gray-800">
-                      {country === "LK"
-                        ? `Rs ${formatAmount(displayData.subtotal)}`
-                        : `$${formatAmount(displayData.subtotal)}`}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tax</span>
-                    <span className="font-medium text-gray-800">
-                      {country === "LK"
-                        ? `Rs ${formatAmount(displayData.tax)}`
-                        : `$${formatAmount(displayData.tax)}`}
+                      {orderDetails?.currency} {orderDetails?.subtotal}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium text-green-600">Free</span>
+                    <span className="font-medium text-green-600">
+                      {orderDetails?.currency} {orderDetails?.shipping}
+                    </span>
                   </div>
 
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between">
                       <span className="font-medium text-gray-800">Total</span>
                       <span className="font-bold text-purple-700">
-                        {country === "LK"
-                          ? `Rs ${formatAmount(displayData.total)}`
-                          : `$${formatAmount(displayData.total)}`}
+                        {orderDetails?.currency} {orderDetails?.total}
                       </span>
                     </div>
                   </div>
@@ -333,7 +299,7 @@ const OrderConfirmationPage = () => {
               </h2>
 
               <div className="bg-gray-50 rounded-lg p-6">
-                <p className="text-gray-800">{displayData.paymentMethod}</p>
+                <p className="text-gray-800">{orderDetails?.paymentMethod}</p>
               </div>
             </div>
 
