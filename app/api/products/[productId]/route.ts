@@ -6,22 +6,46 @@ export async function GET(
   { params }: { params: { productId: string } }
 ) {
   try {
-    const { productId } = await params; // Get productId from dynamic route params
+    // Always use await with params in route handlers
+    const productId = await params.productId;
 
+    // Get product with category and reviews
     const product = await prisma.product.findUnique({
-      where: { id: productId }, // Ensure that productId is of the correct format
+      where: {
+        id: productId,
+      },
+      include: {
+        category: true,
+        reviews: {
+          include: {
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                // Remove avatar field as it doesn't exist in your Customer model
+              },
+            },
+          },
+          orderBy: {
+            date: "desc",
+          },
+        },
+      },
     });
 
     if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
     }
 
-    // Return the product data
-    return NextResponse.json(product, { status: 200 });
+    return NextResponse.json({ product });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch product" },
       { status: 500 }
     );
   }
