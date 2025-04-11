@@ -977,7 +977,7 @@ function ProductCard({
   return (
     <div 
       ref={cardRef}
-      className="group h-full perspective-1000"
+      className="group perspective-1000"
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -1009,7 +1009,7 @@ function ProductCard({
           <div
             ref={imageRef}
             className={`relative ${
-              viewMode === "list" ? "h-36 w-36 md:h-40 md:w-40 flex-shrink-0" : "h-80 w-full md:h-50"
+              viewMode === "list" ? "h-36 w-36 md:h-40 md:w-40 flex-shrink-0" : "h-[28rem] w-full md:h-[20rem]"
             } overflow-hidden`}
             onClick={(e) => {
               if (!isZoomed) {
@@ -1234,8 +1234,8 @@ function ProductCard({
               )}
             </div>
 
-            {/* Price display */}
-            <div className="mt-auto">
+            {/* Price display - REMOVED mt-auto TO FIX THE GAP */}
+            <div className="mt-2">
               {isOnSale ? (
                 <div className="flex items-center space-x-2">
                   <span className="text-lg font-bold text-gray-900">
@@ -1255,58 +1255,67 @@ function ProductCard({
               )}
             </div>
 
-            {/* Quantity selector */}
+            {/* Combined quantity selector and add to cart button in the same row */}
             {product.stock > 0 && (
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+              <div className="mt-3 flex items-center space-x-2">
+                {/* Enhanced quantity selector */}
+                <div className="flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg overflow-hidden shadow-sm border border-purple-100">
                   <button 
                     onClick={decrementQuantity}
-                    className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    className={`px-2 py-1 transition-all duration-150 ${
+                      quantity <= 1 
+                        ? "text-gray-300 cursor-not-allowed" 
+                        : "text-purple-700 hover:bg-purple-100 active:bg-purple-200"
+                    }`}
                     disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                     </svg>
                   </button>
-                  <div className="px-3 py-1 bg-white text-sm font-medium">
+                  <div className="px-3 py-1 bg-white font-semibold text-gray-800 text-sm border-x border-purple-100 min-w-[2rem] text-center">
                     {quantity}
                   </div>
                   <button 
                     onClick={incrementQuantity}
-                    className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    className={`px-2 py-1 transition-all duration-150 ${
+                      quantity >= product.stock 
+                        ? "text-gray-300 cursor-not-allowed" 
+                        : "text-purple-700 hover:bg-purple-100 active:bg-purple-200"
+                    }`}
                     disabled={quantity >= product.stock}
+                    aria-label="Increase quantity"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
                     </svg>
                   </button>
                 </div>
                 
-                <span className="text-xs text-gray-500">
-                  {product.stock} available
-                </span>
-              </div>
-            )}
-
-            {/* Add to cart button */}
-            {product.stock > 0 && (
-              <div className="mt-2">
+                {/* Add to cart button - more polished */}
                 <button 
-                  className={`w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center justify-center ${
-                    isAddingToCart ? "bg-green-600" : ""
-                  }`}
+                  className={`flex-1 transition-all duration-300 ${
+                    isAddingToCart 
+                      ? "bg-green-600 shadow-lg shadow-green-200" 
+                      : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md hover:shadow-lg hover:shadow-purple-100"
+                  } text-white text-sm font-medium py-1.5 px-3 rounded-lg flex items-center justify-center`}
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
                 >
                   {isAddingToCart ? (
-                    <>
-                      <CheckIcon className="w-4 h-4 mr-2" />
+                    <motion.div 
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center justify-center"
+                    >
+                      <CheckIcon className="w-4 h-4 mr-1" />
                       Added
-                    </>
+                    </motion.div>
                   ) : (
                     <>
-                      <ShoppingBagIcon className="w-4 h-4 mr-2" />
-                      {quantity > 1 ? `Add ${quantity} to Cart` : 'Add to Cart'}
+                      <ShoppingBagIcon className="w-4 h-4 mr-1" />
+                      {quantity > 1 ? `Add ${quantity}` : 'Add to Cart'}
                     </>
                   )}
                 </button>
