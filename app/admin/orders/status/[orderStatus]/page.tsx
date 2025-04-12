@@ -37,7 +37,8 @@ const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
       .get(`/api/orders?status=${status}`)
       .then((res) => {
         setOrders(res.data.orders);
-        console.log("Orders:", res.data.orders);
+        console.log("status", status);
+        console.log("orders", res.data.orders);
         setLoading(false);
       })
       .catch((err) => {

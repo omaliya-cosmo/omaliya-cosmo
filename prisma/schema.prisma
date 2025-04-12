@@ -55,39 +55,54 @@ model Review {
 // Customer model
 model Customer {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  firstName     String?   @map("first_name") // Optional first name
-  lastName      String?   @map("last_name") // Optional last name
-  email         String?   @unique // Unique email address
-  phoneNumber   String?   @map("phone_number") // Optional phone number
-  passwordHash  String?   @map("password_hash") // Hashed password
-  addressLine1  String?   @map("address_line1") // Optional address line 1
-  addressLine2  String?   @map("address_line2") // Optional address line 2
-  city          String?   // Optional city
-  state         String?   // Optional state
-  postalCode    String?   @map("postal_code") // Optional postal code
-  country       String?   // Optional country
-  isRegistered  Boolean   @default(false) @map("is_registered") // Registration status
-  registeredAt  DateTime  @default(now()) @map("registered_at") // Registration timestamp
-  orders        Order[]   // Relation to orders
-  reviews       Review[]  // Relation to reviews
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  registeredAt  DateTime  @default(now()) @map("registered_at")
+  address       Address?  // Single address relation
+  orders        Order[]
+  reviews       Review[]
+}
+
+model Address {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phoneNumber   String?   @map("phone_number")
+  email         String?
+  addressLine1  String    @map("address_line1")
+  addressLine2  String?   @map("address_line2")
+  city          String
+  state         String?
+  postalCode    String    @map("postal_code")
+  country       String
+  customerId    String?    @unique @db.ObjectId @map("customer_id") // Make unique for one-to-one
+  customer      Customer?  @relation(fields: [customerId], references: [id])
+  orders        Order[]
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 }
 
 // Order model
 model Order {
   id             String       @id @default(auto()) @map("_id") @db.ObjectId
-  customerId     String       @db.ObjectId @map("customer_id")
-  customer       Customer     @relation(fields: [customerId], references: [id])
-  orderDate      DateTime     @default(now()) @map("order_date") // Order date
-  deliveredAt    DateTime?    @map("delivered_at") // Optional delivery date
-  subtotal       Float        // Subtotal amount
+  customerId     String?       @db.ObjectId @map("customer_id")
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  orderDate      DateTime     @default(now()) @map("order_date")
+  deliveredAt    DateTime?    @map("delivered_at")
+  subtotal       Float        // Subtotal amount before discount
+  discountAmount Float        @default(0) @map("discount_amount") // Fixed discount amount
   shipping       Float        // Shipping cost
-  total          Float        // Total order amount
-  currency       Currency      // Currency of the order
-  status         OrderStatus  @default(PENDING) // Order status
-  notes          String?      // Optional notes
-  items          OrderItem[]  // Relation to order items
-  trackingNumber String?      @map("tracking_number") // Optional tracking number
-  paymentMethod  PaymentMethod @map("payment_method") // Payment method
+  total          Float        // Total order amount after discounts
+  currency       Currency     
+  status         OrderStatus  @default(PENDING)
+  notes          String?     
+  items          OrderItem[]  
+  trackingNumber String?      @map("tracking_number")
+  paymentMethod  PaymentMethod
+  addressId      String        @db.ObjectId @map("address_id")
+  address        Address       @relation(fields: [addressId], references: [id])
 }
 
 // Enum for payment methods
@@ -116,11 +131,8 @@ model PromoCode {
 model Videos {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
-  description String?
   videoUrl    String   @map("video_url")
-  thumbnail   String?
   createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 }
 
 // BundleOffer model
@@ -132,7 +144,9 @@ model BundleOffer {
   offerPriceLKR   Float        @map("offer_price_lkr") // Offer price in LKR
   offerPriceUSD   Float        @map("offer_price_usd") // Offer price in USD
   endDate         DateTime     @map("end_date") // Offer end date
+  imageUrl        String?      @map("image_url") // Optional image URL for the bundle
   createdAt       DateTime     @default(now()) @map("created_at") // Timestamp for creation
+  orderItems      OrderItem[]  // Relation to order items
   products        ProductsOnBundles[] // Relation to products
 }
 
@@ -152,23 +166,17 @@ model Admin {
   image         String? // Optional profile image
 }
 
-// Settings model
-model Settings {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  phoneNumber String?  @map("phone_number") // Optional phone number
-  email       String?  // Optional email address
-  links       String[] // Array of links (e.g., social media)
-}
-
-// OrderItem model
 model OrderItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String   @db.ObjectId @map("order_id")
-  order     Order    @relation(fields: [orderId], references: [id])
-  productId String   @db.ObjectId @map("product_id")
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float    // Price at time of order
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String       @db.ObjectId @map("order_id")
+  order       Order        @relation(fields: [orderId], references: [id])
+  productId   String?      @db.ObjectId @map("product_id")
+  product     Product?     @relation(fields: [productId], references: [id])
+  bundleId    String?      @db.ObjectId @map("bundle_id")
+  bundle      BundleOffer? @relation(fields: [bundleId], references: [id])
+  quantity    Int
+  price       Float        // Price at time of order
+  isBundle    Boolean      @default(false) @map("is_bundle")
 }
 
 // Enum for order statuses

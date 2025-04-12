@@ -6,10 +6,17 @@ export async function GET(
   { params }: { params: { productId: string } }
 ) {
   try {
-    const { productId } = await params; // Get productId from dynamic route params
+    const { productId } = params; // Get productId from dynamic route params
+    const { searchParams } = new URL(request.url);
+    const includeReviews = searchParams.get("reviews") === "true";
+    const includeCategory = searchParams.get("category") === "true";
 
     const product = await prisma.product.findUnique({
-      where: { id: productId }, // Ensure that productId is of the correct format
+      where: { id: productId },
+      include: {
+        reviews: includeReviews,
+        category: includeCategory,
+      },
     });
 
     if (!product) {
