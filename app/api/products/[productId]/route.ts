@@ -11,6 +11,7 @@ export async function GET(
     const includeReviews = searchParams.get("reviews") === "true";
     const includeCategory = searchParams.get("category") === "true";
 
+    // Get product with category and reviews
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -20,15 +21,17 @@ export async function GET(
     });
 
     if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
     }
 
-    // Return the product data
-    return NextResponse.json(product, { status: 200 });
+    return NextResponse.json({ product });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch product" },
       { status: 500 }
     );
   }

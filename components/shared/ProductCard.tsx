@@ -11,8 +11,10 @@ import {
 } from "@prisma/client";
 
 interface Product extends PrismaProduct {
-  category?: ProductCategory; // Include the category relation
-  reviews?: Review[]; // Include reviews with count and average rating
+  category?: ProductCategory;
+  reviews?: Review[]; 
+  discountPriceLKR?: number; 
+  discountPriceUSD?: number; 
 }
 
 interface ProductCardProps {
@@ -32,8 +34,7 @@ export default function ProductCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
-  console.log(product);
-
+  
   // Update price calculation
   const price = country === "LK" ? product.priceLKR : product.priceUSD;
   const discountPrice =
@@ -78,8 +79,8 @@ export default function ProductCard({
     const centerY = rect.top + rect.height / 2;
 
     // Calculate distance from cursor to center (as percentage of dimensions)
-    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 6; // Max 6 degrees
-    const rotateX = ((centerY - e.clientY) / (rect.height / 2)) * 6; // Max 6 degrees
+    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 8; // Increased to 8 degrees
+    const rotateX = ((centerY - e.clientY) / (rect.height / 2)) * 8; // Increased to 8 degrees
 
     setRotation({ x: rotateX, y: rotateY });
   };
@@ -102,8 +103,9 @@ export default function ProductCard({
           product.reviews.length
         : 0;
 
-    const rating = averageRating < 3 ? 3 : averageRating || 0; // Make rating 4 if less than 4
+    const rating = averageRating < 3 ? 3 : averageRating || 0; // Make rating 3 if less than 3
     const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
 
     return (
       <div className="flex items-center space-x-1 rtl:space-x-reverse">
@@ -111,7 +113,11 @@ export default function ProductCard({
           <svg
             key={i}
             className={`w-4 h-4 ${
-              i < fullStars ? "text-yellow-300" : "text-gray-200"
+              i < fullStars 
+                ? "text-amber-400" 
+                : i === fullStars && hasHalfStar 
+                  ? "text-gradient-star"
+                  : "text-gray-200"
             }`}
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +128,7 @@ export default function ProductCard({
           </svg>
         ))}
         {product.reviews && product.reviews.length > 0 && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 font-medium">
             ({product.reviews.length})
           </span>
         )}
@@ -134,44 +140,62 @@ export default function ProductCard({
     <Link href={`/products/${product.id}`}>
       <motion.div
         ref={cardRef}
-        className="relative w-full group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col hover:shadow-md transition-shadow duration-300"
-        whileHover={{ y: -5 }}
+        className="relative w-full group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col hover:shadow-lg transition-all duration-300"
+        whileHover={{ 
+          y: -8, 
+          transition: { type: "spring", stiffness: 300, damping: 15 } 
+        }}
         style={{
-          perspective: "1000px",
+          perspective: "1200px",
           transformStyle: "preserve-3d",
+          transform: isHovered ? `rotateY(${rotation.y}deg) rotateX(${rotation.x}deg)` : "none",
+          transition: "transform 0.2s ease-out",
         }}
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         {/* Product Image with badges */}
-        <div className="relative h-0 pb-[100%]">
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/images/product-placeholder.jpg";
-            }}
-          />
+        <div className="relative h-0 pb-[100%] overflow-hidden bg-gray-50">
+          <motion.div
+            className="absolute inset-0"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Image
+              src={imageUrl}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover transition-transform"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/images/product-placeholder.jpg";
+              }}
+            />
+          </motion.div>
 
           {/* Badges container */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
+          <div className="absolute top-3 left-3 flex flex-col gap-2">
             {/* Show discount badge if discount price exists */}
             {discountPercentage && (
-              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-md">
-                {discountPercentage}% Off
+              <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                {discountPercentage}% OFF
+              </span>
+            )}
+            
+            {/* Low stock indicator */}
+            {product.stock > 0 && product.stock <= 5 && (
+              <span className="bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                Only {product.stock} left
               </span>
             )}
           </div>
 
           {/* Out of stock overlay */}
           {product.stock <= 0 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <span className="bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+            <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-[2px] flex items-center justify-center">
+              <span className="bg-white/90 text-gray-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
                 Out of Stock
               </span>
             </div>
@@ -179,25 +203,26 @@ export default function ProductCard({
         </div>
 
         {/* Product details */}
-        <div className="p-4 flex flex-col flex-grow">
-          <div className="text-xs text-purple-600 font-medium mb-1">
+        <div className="p-5 flex flex-col flex-grow">
+          <div className="text-xs text-purple-700 font-semibold mb-1.5 uppercase tracking-wide">
             {categoryName}
           </div>
 
-          <div className="flex justify-between items-center mb-1">
-            <h3 className="text-gray-800 font-medium line-clamp-1">
-              {product.name}
-            </h3>
+          <h3 className="text-gray-900 font-medium text-lg mb-1.5 line-clamp-1 group-hover:text-purple-700 transition-colors">
+            {product.name}
+          </h3>
+          
+          <div className="mb-2">
             {renderStars()}
           </div>
 
-          <p className="text-gray-500 text-sm line-clamp-2 mb-2 flex-grow">
+          <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow">
             {product.description}
           </p>
 
-          <div className="mt-auto pt-2 flex items-center justify-between">
+          <div className="mt-auto pt-3 flex items-center justify-between border-t border-gray-100">
             <div className="flex items-end">
-              <span className="text-gray-900 font-bold">
+              <span className="text-gray-900 font-bold text-lg">
                 {currencySymbol}
                 {discountPrice?.toFixed(2) || price.toFixed(2)}
               </span>
@@ -211,11 +236,13 @@ export default function ProductCard({
             </div>
 
             <button
-              className={`flex items-center justify-center p-2 rounded-full ${
+              className={`flex items-center justify-center p-2.5 rounded-full ${
                 isAddingToCart
                   ? "bg-gray-200 text-gray-500"
-                  : "bg-purple-100 text-purple-600 hover:bg-purple-200"
-              } transition-colors`}
+                  : product.stock <= 0
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white transform hover:scale-105"
+              } transition-all duration-200 shadow-sm`}
               onClick={handleAddToCart}
               disabled={isAddingToCart || product.stock <= 0}
               aria-label="Add to cart"
@@ -263,23 +290,29 @@ export default function ProductCard({
 
         {/* Light reflection effect */}
         <div
-          className={`absolute inset-0 rounded-lg transition-opacity duration-300 pointer-events-none ${
-            isHovered ? "opacity-30" : "opacity-0"
+          className={`absolute inset-0 rounded-xl transition-opacity duration-500 pointer-events-none ${
+            isHovered ? "opacity-40" : "opacity-0"
           }`}
           style={{
             background:
-              "linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.8) 50%, transparent 80%)",
-            transform: `translateZ(60px) rotateY(${-rotation.y * 1.5}deg)`,
+              "linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.9) 50%, transparent 80%)",
+            transform: `translateZ(60px) rotateY(${-rotation.y * 1.8}deg)`,
           }}
         ></div>
 
-        {/* Add CSS for 3D effects */}
+        {/* Add CSS for 3D effects and animations */}
         <style jsx global>{`
           .group:hover {
             z-index: 10;
           }
+          
+          .text-gradient-star {
+            background: linear-gradient(to right, #fbbf24 0%, #fbbf24 50%, #e5e7eb 50%, #e5e7eb 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
 
-          /* Fix for Safari */
           @media not all and (min-resolution: 0.001dpcm) {
             @supports (-webkit-appearance: none) and (stroke-color: transparent) {
               .group > div {
@@ -304,7 +337,7 @@ export default function ProductCard({
           }
 
           .group:hover .group-hover\\:animate-shine {
-            animation: shine 1s forwards;
+            animation: shine 1.5s forwards;
           }
         `}</style>
       </motion.div>

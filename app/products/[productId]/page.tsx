@@ -16,7 +16,6 @@ import { Product, ProductCategory, Review } from "@prisma/client";
 interface ProductWithDetails extends Product {
   category?: ProductCategory;
   reviews?: Review[];
-  rating?: number;
 }
 
 export default function ProductDetailPage() {
@@ -31,10 +30,8 @@ export default function ProductDetailPage() {
     async function fetchProduct() {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `/api/products/${productId}?reviews=true&category=true`
-        );
-        setProduct(response.data);
+        const response = await axios.get(`/api/products/${productId}`);
+        setProduct(response.data.product);
       } catch (err) {
         console.error("Error fetching product:", err);
         setError("Failed to load product details");
@@ -101,22 +98,14 @@ export default function ProductDetailPage() {
 
           {/* Right column: Product info and actions */}
           <div>
-            <ProductInfo
-              name={product.name}
-              category={product.category}
+            <ProductInfo 
+              name={product.name} 
+              description={product.description} 
+              category={product.category} 
               stock={product.stock}
-              rating={
-                product.reviews && product.reviews.length > 0
-                  ? product.reviews.reduce(
-                      (sum, review) => sum + review.rating,
-                      0
-                    ) / product.reviews.length
-                  : product.rating
-              }
-              reviewCount={product.reviews ? product.reviews.length : 0}
             />
-
-            <ProductPricing
+            
+            <ProductPricing 
               priceLKR={product.priceLKR}
               discountPriceLKR={product.discountPriceLKR}
               priceUSD={product.priceUSD}
@@ -124,7 +113,6 @@ export default function ProductDetailPage() {
               currency={currency}
               onCurrencyChange={setCurrency}
             />
-
             <div className="mt-8 space-y-4">
               {/* Quantity selector */}
               <div className="flex items-center space-x-4">
@@ -136,7 +124,13 @@ export default function ProductDetailPage() {
                   >
                     -
                   </button>
-                  <span className="w-16 text-center py-1 px-3">{quantity}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="w-16 text-center py-1 focus:outline-none"
+                  />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     className="px-3 py-1 border-l border-gray-300"
@@ -145,11 +139,11 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
               </div>
-
+              
               {/* Add to cart button */}
-              <AddToCartButton
-                product={product}
-                quantity={quantity}
+              <AddToCartButton 
+                product={product} 
+                quantity={quantity} 
                 currency={currency}
               />
             </div>
@@ -160,18 +154,12 @@ export default function ProductDetailPage() {
         <ProductDetails product={product} />
 
         {/* Reviews section */}
-        <ProductReviews
-          reviews={product.reviews || []}
-          productId={product.id}
-        />
+        <ProductReviews reviews={product.reviews || []} productId={product.id} />
 
         {/* Related products */}
-        <RelatedProducts
-          categoryId={product.categoryId}
-          currentProductId={product.id}
-        />
+        <RelatedProducts categoryId={product.categoryId} currentProductId={product.id} />
       </div>
-
+      
       <NewsletterSection />
     </main>
   );
