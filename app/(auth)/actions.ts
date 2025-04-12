@@ -99,7 +99,6 @@ export async function signup(prevState: any, formData: FormData) {
       passwordHash,
       firstName,
       lastName,
-      isRegistered: true,
       registeredAt: new Date(),
     },
   });

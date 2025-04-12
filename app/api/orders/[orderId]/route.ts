@@ -39,12 +39,51 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const { orderId } = params;
+    const body = await request.json();
+
+    if (!Object.keys(body).length) {
+      return new Response(
+        JSON.stringify({ error: "No fields provided for update" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: body, // Dynamically update fields based on the request body
+    });
+
+    return new Response(JSON.stringify(updatedOrder), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: "Failed to update order" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
   try {
     const { orderId } = params;
+
+    await prisma.orderItem.deleteMany({
+      where: { orderId: orderId },
+    });
 
     await prisma.order.delete({
       where: { id: orderId },

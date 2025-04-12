@@ -6,31 +6,17 @@ export async function GET(
   { params }: { params: { productId: string } }
 ) {
   try {
-    // Always use await with params in route handlers
-    const productId = await params.productId;
+    const { productId } = params; // Get productId from dynamic route params
+    const { searchParams } = new URL(request.url);
+    const includeReviews = searchParams.get("reviews") === "true";
+    const includeCategory = searchParams.get("category") === "true";
 
     // Get product with category and reviews
     const product = await prisma.product.findUnique({
-      where: {
-        id: productId,
-      },
+      where: { id: productId },
       include: {
-        category: true,
-        reviews: {
-          include: {
-            customer: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                // Remove avatar field as it doesn't exist in your Customer model
-              },
-            },
-          },
-          orderBy: {
-            date: "desc",
-          },
-        },
+        reviews: includeReviews,
+        category: includeCategory,
       },
     });
 

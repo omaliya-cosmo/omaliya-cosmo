@@ -104,9 +104,11 @@ export default function AdminLayout({
       path: "/admin/orders",
       icon: <FiShoppingCart size={20} />,
       subItems: [
-        { name: "Current Orders", path: "/admin/orders/current" },
-        { name: "Pending Orders", path: "/admin/orders/pending" },
-        { name: "Order History", path: "/admin/orders/history" },
+        { name: "Proccessing Orders", path: "/admin/orders/status/processing" },
+        { name: "Shipped Orders", path: "/admin/orders/status/shipped" },
+        { name: "Pending Orders", path: "/admin/orders/status/pending" },
+        { name: "Delivered Orders", path: "/admin/orders/status/delivered" },
+        { name: "Canceled Orders", path: "/admin/orders/status/CANCELED" },
       ],
     },
     {

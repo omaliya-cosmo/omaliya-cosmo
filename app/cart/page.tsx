@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
@@ -196,6 +197,8 @@ const CartPage = () => {
         code: promoCode,
       });
       setDiscount(data.discount || 0);
+      // Set promo code discount in cookies
+      Cookies.set("promoCodeDiscount", data.discount.toString());
       toast.success(
         `Promo code applied! You saved Rs ${data.discount.toFixed(2)}`,
         { position: "bottom-right" }

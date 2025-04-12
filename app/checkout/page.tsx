@@ -8,41 +8,96 @@ import Link from "next/link";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
-import { Product } from "@prisma/client";
-import Cookies from "js-cookie"; // Import js-cookie to handle cookies
+import {
+  Address,
+  BundleOffer,
+  OrderItem as OrderItemPrisma,
+  Product,
+} from "@prisma/client";
+import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
-
-interface CartItem extends Product {
-  productId: string;
-  quantity: number;
-}
+import { z } from "zod";
 
 const shippingFees = [
   { country: "Sri Lanka", fee: 500 },
-  { country: "USA", fee: 15 },
-  { country: "UK", fee: 20 },
-  { country: "Australia", fee: 25 },
-  { country: "Canada", fee: 30 },
+  { country: "USA", fee: 1000 },
+  { country: "UK", fee: 1200 },
+  { country: "Australia", fee: 1500 },
+  { country: "Canada", fee: 1800 },
 ];
+
+const checkoutSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z
+      .string()
+      .email("Please enter a valid email address")
+      .optional()
+      .or(z.literal("")),
+    phoneNumber: z
+      .string()
+      .min(10, "Phone number must be at least 10 digits")
+      .regex(/^\d+$/, "Phone number must contain only digits")
+      .optional()
+      .or(z.literal("")),
+    addressLine1: z.string().min(1, "Address is required"),
+    addressLine2: z.string().optional(),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    postalCode: z.string().min(1, "Postal code is required"),
+    country: z.string().min(1, "Country is required"),
+    paymentMethod: z.enum(["PAY_HERE", "KOKO", "CASH_ON_DELIVERY"]),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const hasEmail = !!data.email && data.email !== "";
+      const hasPhone = !!data.phoneNumber && data.phoneNumber !== "";
+      return hasEmail || hasPhone;
+    },
+    {
+      message: "Either a valid email or phone number must be provided",
+      path: ["email"], // Only one path is allowed; Zod doesn't highlight multiple fields well
+    }
+  );
+
+interface OrderItem extends OrderItemPrisma {
+  product: Product;
+  bundle: BundleOffer;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
-  console.log(getCustomerFromToken());
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    notes: string;
+    addressLine1: string;
+    addressLine2: string;
+    state: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY";
+  }>({
     firstName: "",
     lastName: "",
     email: "",
     phoneNumber: "",
+    notes: "",
     addressLine1: "",
     addressLine2: "",
-    city: "",
     state: "",
+    city: "",
     postalCode: "",
     country: "",
     paymentMethod: "PAY_HERE",
@@ -52,19 +107,27 @@ export default function CheckoutPage() {
     async function loadCustomerData() {
       const customerData = await getCustomerFromToken();
       if (customerData) {
-        setFormData((prev) => ({
-          ...prev,
-          firstName: customerData.firstName || "",
-          lastName: customerData.lastName || "",
-          email: customerData.email || "",
-          phoneNumber: customerData.phoneNumber || "",
-          addressLine1: customerData.addressLine1 || "",
-          addressLine2: customerData.addressLine2 || "",
-          city: customerData.city || "",
-          state: customerData.state || "",
-          postalCode: customerData.postalCode || "",
-          country: customerData.country || "",
-        }));
+        try {
+          const { data } = await axios.get(
+            `/api/customers/${customerData.id}?address=true`
+          );
+          const address = data.address || {};
+          setFormData((prev) => ({
+            ...prev,
+            firstName: customerData.firstName || "",
+            lastName: customerData.lastName || "",
+            email: customerData.email || "",
+            phoneNumber: address.phoneNumber || "",
+            addressLine1: address.addressLine1 || "",
+            addressLine2: address.addressLine2 || "",
+            city: address.city || "",
+            state: address.state || "",
+            postalCode: address.postalCode || "",
+            country: address.country || "",
+          }));
+        } catch (error) {
+          console.error("Error fetching customer address:", error);
+        }
       }
     }
     loadCustomerData();
@@ -82,7 +145,7 @@ export default function CheckoutPage() {
   const fetchCartData = async () => {
     try {
       setLoading(true);
-      const { data: cartData } = await axios.get<{ items: CartItem[] }>(
+      const { data: cartData } = await axios.get<{ items: OrderItem[] }>(
         "/api/cart"
       );
       const cartItemsFromApi = cartData.items || [];
@@ -93,40 +156,88 @@ export default function CheckoutPage() {
         return;
       }
 
-      const productIds = cartItemsFromApi.map((item) => item.productId);
-      const { data: productsData } = await axios.post<Product[]>(
-        "/api/products/batch",
-        { productIds }
-      );
+      // Separate regular products and bundles
+      const productIds = cartItemsFromApi
+        .filter((item) => !item.isBundle && item.productId)
+        .map((item) => item.productId);
+      const bundleIds = cartItemsFromApi
+        .filter((item) => item.isBundle && item.bundleId)
+        .map((item) => item.bundleId);
 
-      const mergedItems = cartItemsFromApi.map((cartItem) => {
-        const product = productsData.find(
-          (p) => p.id === cartItem.productId
-        ) || {
-          id: cartItem.productId,
-          name: "Unknown Product",
-          price: 0,
-          priceLKR: 0,
-          priceUSD: 0,
-        };
-        return { ...cartItem, ...product };
+      const [productsData, bundlesData] = await Promise.all([
+        productIds.length > 0
+          ? axios.post<Product[]>("/api/products/batch", { productIds })
+          : Promise.resolve({ data: [] }),
+        bundleIds.length > 0
+          ? axios.post<BundleOffer[]>("/api/bundles/batch", { bundleIds })
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      // Merge all items (both regular products and bundles)
+      const mergedItems: OrderItem[] = cartItemsFromApi.map((cartItem) => {
+        if (cartItem.isBundle) {
+          const bundle = bundlesData.data.find(
+            (b) => b.id === cartItem.bundleId
+          );
+          return {
+            ...cartItem,
+            bundle: bundle || {
+              id: cartItem.bundleId || "unknown-id",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              imageUrl: null,
+              bundleName: "Unknown Bundle",
+              originalPriceLKR: 0,
+              originalPriceUSD: 0,
+              offerPriceLKR: 0,
+              offerPriceUSD: 0,
+              endDate: new Date(),
+            },
+          };
+        } else {
+          const product = productsData.data.find(
+            (p) => p.id === cartItem.productId
+          );
+          return {
+            ...cartItem,
+            product: product || {
+              id: cartItem.productId || "unknown-id",
+              name: "Unknown Product",
+              description: "No description available",
+              imageUrls: [],
+              categoryId: "unknown-category",
+              priceLKR: 0,
+              discountPriceLKR: null,
+              priceUSD: 0,
+              discountPriceUSD: null,
+              stock: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          };
+        }
       });
 
       setCartItems(mergedItems);
 
-      const calculatedSubtotal = mergedItems.reduce(
-        (sum, item) =>
-          sum +
-          (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
-        0
-      );
+      // Calculate subtotal
+      const calculatedSubtotal = mergedItems.reduce((sum, item) => {
+        const price = item.isBundle
+          ? country === "LK"
+            ? item.bundle?.offerPriceLKR || 0
+            : item.bundle?.offerPriceUSD || 0
+          : country === "LK"
+          ? item.product?.priceLKR || 0
+          : item.product?.priceUSD || 0;
 
-      // Retrieve promo code discount from cookies
+        return sum + price * item.quantity;
+      }, 0);
+
       const promoCodeDiscount = parseFloat(
         Cookies.get("promoCodeDiscount") || "0"
       );
-      setDiscount(promoCodeDiscount);
 
+      setDiscount(promoCodeDiscount);
       setSubtotal(calculatedSubtotal);
       setTotal(calculatedSubtotal + shipping - promoCodeDiscount);
 
@@ -139,19 +250,20 @@ export default function CheckoutPage() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
-    console.log(cartItems);
 
-    if (name == "country") {
-      setShipping(shippingFees.find((fee) => fee.country === value)?.fee ?? 0);
+    if (name === "country") {
+      const newShipping =
+        shippingFees.find((fee) => fee.country === value)?.fee ?? 0;
+      setShipping(newShipping);
+      setTotal(subtotal + newShipping - discount);
     }
 
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -160,56 +272,68 @@ export default function CheckoutPage() {
       setProcessingOrder(true);
       setError(null);
 
-      // Prepare customer details
-      const customerDetails = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        addressLine1: formData.addressLine1,
-        addressLine2: formData.addressLine2,
-        city: formData.city,
-        state: formData.state,
-        postalCode: formData.postalCode,
-        country: formData.country,
-      };
+      const validatedData = checkoutSchema.safeParse(formData);
 
-      // Prepare order data
+      if (!validatedData.success) {
+        const errorMessages = validatedData.error.errors.map(
+          (err) => err.message
+        );
+        const uniqueErrors = [...new Set(errorMessages)];
+        const errorMessage = uniqueErrors.join(", ");
+        setError(errorMessage);
+        toast.error(errorMessage);
+        return;
+      }
+
       const orderData = {
-        customerDetails,
+        addressDetails: {
+          firstName: validatedData.data.firstName,
+          lastName: validatedData.data.lastName,
+          email: validatedData.data.email,
+          phoneNumber: validatedData.data.phoneNumber,
+          addressLine1: validatedData.data.addressLine1,
+          addressLine2: validatedData.data.addressLine2,
+          city: validatedData.data.city,
+          state: validatedData.data.state,
+          postalCode: validatedData.data.postalCode,
+          country: validatedData.data.country,
+          setDefault: true, // Add this option for logged-in users
+        },
         items: cartItems.map((item) => ({
-          productId: item.productId,
+          productId: item.isBundle ? undefined : item.productId,
+          bundleId: item.isBundle ? item.bundleId : undefined,
           quantity: item.quantity,
+          isBundle: item.isBundle || false,
         })),
-        paymentMethod: formData.paymentMethod.toUpperCase(),
+        paymentMethod: validatedData.data.paymentMethod,
         currency: country === "LK" ? "LKR" : "USD",
-        shipping,
-        notes: "Please deliver between 9 AM and 5 PM", // Example note
+        subtotal: subtotal,
+        shipping: shipping,
+        discountAmount: discount,
+        total: total,
+        notes: validatedData.data.notes,
       };
 
-      // Send order data to the backend
       const response = await axios.post("/api/checkout", orderData);
 
-      if (response.status === 200) {
-        // Clear cart cookies
+      if (response.data.success) {
         document.cookie =
           "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setCartItems([]);
-
-        toast.success("Order placed successfully!", {
-          position: "bottom-right",
-        });
-
-        // Redirect to order confirmation page
+        toast.success("Order placed successfully!");
         router.push(`/order-confirmation?orderId=${response.data.order.id}`);
+      } else {
+        throw new Error(response.data.error || "Failed to place order");
       }
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.error || err.message || "Failed to place order";
-      setError(errorMessage);
-      toast.error(errorMessage, {
-        position: "bottom-right",
-      });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const errorMessage = err.response?.data?.error || err.message;
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } else if (err instanceof Error) {
+        setError(err.message);
+        toast.error(err.message);
+      }
     } finally {
       setProcessingOrder(false);
     }
@@ -287,7 +411,6 @@ export default function CheckoutPage() {
 
         <div className="p-6 md:p-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Left side - Customer Information */}
             <div className="md:col-span-2">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
@@ -296,7 +419,6 @@ export default function CheckoutPage() {
                   </h2>
 
                   <div className="space-y-4">
-                    {/* Form fields with improved contrast */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-800 mb-1">
@@ -325,35 +447,47 @@ export default function CheckoutPage() {
                         />
                       </div>
                     </div>
-                    {country == "LK" ? (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-1">
-                          Phone Number
-                        </label>
-                        <input
-                          type="phoneNumber"
-                          name="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={handleInputChange}
-                          required
-                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-1">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          required
-                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="Enter your email address"
+                        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        placeholder="Enter your phone number (e.g., 0771234567)"
+                        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">
+                        Order Notes{" "}
+                        <span className="text-gray-500 text-xs">
+                          (Optional)
+                        </span>
+                      </label>
+                      <textarea
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleInputChange}
+                        placeholder="Add any special instructions or notes about your order"
+                        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800 min-h-[100px]"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -502,9 +636,6 @@ export default function CheckoutPage() {
                         <span className="block text-sm font-medium text-gray-800">
                           KOKO Payment
                         </span>
-                        <span className="block text-xs text-gray-600">
-                          Pay using KOKO digital wallet
-                        </span>
                       </div>
                       <div className="ml-auto">
                         <div className="w-8 h-5 bg-purple-500 rounded"></div>
@@ -585,14 +716,22 @@ export default function CheckoutPage() {
                 <div className="space-y-4 mb-6">
                   {cartItems.map((item) => (
                     <div
-                      key={item.productId}
+                      key={item.productId || item.bundleId}
                       className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100"
                     >
                       <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.imageUrls ? (
+                        {item.isBundle && item.bundle?.imageUrl ? (
                           <Image
-                            src={item.imageUrls[0]}
-                            alt={item.name}
+                            src={item.bundle.imageUrl}
+                            alt={item.bundle.bundleName}
+                            width={64}
+                            height={64}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : item.product.imageUrls ? (
+                          <Image
+                            src={item.product.imageUrls[0]}
+                            alt={item.product.name}
                             width={64}
                             height={64}
                             className="object-cover w-full h-full"
@@ -619,7 +758,9 @@ export default function CheckoutPage() {
 
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-medium text-gray-800 truncate">
-                          {item.name}
+                          {item.isBundle
+                            ? item.bundle?.bundleName
+                            : item.product?.name}
                         </h3>
                         <p className="text-xs text-gray-600">
                           Qty: {item.quantity}
@@ -627,9 +768,23 @@ export default function CheckoutPage() {
                       </div>
 
                       <div className="text-sm font-medium text-gray-800">
-                        {country === "LK"
-                          ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
-                          : `$${(item.priceUSD * item.quantity).toFixed(2)}`}
+                        {item.isBundle
+                          ? country === "LK"
+                            ? `Rs ${(
+                                (item.bundle?.offerPriceLKR || 0) *
+                                item.quantity
+                              ).toFixed(2)}`
+                            : `$${(
+                                (item.bundle?.offerPriceUSD || 0) *
+                                item.quantity
+                              ).toFixed(2)}`
+                          : country === "LK"
+                          ? `Rs ${(
+                              item.product?.priceLKR * item.quantity
+                            ).toFixed(2)}`
+                          : `$${(
+                              item.product?.priceUSD * item.quantity
+                            ).toFixed(2)}`}
                       </div>
                     </div>
                   ))}
@@ -656,9 +811,8 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
                       <span className="font-medium">
-                        {country === "LK"
-                          ? `-Rs ${discount.toFixed(2)}`
-                          : `-$${discount.toFixed(2)}`}
+                        {country === "LK" ? "- Rs" : "- $"}{" "}
+                        {(subtotal * (discount / 100)).toFixed(2)}`{" "}
                       </span>
                     </div>
                   )}

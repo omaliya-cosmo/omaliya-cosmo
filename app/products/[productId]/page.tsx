@@ -113,7 +113,6 @@ export default function ProductDetailPage() {
               currency={currency}
               onCurrencyChange={setCurrency}
             />
-            
             <div className="mt-8 space-y-4">
               {/* Quantity selector */}
               <div className="flex items-center space-x-4">

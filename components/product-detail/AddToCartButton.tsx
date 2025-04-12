@@ -26,7 +26,6 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
     const timer = setTimeout(() => {
       onClose();
     }, 3000);
-    
     return () => clearTimeout(timer);
   }, [onClose]);
   
@@ -84,11 +83,11 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       message: `${quantity} ${quantity === 1 ? 'item' : 'items'} added to your cart`,
       type: 'success'
     });
-    
     setTimeout(() => setAddedToCart(false), 2000);
   };
 
   // Handle buy now (add to cart and redirect to checkout)
+
   const handleBuyNow = () => {
     if (!isInStock || !isQuantityValid) {
       setToast({
@@ -116,12 +115,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     
     // In a real app, you would redirect to checkout page
     // window.location.href = "/checkout";
+
   };
 
   const handleAddToWishlist = () => {
     // Toggle wishlist state
     setAddedToWishlist(!addedToWishlist);
-    
+
     setToast({
       show: true,
       message: !addedToWishlist 
@@ -229,7 +229,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           Buy Now
         </motion.button>
       </div>
-      
+
       {/* Secondary actions */}
       <div className="flex gap-3">
         {/* Wishlist button */}
@@ -244,7 +244,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           title={addedToWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
         >
           <FiHeart
+
             className={`mr-2 ${addedToWishlist ? "fill-red-600 text-red-600" : ""}`}
+
           />
           {addedToWishlist ? "Saved" : "Save to Wishlist"}
         </motion.button>

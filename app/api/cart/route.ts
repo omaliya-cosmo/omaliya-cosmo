@@ -18,7 +18,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { productId, quantity } = body;
+    const {
+      productId,
+      quantity,
+      isBundle = false,
+      replaceQuantity = false,
+    } = body;
 
     if (!productId || typeof quantity !== "number") {
       return NextResponse.json({ error: "Invalid cart data" }, { status: 400 });
@@ -28,12 +33,14 @@ export async function POST(req: NextRequest) {
     const cart = cartCookie ? JSON.parse(cartCookie) : { items: [] };
 
     const existingItem = cart.items.find(
-      (item: any) => item.productId === productId
+      (item: any) => item.productId === productId && item.isBundle === isBundle
     );
     if (existingItem) {
-      existingItem.quantity += quantity;
+      existingItem.quantity = replaceQuantity
+        ? quantity
+        : existingItem.quantity + quantity;
     } else {
-      cart.items.push({ productId, quantity });
+      cart.items.push({ productId, quantity, isBundle });
     }
 
     (await cookies()).set("cart", JSON.stringify(cart), {
@@ -46,52 +53,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to update cart" },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT route to update item quantity
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { itemId, quantity } = body;
-
-    if (!itemId || typeof quantity !== "number" || quantity < 1) {
-      return NextResponse.json(
-        { error: "Invalid item ID or quantity" },
-        { status: 400 }
-      );
-    }
-
-    const cartCookie = (await cookies()).get("cart")?.value;
-    const cart = cartCookie ? JSON.parse(cartCookie) : { items: [] };
-
-    const itemIndex = cart.items.findIndex(
-      (item: any) => item.productId === itemId
-    );
-
-    if (itemIndex === -1) {
-      return NextResponse.json(
-        { error: "Item not found in cart" },
-        { status: 404 }
-      );
-    }
-
-    cart.items[itemIndex].quantity = quantity;
-
-    (await cookies()).set("cart", JSON.stringify(cart), {
-      path: "/",
-    });
-
-    return NextResponse.json(
-      { message: "Quantity updated successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error updating quantity:", error);
-    return NextResponse.json(
-      { error: "Failed to update quantity" },
       { status: 500 }
     );
   }
