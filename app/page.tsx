@@ -19,6 +19,7 @@ import Testimonials from "@/components/home/Testimonials";
 import Newsletter from "@/components/home/Newsletter";
 import ProductsSorting from "@/components/products/ProductsSorting"; // Use direct component
 import FeaturedBundles from "@/components/home/FeaturedBundles";
+import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
 
 export default function Home() {
   const [userData, setUserData] = useState<any>(null);
@@ -142,7 +143,7 @@ export default function Home() {
 
       <Header userData={userData} cartCount={cartCount} />
 
-      <main className="flex-grow">
+      <main className="flex-col ">
         <HeroSection />
 
         <div className="bg-white">
@@ -169,7 +170,7 @@ export default function Home() {
           </div>
 
           <div className="bg-white">
-            <FeaturedCollection />
+            <SocialMediaFeed />
           </div>
 
           <div className="bg-white">

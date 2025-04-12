@@ -131,9 +131,144 @@ export default function FeaturedProducts({
     },
   };
 
+  // Animation variants for floating particles
+  const floatingParticle = {
+    animate: (custom: any) => ({
+      y: [0, custom.y, 0],
+      x: [0, custom.x, 0],
+      opacity: [custom.opacityStart, custom.opacityEnd, custom.opacityStart],
+      scale: custom.scale ? [1, custom.scale, 1] : [1, 1, 1],
+      transition: {
+        duration: custom.duration || 10,
+        repeat: Infinity,
+        ease: "easeInOut",
+      },
+    }),
+  };
+
   return (
-    <section className="py-16 bg-gradient-to-b from-purple-50 via-white to-purple-50" ref={ref} id="featured-products">
-      <div className="container mx-auto px-4">
+    <section
+      className="py-16 bg-gradient-to-b from-purple-50 via-white to-purple-50 relative overflow-hidden px-12"
+      ref={ref}
+      id="featured-products"
+    >
+      {/* Animated Background Elements with Floating Particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Large blurred gradient background */}
+        <motion.div
+          className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-purple-100/30 to-pink-100/30 blur-3xl"
+          style={{ top: "5%", left: "50%", translateX: "-50%" }}
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: 15,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Floating particles with various sizes and positions */}
+        <motion.div
+          className="absolute w-10 h-10 rounded-full bg-purple-200/70"
+          style={{ top: "15%", left: "10%" }}
+          custom={{
+            y: -30,
+            x: 20,
+            opacityStart: 0.6,
+            opacityEnd: 0.8,
+            duration: 8,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-8 h-8 rounded-full bg-pink-200/70"
+          style={{ top: "25%", right: "15%" }}
+          custom={{
+            y: 25,
+            x: -15,
+            opacityStart: 0.5,
+            opacityEnd: 0.7,
+            duration: 10,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-16 h-16 rounded-full bg-purple-100/60"
+          style={{ bottom: "20%", left: "20%" }}
+          custom={{
+            y: -20,
+            x: 15,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 12,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-12 h-12 rounded-full bg-pink-100/60"
+          style={{ bottom: "30%", right: "10%" }}
+          custom={{
+            y: 20,
+            x: -10,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 9,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-14 h-14 rounded-full bg-gradient-to-r from-purple-200/50 to-pink-200/50 blur-sm"
+          style={{ top: "45%", right: "30%" }}
+          custom={{
+            scale: 1.2,
+            opacityStart: 0.3,
+            opacityEnd: 0.5,
+            duration: 14,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-6 h-6 rounded-full bg-purple-300/60"
+          style={{ top: "65%", left: "35%" }}
+          custom={{
+            y: 15,
+            x: 10,
+            opacityStart: 0.5,
+            opacityEnd: 0.7,
+            duration: 7,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+
+        <motion.div
+          className="absolute w-5 h-5 rounded-full bg-pink-300/60"
+          style={{ top: "35%", left: "15%" }}
+          custom={{
+            y: -12,
+            x: -8,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 6,
+          }}
+          variants={floatingParticle}
+          animate="animate"
+        />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}

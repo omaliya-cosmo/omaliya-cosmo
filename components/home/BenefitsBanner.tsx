@@ -103,7 +103,7 @@ export default function BenefitsBanner() {
       bgLight: 'bg-cyan-50',
       icon2: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9-3-9m-9 9a9 9 0 019-9" />
         </svg>
       )
     }
@@ -111,7 +111,7 @@ export default function BenefitsBanner() {
 
   return (
     <section 
-      className="py-20 md:py-28 overflow-hidden relative bg-white" 
+      className="py-20 md:py-28 overflow-hidden relative bg-white px-12" 
       ref={ref}
       id="benefits"
     >
@@ -132,6 +132,118 @@ export default function BenefitsBanner() {
             </defs>
             <rect width="100%" height="100%" fill="url(#smallGrid)" />
           </svg>
+        </div>
+        
+        {/* Animated blurred background particles */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div 
+            className="absolute w-64 h-64 rounded-full bg-purple-200/30 blur-3xl"
+            style={{ top: '10%', left: '5%' }}
+            animate={{
+              y: [0, -50, 0],
+              x: [0, 30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 20,
+              ease: "easeInOut"
+            }}
+          />
+          
+          <motion.div 
+            className="absolute w-96 h-96 rounded-full bg-pink-200/20 blur-3xl"
+            style={{ bottom: '15%', right: '10%' }}
+            animate={{
+              y: [0, 60, 0],
+              x: [0, -30, 0],
+              scale: [1, 1.15, 1],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 25,
+              ease: "easeInOut"
+            }}
+          />
+          
+          <motion.div 
+            className="absolute w-80 h-80 rounded-full bg-cyan-100/20 blur-3xl"
+            style={{ top: '40%', right: '25%' }}
+            animate={{
+              y: [0, 40, 0],
+              x: [0, -20, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 18,
+              ease: "easeInOut"
+            }}
+          />
+          
+          <motion.div 
+            className="absolute w-72 h-72 rounded-full bg-emerald-100/20 blur-3xl"
+            style={{ bottom: '30%', left: '20%' }}
+            animate={{
+              y: [0, -30, 0],
+              x: [0, 15, 0],
+              scale: [1, 1.08, 1],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 22,
+              ease: "easeInOut"
+            }}
+          />
+          
+          {/* Small particle elements */}
+          <motion.div 
+            className="absolute w-16 h-16 rounded-full bg-purple-400/30 blur-xl"
+            style={{ top: '25%', left: '35%' }}
+            animate={{
+              y: [0, -15, 0],
+              x: [0, 10, 0],
+              opacity: [0.4, 0.6, 0.4],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 8,
+              ease: "easeInOut"
+            }}
+          />
+          
+          <motion.div 
+            className="absolute w-12 h-12 rounded-full bg-pink-400/30 blur-xl"
+            style={{ bottom: '20%', right: '35%' }}
+            animate={{
+              y: [0, 12, 0],
+              x: [0, -8, 0],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 10,
+              ease: "easeInOut"
+            }}
+          />
+          
+          <motion.div 
+            className="absolute w-24 h-24 rounded-full bg-indigo-300/20 blur-xl"
+            style={{ top: '60%', left: '55%' }}
+            animate={{
+              y: [0, 20, 0],
+              x: [0, -10, 0],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 12,
+              ease: "easeInOut"
+            }}
+          />
+          
+          {/* Gradient overlay to blend particles */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-transparent to-white/30"></div>
         </div>
       </motion.div>
       

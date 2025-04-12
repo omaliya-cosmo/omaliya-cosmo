@@ -161,7 +161,7 @@ export default function CategoriesSection() {
 
   return (
     <section
-      className="py-16 bg-gradient-to-b from-white to-purple-50"
+      className="py-16 bg-gradient-to-b from-white to-purple-50 px-12"
       ref={ref}
       id="categories"
     >

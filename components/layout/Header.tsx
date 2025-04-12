@@ -40,11 +40,11 @@ export default function Header({ userData, cartCount }: HeaderProps) {
   };
   
   return (
-    <header className={`bg-white sticky top-0 z-50 transition-all duration-300 ${
+    <header className={`bg-white sticky top-0 z-50 transition-all duration-300  ${
       isScrolled ? 'shadow-md' : 'shadow-sm'
     }`}>
       {/* Top Announcement Bar with animated gradient */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden ">
         <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-purple-700 text-white py-2 px-4 text-center text-sm font-medium">
           <div className="flex items-center justify-center space-x-2">
             <span className="inline-block animate-pulse bg-white bg-opacity-20 rounded-full p-1">
@@ -67,7 +67,7 @@ export default function Header({ userData, cartCount }: HeaderProps) {
       <div className={`container mx-auto px-4 transition-all duration-300 ${
         isScrolled ? 'py-2' : 'py-4'
       }`}>
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center px-10">
           {/* Logo with animation */}
           <Link href="/" className="flex items-center group">
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent transition-transform group-hover:scale-105 duration-300">

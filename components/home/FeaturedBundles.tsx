@@ -146,8 +146,147 @@ const FeaturedBundles = () => {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-b from-purple-50 via-white to-white">
-      <div className="container mx-auto px-4">
+    <section className="py-16 bg-gradient-to-b from-purple-50 via-white to-white relative overflow-hidden">
+      {/* Animated Background Elements - Floating Particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large blurred background gradient */}
+        <motion.div 
+          className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-purple-100/40 to-pink-100/40 blur-3xl"
+          style={{ top: '10%', left: '50%', x: '-50%' }}
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 15,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Floating particles - various sizes and positions */}
+        <motion.div
+          className="absolute w-12 h-12 rounded-full bg-purple-200"
+          style={{ top: '15%', left: '10%' }}
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+            opacity: [0.7, 0.9, 0.7],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 8,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-8 h-8 rounded-full bg-pink-200"
+          style={{ top: '30%', right: '15%' }}
+          animate={{
+            y: [0, 25, 0],
+            x: [0, -15, 0],
+            opacity: [0.6, 0.8, 0.6],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 10,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-16 h-16 rounded-full bg-purple-100"
+          style={{ bottom: '20%', left: '20%' }}
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 10, 0],
+            opacity: [0.5, 0.7, 0.5],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 12,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-10 h-10 rounded-full bg-pink-100"
+          style={{ bottom: '30%', right: '25%' }}
+          animate={{
+            y: [0, 20, 0],
+            x: [0, -10, 0],
+            opacity: [0.6, 0.8, 0.6],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 9,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Additional smaller particles */}
+        <motion.div
+          className="absolute w-6 h-6 rounded-full bg-purple-300"
+          style={{ top: '55%', left: '8%' }}
+          animate={{
+            y: [0, 15, 0],
+            x: [0, 8, 0],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 7,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-5 h-5 rounded-full bg-pink-300"
+          style={{ top: '70%', right: '12%' }}
+          animate={{
+            y: [0, -12, 0],
+            x: [0, -6, 0],
+            opacity: [0.5, 0.7, 0.5],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 6,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Gradient-filled particles with blur */}
+        <motion.div
+          className="absolute w-20 h-20 rounded-full bg-gradient-to-r from-purple-200 to-pink-200 blur-sm"
+          style={{ top: '40%', right: '5%' }}
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 8,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-24 h-24 rounded-full bg-gradient-to-r from-pink-100 to-purple-100 blur-sm"
+          style={{ bottom: '10%', left: '5%' }}
+          animate={{
+            scale: [1, 0.9, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 10,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Bundles</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">

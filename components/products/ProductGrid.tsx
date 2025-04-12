@@ -209,9 +209,10 @@ export default function ProductGrid({
     <div className="space-y-4">
       {/* Enhanced Sort and Filter Controls */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
+        {/* Header section with stacked layout on mobile */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 gap-3">
           <div className="flex items-center space-x-2">
-            <ArrowPathIcon className="h-4 w-4 text-purple-600" />
+            <ArrowPathIcon className="h-4 w-4 flex-shrink-0 text-purple-600" />
             <div className="text-sm text-gray-700 font-medium">
               {isLoading ? (
                 <span className="flex items-center">
@@ -222,30 +223,34 @@ export default function ProductGrid({
                   Loading products...
                 </span>
               ) : (
-                <>Showing <span className="text-purple-700 font-semibold">{Math.min(sortedProducts.length, products.length)}</span> of <span className="text-purple-700 font-semibold">{products.length}</span> products</>
+                <span className="whitespace-normal sm:whitespace-nowrap">
+                  Showing <span className="text-purple-700 font-semibold">{Math.min(sortedProducts.length, products.length)}</span> of <span className="text-purple-700 font-semibold">{products.length}</span> products
+                </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          {/* Controls container - full width on mobile */}
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-1 text-sm font-medium bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start space-x-1 text-sm font-medium bg-white px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <AdjustmentsHorizontalIcon className="h-4 w-4 text-purple-600" />
               <span>Filter</span>
             </button>
             
-            <div className="flex items-center space-x-1 border-l border-gray-200 pl-3">
-              <ArrowsUpDownIcon className="h-4 w-4 text-purple-600" />
-              <div className="relative">
+            {/* Sort dropdown - full width on mobile */}
+            <div className="flex items-center flex-1 sm:flex-none space-x-1 sm:border-l sm:border-gray-200 sm:pl-3">
+              <ArrowsUpDownIcon className="h-4 w-4 text-purple-600 hidden sm:block" />
+              <div className="relative w-full sm:w-auto">
                 <select
                   id="sort"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg py-1.5 pl-3 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none shadow-sm"
+                  className="w-full text-sm border border-gray-200 rounded-lg py-2 pl-3 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none shadow-sm"
                 >
-                  <option value="featured">Featured</option>
+                  <option value="featured">Sort: Featured</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
                   <option value="rating">Best Rating</option>
@@ -288,18 +293,18 @@ export default function ProductGrid({
                     </div>
                   </div>
 
-                  {/* Category Filter */}
+                  {/* Category Filter - Improved for mobile */}
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Categories</h4>
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                       {["All", "Electronics", "Clothing", "Home & Kitchen", "Beauty", "Toys"].map(category => (
                         <div key={category} className="flex items-center">
                           <input
                             id={`category-${category}`}
                             type="checkbox"
-                            className="h-3 w-3 text-purple-600 focus:ring-purple-500 rounded"
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
                           />
-                          <label htmlFor={`category-${category}`} className="ml-1.5 text-xs text-gray-700">
+                          <label htmlFor={`category-${category}`} className="ml-2 text-xs sm:text-sm text-gray-700">
                             {category}
                           </label>
                         </div>
@@ -307,18 +312,18 @@ export default function ProductGrid({
                     </div>
                   </div>
 
-                  {/* Rating Filter */}
+                  {/* Rating Filter - Improved for mobile */}
                   <div className="bg-white p-3 rounded-lg shadow-sm">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Rating</h4>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {[5, 4, 3, 2, 1].map(star => (
                         <div key={star} className="flex items-center">
                           <input
                             id={`rating-${star}`}
                             type="checkbox"
-                            className="h-3 w-3 text-purple-600 focus:ring-purple-500 rounded"
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
                           />
-                          <label htmlFor={`rating-${star}`} className="ml-1.5 text-xs flex items-center text-gray-700">
+                          <label htmlFor={`rating-${star}`} className="ml-2 text-xs sm:text-sm flex items-center text-gray-700">
                             {[...Array(5)].map((_, i) => (
                               <svg 
                                 key={i} 
@@ -337,12 +342,12 @@ export default function ProductGrid({
                   </div>
                 </div>
 
-                {/* Filter actions */}
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                {/* Filter actions - Made more touch-friendly */}
+                <div className="mt-4 flex justify-end gap-3">
+                  <button className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors">
                     Reset All
                   </button>
-                  <button className="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
+                  <button className="px-4 py-2 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
                     Apply Filters
                   </button>
                 </div>
@@ -994,7 +999,7 @@ function ProductCard({
         <motion.div
           className={`relative h-full ${
             viewMode === "list" 
-              ? "flex items-center" 
+              ? "flex flex-col sm:flex-row items-start sm:items-center" 
               : "flex flex-col"
           } bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 transition-all duration-300`}
           style={{
@@ -1009,7 +1014,9 @@ function ProductCard({
           <div
             ref={imageRef}
             className={`relative ${
-              viewMode === "list" ? "h-36 w-36 md:h-40 md:w-40 flex-shrink-0" : "h-[28rem] w-full md:h-[20rem]"
+              viewMode === "list" 
+                ? "h-64 w-full sm:h-36 sm:w-36 md:h-40 md:w-40 sm:flex-shrink-0" 
+                : "h-[28rem] w-full md:h-[20rem]"
             } overflow-hidden`}
             onClick={(e) => {
               if (!isZoomed) {
@@ -1189,7 +1196,7 @@ function ProductCard({
             )}
           </div>
 
-          <div className={`${viewMode === "list" ? "p-5 flex-1" : "p-4"} flex flex-col h-full`}>
+          <div className={`${viewMode === "list" ? "p-4 sm:p-5 flex-1" : "p-4"} flex flex-col h-full`}>
             {/* Category badge */}
             <div className="mb-1">
               <span className="inline-block px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md text-xs font-semibold uppercase tracking-wider">

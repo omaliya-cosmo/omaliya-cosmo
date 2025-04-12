@@ -56,7 +56,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-purple-50 via-white to-pink-50 overflow-hidden py-16 md:py-24">
+    <section className="relative bg-gradient-to-br from-purple-50 via-white to-pink-50 overflow-hidden py-16 md:py-24 px-10">
       {/* Animated background elements */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.8 }}
@@ -110,7 +110,7 @@ export default function HeroSection() {
             variants={staggerChildren}
           >
             <motion.h1 
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+              className="text-4xl md:text-5xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight"
               variants={fadeIn}
             >
               Discover Your Natural
