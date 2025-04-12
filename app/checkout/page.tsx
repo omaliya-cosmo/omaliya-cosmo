@@ -18,14 +18,6 @@ import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
 import { z } from "zod";
 
-const shippingFees = [
-  { country: "Sri Lanka", fee: 500 },
-  { country: "USA", fee: 1000 },
-  { country: "UK", fee: 1200 },
-  { country: "Australia", fee: 1500 },
-  { country: "Canada", fee: 1800 },
-];
-
 const checkoutSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
@@ -65,6 +57,17 @@ const checkoutSchema = z
 interface OrderItem extends OrderItemPrisma {
   product: Product;
   bundle: BundleOffer;
+}
+
+interface DisplayCartItem {
+  _id: string;
+  name: string;
+  quantity: number;
+  priceLKR: number;
+  priceUSD: number;
+  imageUrls?: string[];
+  isBundle: boolean;
+  category?: { name: string };
 }
 
 export default function CheckoutPage() {
@@ -134,7 +137,6 @@ export default function CheckoutPage() {
   }, []);
 
   const [subtotal, setSubtotal] = useState(0);
-  const [shipping, setShipping] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
 
@@ -239,7 +241,7 @@ export default function CheckoutPage() {
 
       setDiscount(promoCodeDiscount);
       setSubtotal(calculatedSubtotal);
-      setTotal(calculatedSubtotal + shipping - promoCodeDiscount);
+      setTotal(calculatedSubtotal - promoCodeDiscount);
 
       setLoading(false);
     } catch (err: any) {
@@ -255,13 +257,6 @@ export default function CheckoutPage() {
     >
   ) => {
     const { name, value } = e.target;
-
-    if (name === "country") {
-      const newShipping =
-        shippingFees.find((fee) => fee.country === value)?.fee ?? 0;
-      setShipping(newShipping);
-      setTotal(subtotal + newShipping - discount);
-    }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -308,7 +303,6 @@ export default function CheckoutPage() {
         paymentMethod: validatedData.data.paymentMethod,
         currency: country === "LK" ? "LKR" : "USD",
         subtotal: subtotal,
-        shipping: shipping,
         discountAmount: discount,
         total: total,
         notes: validatedData.data.notes,
@@ -337,6 +331,64 @@ export default function CheckoutPage() {
     } finally {
       setProcessingOrder(false);
     }
+  };
+
+  const renderCartItem = (item: DisplayCartItem) => {
+    return (
+      <div
+        key={item._id}
+        className="flex justify-between py-3 border-b border-gray-100 last:border-0"
+      >
+        <div className="flex items-start">
+          <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+            {(item.imageUrls ?? []).length > 0 ? (
+              <Image
+                src={(item.imageUrls ?? [])[0]}
+                alt={item.name}
+                width={48}
+                height={48}
+                className="object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 mb-1">
+              {item.name}{" "}
+              <span className="text-gray-500 font-normal">
+                x{item.quantity}
+              </span>
+            </h3>
+            <p className="text-xs text-gray-500">
+              {item.isBundle ? "Bundle" : item.category?.name || "Cosmetics"}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="font-medium text-gray-900">
+            {country === "LK"
+              ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
+              : `$ ${(item.priceUSD * item.quantity).toFixed(2)}`}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -575,91 +627,16 @@ export default function CheckoutPage() {
                         <label className="block text-sm font-medium text-gray-800 mb-1">
                           Country
                         </label>
-                        <select
+                        <input
+                          type="text"
                           name="country"
                           value={formData.country}
                           onChange={handleInputChange}
                           required
                           className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                        >
-                          <option value="">Select a country</option>
-                          {shippingFees.map((fee) => (
-                            <option key={fee.country} value={fee.country}>
-                              {fee.country}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Payment Method
-                  </h2>
-
-                  <div className="space-y-3">
-                    <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="PAY_HERE"
-                        checked={formData.paymentMethod === "PAY_HERE"}
-                        onChange={handleInputChange}
-                        className="h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-800">
-                          PayHere
-                        </span>
-                        <span className="block text-xs text-gray-600">
-                          Secure online payment gateway for Sri Lanka
-                        </span>
-                      </div>
-                      <div className="ml-auto flex space-x-1">
-                        <div className="w-8 h-5 bg-blue-600 rounded"></div>
-                        <div className="w-8 h-5 bg-gray-800 rounded"></div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="KOKO"
-                        checked={formData.paymentMethod === "KOKO"}
-                        onChange={handleInputChange}
-                        className="h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-800">
-                          KOKO Payment
-                        </span>
-                      </div>
-                      <div className="ml-auto">
-                        <div className="w-8 h-5 bg-purple-500 rounded"></div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center p-4 border-2 border-gray-300 bg-gray-50 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="CASH_ON_DELIVERY"
-                        checked={formData.paymentMethod === "CASH_ON_DELIVERY"}
-                        onChange={handleInputChange}
-                        className="h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-800">
-                          Cash On Delivery
-                        </span>
-                        <span className="block text-xs text-gray-600">
-                          Pay after recieving the product
-                        </span>
-                      </div>
-                    </label>
                   </div>
                 </div>
 
@@ -707,149 +684,94 @@ export default function CheckoutPage() {
             </div>
 
             {/* Right side - Order Summary */}
-            <div className="md:col-span-1">
-              <div className="bg-gray-50 border border-gray-200 rounded-xl shadow-md p-6 sticky top-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                  Order Summary
-                </h2>
+            <div className="md:col-span-1 space-y-6">
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 
-                <div className="space-y-4 mb-6">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.productId || item.bundleId}
-                      className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100"
-                    >
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.isBundle && item.bundle?.imageUrl ? (
-                          <Image
-                            src={item.bundle.imageUrl}
-                            alt={item.bundle.bundleName}
-                            width={64}
-                            height={64}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : item.product.imageUrls ? (
-                          <Image
-                            src={item.product.imageUrls[0]}
-                            alt={item.product.name}
-                            width={64}
-                            height={64}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-8 w-8"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-800 truncate">
-                          {item.isBundle
-                            ? item.bundle?.bundleName
-                            : item.product?.name}
-                        </h3>
-                        <p className="text-xs text-gray-600">
-                          Qty: {item.quantity}
-                        </p>
-                      </div>
-
-                      <div className="text-sm font-medium text-gray-800">
-                        {item.isBundle
-                          ? country === "LK"
-                            ? `Rs ${(
-                                (item.bundle?.offerPriceLKR || 0) *
-                                item.quantity
-                              ).toFixed(2)}`
-                            : `$${(
-                                (item.bundle?.offerPriceUSD || 0) *
-                                item.quantity
-                              ).toFixed(2)}`
-                          : country === "LK"
-                          ? `Rs ${(
-                              item.product?.priceLKR * item.quantity
-                            ).toFixed(2)}`
-                          : `$${(
-                              item.product?.priceUSD * item.quantity
-                            ).toFixed(2)}`}
-                      </div>
-                    </div>
-                  ))}
+                {/* Cart items */}
+                <div className="max-h-64 overflow-y-auto mb-4">
+                  {cartItems.map((item) => {
+                    const displayItem: DisplayCartItem = {
+                      _id: item.id,
+                      name: item.isBundle
+                        ? item.bundle?.bundleName
+                        : item.product?.name,
+                      quantity: item.quantity,
+                      priceLKR: item.isBundle
+                        ? item.bundle?.offerPriceLKR || 0
+                        : item.product?.priceLKR || 0,
+                      priceUSD: item.isBundle
+                        ? item.bundle?.offerPriceUSD || 0
+                        : item.product?.priceUSD || 0,
+                      imageUrls: item.isBundle
+                        ? item.bundle?.imageUrl
+                          ? [item.bundle.imageUrl]
+                          : []
+                        : item.product?.imageUrls || [],
+                      isBundle: item.isBundle,
+                      category: item.isBundle ? undefined : { name: "Product" },
+                    };
+                    return renderCartItem(displayItem);
+                  })}
                 </div>
 
-                <div className="border-t border-gray-300 pt-4 space-y-2">
+                {/* Pricing breakdown */}
+                <div className="space-y-2 py-4 border-t border-b border-gray-100">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">Subtotal</span>
-                    <span className="font-medium text-gray-800">
+                    <span className="text-gray-600">
+                      Subtotal (
+                      {cartItems.reduce((sum, item) => sum + item.quantity, 0)}{" "}
+                      items)
+                    </span>
+                    <span className="font-medium">
                       {country === "LK"
                         ? `Rs ${subtotal.toFixed(2)}`
-                        : `$${subtotal.toFixed(2)}`}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">Shipping</span>
-                    <span className="font-medium text-green-600">
-                      {shipping}
+                        : `$ ${subtotal.toFixed(2)}`}
                     </span>
                   </div>
 
                   {discount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
-                      <span className="font-medium">
-                        {country === "LK" ? "- Rs" : "- $"}{" "}
-                        {(subtotal * (discount / 100)).toFixed(2)}`{" "}
+                      <span>
+                        -{" "}
+                        {country === "LK"
+                          ? `Rs ${discount.toFixed(2)}`
+                          : `$ ${discount.toFixed(2)}`}
                       </span>
                     </div>
                   )}
                 </div>
 
-                <div className="border-t border-gray-300 mt-4 pt-4 bg-white p-3 rounded-lg">
-                  <div className="flex justify-between">
-                    <span className="text-base font-bold text-gray-800">
-                      Total
-                    </span>
-                    <span className="text-base font-bold text-purple-700">
-                      {country === "LK"
-                        ? `Rs ${total.toFixed(2)}`
-                        : `$${total.toFixed(2)}`}
-                    </span>
-                  </div>
+                {/* Total */}
+                <div className="flex justify-between py-4 font-semibold">
+                  <span className="text-gray-800">Total</span>
+                  <span className="text-purple-700">
+                    {country === "LK"
+                      ? `Rs ${total.toFixed(2)}`
+                      : `$ ${total.toFixed(2)}`}
+                  </span>
                 </div>
+              </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-300">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-800">
-                      Currency
-                    </span>
-                    <span className="text-sm font-medium px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                      {country === "LK" ? "LKR (Rs)" : "USD ($)"}
-                    </span>
-                  </div>
-                </div>
+              {/* Payment method */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold mb-4">Payment Method</h2>
 
-                <div className="mt-4 pt-4 border-t border-gray-300">
-                  <Link
-                    href="/cart"
-                    className="flex items-center justify-center text-purple-700 hover:text-purple-900 text-sm font-medium"
-                  >
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="CASH_ON_DELIVERY"
+                      checked={formData.paymentMethod === "CASH_ON_DELIVERY"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">Cash on Delivery</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1"
+                      className="h-6 w-6 text-gray-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -857,13 +779,111 @@ export default function CheckoutPage() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                        strokeWidth={1.5}
+                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
                       />
                     </svg>
-                    Return to cart
-                  </Link>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="PAY_HERE"
+                      checked={formData.paymentMethod === "PAY_HERE"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">Pay Here</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="KOKO"
+                      checked={formData.paymentMethod === "KOKO"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">Koko</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                      />
+                    </svg>
+                  </label>
                 </div>
+
+                <button
+                  onClick={() => {
+                    const form = document.querySelector("form");
+                    if (form) form.requestSubmit();
+                  }}
+                  disabled={
+                    loading || cartItems.length === 0 || processingOrder
+                  }
+                  className={`w-full mt-6 py-3 px-4 rounded-md font-medium text-white ${
+                    loading || cartItems.length === 0 || processingOrder
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-purple-600 hover:bg-purple-700 transition-colors"
+                  }`}
+                >
+                  {processingOrder ? (
+                    <span className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    `Place Order (${
+                      country === "LK"
+                        ? `Rs ${total.toFixed(2)}`
+                        : `$ ${total.toFixed(2)}`
+                    })`
+                  )}
+                </button>
               </div>
             </div>
           </div>

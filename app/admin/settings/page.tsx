@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FiTrash2, FiPlus } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiUpload } from "react-icons/fi";
 import axios from "axios";
 
 import {
@@ -50,6 +50,8 @@ const SettingsPage = () => {
     title: "",
     videoUrl: "",
   });
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchPromoCodes = async () => {
     setLoading(true);
@@ -115,6 +117,49 @@ const SettingsPage = () => {
     fetchData();
   }, []);
 
+  const uploadImageToCloudinary = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "omaliya");
+
+      const response = await fetch(
+        "https://api.cloudinary.com/v1_1/omaliya/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      if (data.secure_url) {
+        setNewBundle({ ...newBundle, imageUrl: data.secure_url });
+        setImagePreview(data.secure_url);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const fileReader = new FileReader();
+      fileReader.onload = (e) => {
+        if (e.target?.result) {
+          setImagePreview(e.target.result as string);
+        }
+      };
+      fileReader.readAsDataURL(file);
+
+      uploadImageToCloudinary(file);
+    }
+  };
+
   const handleAddPromoCode = async () => {
     if (!newPromoData.code || newPromoData.discount === "") {
       alert("Please fill in all fields");
@@ -144,7 +189,6 @@ const SettingsPage = () => {
 
   const handleAddBundleOffer = async () => {
     try {
-      // Validate required fields
       if (
         !newBundle.bundleName ||
         newBundle.productIds.length === 0 ||
@@ -154,7 +198,6 @@ const SettingsPage = () => {
         return;
       }
 
-      // Create the bundle offer data object matching the schema
       const bundleData = {
         bundleName: newBundle.bundleName,
         productIds: newBundle.productIds,
@@ -163,16 +206,14 @@ const SettingsPage = () => {
         offerPriceLKR: Number(newBundle.offerPriceLKR),
         offerPriceUSD: Number(newBundle.offerPriceUSD),
         endDate: new Date(newBundle.endDate).toISOString(),
-        // Add imageUrl if you have it, it's optional in the schema
         imageUrl: newBundle.imageUrl,
       };
 
       const res = await axios.post("/api/bundleoffers", bundleData);
 
       if (res.status === 201) {
-        fetchBundleOffers(); // Refresh the bundle offers list
+        fetchBundleOffers();
 
-        // Reset the form and close the modal
         setNewBundle({
           bundleName: "",
           productIds: [],
@@ -186,7 +227,6 @@ const SettingsPage = () => {
         setIsBundleModalOpen(false);
       }
     } catch (error: any) {
-      // Handle validation errors
       if (error.response?.status === 400) {
         alert(
           `Validation error: ${JSON.stringify(error.response.data.details)}`
@@ -376,6 +416,15 @@ const SettingsPage = () => {
                 key={bundle.id}
                 className="bg-gray-100 p-4 rounded-lg shadow-md"
               >
+                {bundle.imageUrl && (
+                  <div className="mb-3">
+                    <img
+                      src={bundle.imageUrl}
+                      alt={bundle.bundleName}
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                  </div>
+                )}
                 <h2 className="text-lg font-bold text-gray-800">
                   {bundle.bundleName}
                 </h2>
@@ -427,6 +476,51 @@ const SettingsPage = () => {
                   }
                 />
               </div>
+
+              {/* Add Image Upload Field */}
+              <div className="col-span-1 sm:col-span-2">
+                <div className="border-dashed border-2 border-gray-300 rounded-lg p-4 text-center">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="mx-auto h-40 object-contain mb-2"
+                      />
+                      <button
+                        onClick={() => {
+                          setImagePreview(null);
+                          setNewBundle({ ...newBundle, imageUrl: "" });
+                        }}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <label
+                        htmlFor="bundleImage"
+                        className="cursor-pointer flex flex-col items-center justify-center"
+                      >
+                        <FiUpload className="text-gray-400 text-4xl mb-2" />
+                        <span className="text-gray-500">
+                          {uploading ? "Uploading..." : "Upload Bundle Image"}
+                        </span>
+                      </label>
+                      <input
+                        id="bundleImage"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                        disabled={uploading}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div className="col-span-1 sm:col-span-2">
                 <input
                   type="text"

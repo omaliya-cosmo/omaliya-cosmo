@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/app/lib/prisma";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { customerId: string } }
 ) {
-  const { customerId } = params;
+  const { customerId } = await params;
 
   try {
     const { searchParams } = new URL(req.url);
     const includeAddresses = searchParams.get("addresses") === "true";
     const includeOrders = searchParams.get("orders") === "true";
     const includeReviews = searchParams.get("reviews") === "true";
+    const includeAddress = searchParams.get("address") === "true";
 
     // Fetch the customer from the database
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
       include: {
-        address: includeAddresses,
+        address: includeAddress || includeAddresses,
         orders: includeOrders,
         reviews: includeReviews,
       },
@@ -39,7 +38,5 @@ export async function GET(
       { error: "Internal Server Error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

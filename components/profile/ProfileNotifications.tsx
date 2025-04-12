@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import {
   Bell,
   CheckCheck,
@@ -34,12 +33,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 
-type NotificationType = 
-  | "order" 
-  | "delivery" 
-  | "promotion" 
-  | "payment" 
-  | "account" 
+type NotificationType =
+  | "order"
+  | "delivery"
+  | "promotion"
+  | "payment"
+  | "account"
   | "system";
 
 interface Notification {
@@ -63,7 +62,7 @@ export default function ProfileNotifications() {
     const fetchNotifications = async () => {
       // In a real app, fetch from API
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+
       const dummyNotifications: Notification[] = [
         {
           id: "1",
@@ -74,8 +73,8 @@ export default function ProfileNotifications() {
           isRead: false,
           link: "/orders/38492",
           data: {
-            orderId: "38492"
-          }
+            orderId: "38492",
+          },
         },
         {
           id: "2",
@@ -87,15 +86,19 @@ export default function ProfileNotifications() {
           link: "/promotions/cosmo20",
           data: {
             promoCode: "COSMO20",
-            expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          }
+            expiryDate: new Date(
+              Date.now() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+          },
         },
         {
           id: "3",
           type: "payment",
           title: "New payment method added",
           description: "You added a new credit card ending in 4382.",
-          dateTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          dateTime: new Date(
+            Date.now() - 3 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           isRead: true,
           link: "/profile?tab=security",
         },
@@ -103,21 +106,25 @@ export default function ProfileNotifications() {
           id: "4",
           type: "order",
           title: "Order confirmed",
-          description: "Your order #39201 has been confirmed and is being processed.",
+          description:
+            "Your order #39201 has been confirmed and is being processed.",
           dateTime: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
           isRead: false,
           link: "/orders/39201",
           data: {
             orderId: "39201",
-            items: 3
-          }
+            items: 3,
+          },
         },
         {
           id: "5",
           type: "account",
           title: "Welcome to Omaliya!",
-          description: "Thank you for creating an account. Start exploring our products now.",
-          dateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          description:
+            "Thank you for creating an account. Start exploring our products now.",
+          dateTime: new Date(
+            Date.now() - 7 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           isRead: true,
           link: "/products",
         },
@@ -125,13 +132,16 @@ export default function ProfileNotifications() {
           id: "6",
           type: "system",
           title: "Privacy Policy Update",
-          description: "We've updated our privacy policy. Please review the changes.",
-          dateTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          description:
+            "We've updated our privacy policy. Please review the changes.",
+          dateTime: new Date(
+            Date.now() - 14 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           isRead: true,
           link: "/privacy-policy",
         },
       ];
-      
+
       setNotifications(dummyNotifications);
       setIsLoading(false);
     };
@@ -191,12 +201,12 @@ export default function ProfileNotifications() {
     if (activeFilter !== "all" && activeFilter !== "unread") {
       if (notif.type !== activeFilter) return false;
     }
-    
+
     // Apply unread filter
     if (activeFilter === "unread" && notif.isRead) {
       return false;
     }
-    
+
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -205,24 +215,28 @@ export default function ProfileNotifications() {
         notif.description.toLowerCase().includes(query)
       );
     }
-    
+
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
   const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(notif => 
-      notif.id === id ? { ...notif, isRead: true } : notif
-    ));
+    setNotifications((prev) =>
+      prev.map((notif) =>
+        notif.id === id ? { ...notif, isRead: true } : notif
+      )
+    );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
+    setNotifications((prev) =>
+      prev.map((notif) => ({ ...notif, isRead: true }))
+    );
   };
 
   const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
+    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
   };
 
   return (
@@ -242,19 +256,19 @@ export default function ProfileNotifications() {
             Stay updated on your orders and account activity
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2 self-end">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             className="h-8"
             onClick={markAllAsRead}
-            disabled={!notifications.some(n => !n.isRead)}
+            disabled={!notifications.some((n) => !n.isRead)}
           >
             <CheckCheck className="h-3.5 w-3.5 mr-1.5" />
             Mark all as read
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
@@ -296,8 +310,8 @@ export default function ProfileNotifications() {
 
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search notifications..." 
+        <Input
+          placeholder="Search notifications..."
           className="pl-9 max-w-sm"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -325,14 +339,22 @@ export default function ProfileNotifications() {
             {activeFilter !== "all" && (
               <div className="flex items-center justify-between mb-2 px-1">
                 <p className="text-sm text-muted-foreground">
-                  {activeFilter === "unread" 
-                    ? `Showing ${filteredNotifications.length} unread notification${filteredNotifications.length !== 1 ? 's' : ''}` 
-                    : `Showing ${filteredNotifications.length} ${activeFilter} notification${filteredNotifications.length !== 1 ? 's' : ''}`}
+                  {activeFilter === "unread"
+                    ? `Showing ${
+                        filteredNotifications.length
+                      } unread notification${
+                        filteredNotifications.length !== 1 ? "s" : ""
+                      }`
+                    : `Showing ${
+                        filteredNotifications.length
+                      } ${activeFilter} notification${
+                        filteredNotifications.length !== 1 ? "s" : ""
+                      }`}
                 </p>
                 {activeFilter !== "all" && (
-                  <Button 
-                    variant="link" 
-                    size="sm" 
+                  <Button
+                    variant="link"
+                    size="sm"
                     className="h-auto p-0 text-muted-foreground"
                     onClick={() => setActiveFilter("all")}
                   >
@@ -341,7 +363,7 @@ export default function ProfileNotifications() {
                 )}
               </div>
             )}
-            
+
             {filteredNotifications.map((notification) => (
               <motion.div
                 key={notification.id}
@@ -350,14 +372,26 @@ export default function ProfileNotifications() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex gap-3 p-4 rounded-lg border-l-4 ${notification.isRead ? 'border-l-muted bg-background' : getTypeColor(notification.type) + ' bg-muted/20'} border relative`}
+                className={`flex gap-3 p-4 rounded-lg border-l-4 ${
+                  notification.isRead
+                    ? "border-l-muted bg-background"
+                    : getTypeColor(notification.type) + " bg-muted/20"
+                } border relative`}
               >
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${notification.isRead ? 'bg-muted' : 'bg-primary/10'}`}>
+                <div
+                  className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                    notification.isRead ? "bg-muted" : "bg-primary/10"
+                  }`}
+                >
                   {getTypeIcon(notification.type)}
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <h3 className={`font-medium text-base ${!notification.isRead ? 'text-primary' : ''}`}>
+                    <h3
+                      className={`font-medium text-base ${
+                        !notification.isRead ? "text-primary" : ""
+                      }`}
+                    >
                       {notification.title}
                     </h3>
                     <div className="flex items-center gap-1">
@@ -378,7 +412,11 @@ export default function ProfileNotifications() {
                         {notification.data.promoCode}
                       </Badge>
                       <span className="text-xs text-muted-foreground ml-2">
-                        Expires {format(parseISO(notification.data.expiryDate), 'MMM dd')}
+                        Expires{" "}
+                        {format(
+                          parseISO(notification.data.expiryDate),
+                          "MMM dd"
+                        )}
                       </span>
                     </div>
                   )}
@@ -389,9 +427,9 @@ export default function ProfileNotifications() {
                       </Button>
                     )}
                     {!notification.isRead && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 text-xs"
                         onClick={() => markAsRead(notification.id)}
                       >
@@ -420,15 +458,17 @@ export default function ProfileNotifications() {
           </div>
           <h3 className="text-xl font-medium mb-2">No notifications</h3>
           <p className="text-muted-foreground max-w-sm">
-            {searchQuery 
-              ? `We couldn't find any notifications matching "${searchQuery}".` 
-              : activeFilter !== "all" 
-                ? `You don't have any ${activeFilter === "unread" ? "unread" : activeFilter} notifications.`
-                : "You don't have any notifications right now. We'll notify you when something important happens."}
+            {searchQuery
+              ? `We couldn't find any notifications matching "${searchQuery}".`
+              : activeFilter !== "all"
+              ? `You don't have any ${
+                  activeFilter === "unread" ? "unread" : activeFilter
+                } notifications.`
+              : "You don't have any notifications right now. We'll notify you when something important happens."}
           </p>
           {(searchQuery || activeFilter !== "all") && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="mt-4"
               onClick={() => {
                 setSearchQuery("");
@@ -441,45 +481,6 @@ export default function ProfileNotifications() {
           )}
         </div>
       )}
-
-      <Separator className="my-6" />
-      
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="font-medium">Notification preferences</h3>
-          <p className="text-sm text-muted-foreground">
-            Manage how you receive notifications
-          </p>
-        </div>
-        
-        <Button variant="outline" size="sm">
-          Manage preferences
-        </Button>
-      </div>
-      
-      <div className="mt-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4" />
-            <span className="text-sm">Order updates</span>
-          </div>
-          <Switch defaultChecked />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4" />
-            <span className="text-sm">Promotions and sales</span>
-          </div>
-          <Switch defaultChecked />
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Info className="h-4 w-4" />
-            <span className="text-sm">System notifications</span>
-          </div>
-          <Switch defaultChecked />
-        </div>
-      </div>
     </div>
   );
 }

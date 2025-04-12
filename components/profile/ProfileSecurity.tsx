@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { toast } from 'react-hot-toast';
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 
@@ -33,12 +33,12 @@ interface PasswordFormData {
 const ProfileSecurity: React.FC = () => {
   const form = useForm<PasswordFormData>({
     defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
-  
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,31 +46,46 @@ const ProfileSecurity: React.FC = () => {
 
   const validateForm = (values: PasswordFormData) => {
     let valid = true;
-    
+
     if (!values.currentPassword) {
-      form.setError('currentPassword', { message: 'Current password is required' });
+      form.setError("currentPassword", {
+        message: "Current password is required",
+      });
       valid = false;
     }
-    
+
     if (!values.newPassword) {
-      form.setError('newPassword', { message: 'New password is required' });
+      form.setError("newPassword", { message: "New password is required" });
       valid = false;
     } else if (values.newPassword.length < 8) {
-      form.setError('newPassword', { message: 'Password must be at least 8 characters' });
+      form.setError("newPassword", {
+        message: "Password must be at least 8 characters",
+      });
       valid = false;
-    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(values.newPassword)) {
-      form.setError('newPassword', { message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character' });
+    } else if (
+      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
+        values.newPassword
+      )
+    ) {
+      form.setError("newPassword", {
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      });
       valid = false;
     }
-    
+
     if (!values.confirmPassword) {
-      form.setError('confirmPassword', { message: 'Please confirm your password' });
+      form.setError("confirmPassword", {
+        message: "Please confirm your password",
+      });
       valid = false;
     } else if (values.confirmPassword !== values.newPassword) {
-      form.setError('confirmPassword', { message: 'The passwords do not match' });
+      form.setError("confirmPassword", {
+        message: "The passwords do not match",
+      });
       valid = false;
     }
-    
+
     return valid;
   };
 
@@ -78,18 +93,18 @@ const ProfileSecurity: React.FC = () => {
     if (!validateForm(values)) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       toast.success("Password updated successfully!");
-      
+
       form.reset({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
     } catch (error) {
       console.error("Error updating password:", error);
@@ -103,7 +118,9 @@ const ProfileSecurity: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle>Security Settings</CardTitle>
-        <CardDescription>Update your password and security preferences</CardDescription>
+        <CardDescription>
+          Update your password and security preferences
+        </CardDescription>
       </CardHeader>
       <Separator />
       <CardContent className="pt-6">
@@ -115,7 +132,9 @@ const ProfileSecurity: React.FC = () => {
                 name="currentPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
+                    <FormLabel htmlFor="currentPassword">
+                      Current Password
+                    </FormLabel>
                     <div className="relative">
                       <FormControl>
                         <Input
@@ -129,9 +148,15 @@ const ProfileSecurity: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
                       >
-                        {showCurrentPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        {showCurrentPassword ? (
+                          <EyeOffIcon className="h-4 w-4" />
+                        ) : (
+                          <EyeIcon className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     <FormMessage />
@@ -160,7 +185,11 @@ const ProfileSecurity: React.FC = () => {
                         className="absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                       >
-                        {showNewPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        {showNewPassword ? (
+                          <EyeOffIcon className="h-4 w-4" />
+                        ) : (
+                          <EyeIcon className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     <FormMessage />
@@ -173,7 +202,9 @@ const ProfileSecurity: React.FC = () => {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="confirmPassword">Confirm New Password</FormLabel>
+                    <FormLabel htmlFor="confirmPassword">
+                      Confirm New Password
+                    </FormLabel>
                     <div className="relative">
                       <FormControl>
                         <Input
@@ -187,9 +218,15 @@ const ProfileSecurity: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="absolute right-2 top-1/2 -translate-y-1/2"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
-                        {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        {showConfirmPassword ? (
+                          <EyeOffIcon className="h-4 w-4" />
+                        ) : (
+                          <EyeIcon className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     <FormMessage />
@@ -198,7 +235,7 @@ const ProfileSecurity: React.FC = () => {
               />
             </div>
 
-            <Button 
+            <Button
               type="submit"
               disabled={isSubmitting}
               className="w-full sm:w-auto"
@@ -211,12 +248,19 @@ const ProfileSecurity: React.FC = () => {
         <Separator className="my-6" />
 
         <div>
-          <h3 className="text-lg font-medium mb-2">Two-Factor Authentication</h3>
+          <h3 className="text-lg font-medium mb-2">Reset Password</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Add an extra layer of security to your account by enabling two-factor authentication.
+            Forgot your password? You can request a password reset link to be
+            sent to your email address.
           </p>
-          <Button variant="outline" size="sm">
-            Enable 2FA
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              toast.success("Password reset link sent to your email address!")
+            }
+          >
+            Send Reset Link
           </Button>
         </div>
       </CardContent>
