@@ -111,16 +111,16 @@ export default function BenefitsBanner() {
 
   return (
     <section 
-      className="py-20 md:py-28 overflow-hidden relative" 
+      className="py-20 md:py-28 overflow-hidden relative bg-white" 
       ref={ref}
       id="benefits"
     >
-      {/* Parallax Background */}
+      {/* Parallax Background - White only */}
       <motion.div 
         className="absolute inset-0 z-0" 
         style={{ y: backgroundY }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-purple-50 to-pink-50 opacity-90"></div>
+        <div className="absolute inset-0 bg-white opacity-90"></div>
         
         {/* Decorative background pattern */}
         <div className="absolute inset-0 opacity-5">
@@ -133,11 +133,6 @@ export default function BenefitsBanner() {
             <rect width="100%" height="100%" fill="url(#smallGrid)" />
           </svg>
         </div>
-        
-        {/* Animated blob backgrounds */}
-        <div className="absolute -top-48 -left-24 w-96 h-96 bg-gradient-to-r from-purple-200/40 to-pink-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-        <div className="absolute top-32 -right-48 w-96 h-96 bg-gradient-to-r from-yellow-200/30 to-pink-200/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-24 left-1/3 w-96 h-96 bg-gradient-to-r from-blue-200/30 to-cyan-200/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
       </motion.div>
       
       <div className="container mx-auto px-4 relative z-10">

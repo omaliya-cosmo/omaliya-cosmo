@@ -141,11 +141,76 @@ export default function FeaturedCollection() {
           </p>
         </motion.div>
 
+        {/* Animated background elements */}
+        <div className="relative min-h-[400px] mb-6 z-1">
+          {/* Floating particles */}
+          <motion.div 
+            className="absolute inset-0 overflow-hidden pointer-events-none"
+            style={{ zIndex: 0 }}
+          >
+            <motion.div
+              className="absolute w-8 h-8 rounded-full bg-purple-200"
+              style={{ top: '10%', left: '5%' }}
+              animate={{
+                y: [0, 30, 0],
+                x: [0, 10, 0],
+                opacity: [0.9, 0.6, 0.9],
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 8,
+                ease: "easeInOut"
+              }}
+            />
+            <motion.div
+              className="absolute w-6 h-6 rounded-full bg-pink-200"
+              style={{ top: '30%', right: '15%' }}
+              animate={{
+                y: [0, -20, 0],
+                x: [0, -15, 0],
+                opacity: [0.8, 0.5, 0.8],
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 7,
+                ease: "easeInOut"
+              }}
+            />
+            <motion.div
+              className="absolute w-12 h-12 rounded-full bg-gradient-to-br from-purple-300 to-pink-200"
+              style={{ top: '15%', right: '25%' }}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.7, 0.9, 0.7],
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 6,
+                ease: "easeInOut"
+              }}
+            />
+            <motion.div
+              className="absolute w-16 h-16 rounded-full bg-gradient-to-tr from-purple-200 to-pink-100"
+              style={{ bottom: '25%', left: '30%' }}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.6, 0.8, 0.6],
+              }}
+              transition={{ 
+                repeat: Infinity,
+                duration: 9,
+                ease: "easeInOut"
+              }}
+            />
+          </motion.div>
+        </div>
+
         <motion.div 
-          className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl overflow-hidden shadow-sm"
+          className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          style={{ zIndex: 1 }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 md:p-8">
             {/* Collection info - takes full width on mobile, 1/3 on large screens */}

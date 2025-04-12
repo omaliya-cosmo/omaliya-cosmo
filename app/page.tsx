@@ -18,6 +18,7 @@ import FeaturedCollection from "@/components/home/FeaturedCollection";
 import Testimonials from "@/components/home/Testimonials";
 import Newsletter from "@/components/home/Newsletter";
 import ProductsSorting from "@/components/products/ProductsSorting"; // Use direct component
+import FeaturedBundles from "@/components/home/FeaturedBundles";
 
 export default function Home() {
   const [userData, setUserData] = useState<any>(null);
@@ -136,7 +137,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white">
       <ToastContainer />
 
       <Header userData={userData} cartCount={cartCount} />
@@ -144,36 +145,41 @@ export default function Home() {
       <main className="flex-grow">
         <HeroSection />
 
-        <CategoriesSection />
+        <div className="bg-white">
+          <CategoriesSection />
 
-        <div className="container mx-auto px-4 my-8">
-          <div className="flex justify-end mb-6">
-            <ProductsSorting
-              currentSort={sort}
+          <div className="bg-white">
+            <FeaturedProducts
+              products={products}
+              loading={loading}
+              error={error}
+              categories={categories}
+              addToCart={addToCart}
+              country={country || ""}
               viewMode={viewMode}
-              onSortChange={handleSortChange}
-              onViewModeChange={handleViewModeChange}
             />
           </div>
+          
+          <div className="bg-white">
+            <FeaturedBundles />
+          </div>
+
+          <div className="bg-white">
+            <BenefitsBanner />
+          </div>
+
+          <div className="bg-white">
+            <FeaturedCollection />
+          </div>
+
+          <div className="bg-white">
+            <Testimonials />
+          </div>
+
+          <div className="bg-white">
+            <Newsletter />
+          </div>
         </div>
-
-        <FeaturedProducts
-          products={products}
-          loading={loading}
-          error={error}
-          categories={categories}
-          addToCart={addToCart}
-          country={country || ""}
-          viewMode={viewMode}
-        />
-
-        <BenefitsBanner />
-
-        <FeaturedCollection />
-
-        <Testimonials />
-
-        <Newsletter />
       </main>
 
       <Footer />

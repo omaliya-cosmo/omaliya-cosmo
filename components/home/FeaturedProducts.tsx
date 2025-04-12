@@ -132,7 +132,7 @@ export default function FeaturedProducts({
   };
 
   return (
-    <section className="py-16 bg-gray-50" ref={ref} id="featured-products">
+    <section className="py-16 bg-gradient-to-b from-purple-50 via-white to-purple-50" ref={ref} id="featured-products">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

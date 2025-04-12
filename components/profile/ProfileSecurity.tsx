@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,86 +30,63 @@ interface PasswordFormData {
   confirmPassword: string;
 }
 
-interface FormErrors {
-  currentPassword?: string;
-  newPassword?: string;
-  confirmPassword?: string;
-}
-
 const ProfileSecurity: React.FC = () => {
-  const [formData, setFormData] = useState<PasswordFormData>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+  const form = useForm<PasswordFormData>({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    },
   });
   
-  const [errors, setErrors] = useState<FormErrors>({});
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const validateForm = (values: PasswordFormData) => {
+    let valid = true;
     
-    // Clear error when field is edited
-    if (errors[name as keyof FormErrors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+    if (!values.currentPassword) {
+      form.setError('currentPassword', { message: 'Current password is required' });
+      valid = false;
     }
+    
+    if (!values.newPassword) {
+      form.setError('newPassword', { message: 'New password is required' });
+      valid = false;
+    } else if (values.newPassword.length < 8) {
+      form.setError('newPassword', { message: 'Password must be at least 8 characters' });
+      valid = false;
+    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(values.newPassword)) {
+      form.setError('newPassword', { message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character' });
+      valid = false;
+    }
+    
+    if (!values.confirmPassword) {
+      form.setError('confirmPassword', { message: 'Please confirm your password' });
+      valid = false;
+    } else if (values.confirmPassword !== values.newPassword) {
+      form.setError('confirmPassword', { message: 'The passwords do not match' });
+      valid = false;
+    }
+    
+    return valid;
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-    
-    if (!formData.currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
-    }
-    
-    if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
-    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
-    }
-    
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.confirmPassword !== formData.newPassword) {
-      newErrors.confirmPassword = 'The passwords do not match';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
+  const onSubmit = async (values: PasswordFormData) => {
+    if (!validateForm(values)) {
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Here you would integrate with your authentication backend
-      // For example: await updatePassword(formData.currentPassword, formData.newPassword);
-      
-      // Simulate API call with timeout
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       toast.success("Password updated successfully!");
       
-      // Reset form
-      setFormData({
+      form.reset({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
@@ -129,107 +107,106 @@ const ProfileSecurity: React.FC = () => {
       </CardHeader>
       <Separator />
       <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <FormItem>
-                <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input
-                      id="currentPassword"
-                      name="currentPassword"
-                      type={showCurrentPassword ? "text" : "password"}
-                      value={formData.currentPassword}
-                      onChange={handleChange}
-                      className={errors.currentPassword ? "border-red-500" : ""}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    {showCurrentPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {errors.currentPassword && (
-                  <FormMessage className="text-red-500">{errors.currentPassword}</FormMessage>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? "text" : "password"}
+                          {...field}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      >
+                        {showCurrentPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </FormItem>
+              />
+
+              <FormField
+                control={form.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="newPassword">New Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          {...field}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="confirmPassword">Confirm New Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          {...field}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            <div className="grid gap-2">
-              <FormItem>
-                <FormLabel htmlFor="newPassword">New Password</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input
-                      id="newPassword"
-                      name="newPassword"
-                      type={showNewPassword ? "text" : "password"}
-                      value={formData.newPassword}
-                      onChange={handleChange}
-                      className={errors.newPassword ? "border-red-500" : ""}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {errors.newPassword && (
-                  <FormMessage className="text-red-500">{errors.newPassword}</FormMessage>
-                )}
-              </FormItem>
-            </div>
-
-            <div className="grid gap-2">
-              <FormItem>
-                <FormLabel htmlFor="confirmPassword">Confirm New Password</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className={errors.confirmPassword ? "border-red-500" : ""}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {errors.confirmPassword && (
-                  <FormMessage className="text-red-500">{errors.confirmPassword}</FormMessage>
-                )}
-              </FormItem>
-            </div>
-          </div>
-
-          <Button 
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            {isSubmitting ? "Updating..." : "Update Password"}
-          </Button>
-        </form>
+            <Button 
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? "Updating..." : "Update Password"}
+            </Button>
+          </form>
+        </Form>
 
         <Separator className="my-6" />
 

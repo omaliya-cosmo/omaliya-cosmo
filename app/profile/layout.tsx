@@ -7,7 +7,9 @@ export default function ProfileLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      {children}
+      <main className="flex-1">
+        {children}
+      </main>
     </div>
   );
 }
