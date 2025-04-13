@@ -70,6 +70,23 @@ interface DisplayCartItem {
   category?: { name: string };
 }
 
+// Define shipping rates by country
+const shippingRates: Record<string, { LKR: number; USD: number }> = {
+  "Sri Lanka": { LKR: 350, USD: 1 },
+  "United States": { LKR: 4500, USD: 15 },
+  "United Kingdom": { LKR: 5000, USD: 17 },
+  Australia: { LKR: 5500, USD: 18 },
+  Canada: { LKR: 5000, USD: 17 },
+  Germany: { LKR: 5200, USD: 17.5 },
+  France: { LKR: 5200, USD: 17.5 },
+  Italy: { LKR: 5200, USD: 17.5 },
+  Spain: { LKR: 5200, USD: 17.5 },
+  Japan: { LKR: 6000, USD: 20 },
+  Singapore: { LKR: 4800, USD: 16 },
+  Malaysia: { LKR: 4500, USD: 15 },
+  Default: { LKR: 6000, USD: 20 },
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
@@ -77,6 +94,7 @@ export default function CheckoutPage() {
   const [processingOrder, setProcessingOrder] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
+  const [shippingCost, setShippingCost] = useState<number>(0);
 
   const [formData, setFormData] = useState<{
     firstName: string;
@@ -143,6 +161,24 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchCartData();
   }, [country]);
+
+  useEffect(() => {
+    // Calculate shipping cost based on selected country
+    const countryKey =
+      Object.keys(shippingRates).find(
+        (key) => key.toLowerCase() === formData.country.toLowerCase()
+      ) || "Default";
+
+    const shippingRate = shippingRates[countryKey];
+    setShippingCost(country === "LK" ? shippingRate.LKR : shippingRate.USD);
+
+    // Update total with new shipping cost
+    setTotal(
+      subtotal -
+        discount +
+        (country === "LK" ? shippingRate.LKR : shippingRate.USD)
+    );
+  }, [country, formData.country, subtotal, discount]);
 
   const fetchCartData = async () => {
     try {
@@ -241,7 +277,7 @@ export default function CheckoutPage() {
 
       setDiscount(promoCodeDiscount);
       setSubtotal(calculatedSubtotal);
-      setTotal(calculatedSubtotal - promoCodeDiscount);
+      setTotal(calculatedSubtotal - promoCodeDiscount + shippingCost);
 
       setLoading(false);
     } catch (err: any) {
@@ -304,6 +340,7 @@ export default function CheckoutPage() {
         currency: country === "LK" ? "LKR" : "USD",
         subtotal: subtotal,
         discountAmount: discount,
+        shippingCost: shippingCost,
         total: total,
         notes: validatedData.data.notes,
       };
@@ -627,14 +664,19 @@ export default function CheckoutPage() {
                         <label className="block text-sm font-medium text-gray-800 mb-1">
                           Country
                         </label>
-                        <input
-                          type="text"
+                        <select
                           name="country"
                           value={formData.country}
                           onChange={handleInputChange}
                           required
                           className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
-                        />
+                        >
+                          {Object.keys(shippingRates).map((country) => (
+                            <option key={country} value={country}>
+                              {country}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -741,6 +783,15 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                   )}
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="font-medium">
+                      {country === "LK"
+                        ? `Rs ${shippingCost.toFixed(2)}`
+                        : `$ ${shippingCost.toFixed(2)}`}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Total */}
