@@ -147,3 +147,38 @@ body {
   }
 
 }
+
+/* Add to your globals.css file */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Add smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fancy underline animation for links */
+.fancy-link {
+  position: relative;
+}
+
+.fancy-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(to right, #8B5CF6, #EC4899);
+  transition: width 0.3s ease;
+}
+
+.fancy-link:hover::after {
+  width: 100%;
+}
