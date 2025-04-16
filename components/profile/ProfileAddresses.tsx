@@ -440,8 +440,8 @@ const ProfileAddresses: React.FC = () => {
                   {addressTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       <div className="flex items-center gap-2">
-                        {React.createElement(type.icon, { className: "h-4 w-4" })}
-                        <span>{type.label}</span>
+                        {React.createElement(type.icon, { className: "h-4 w-4 text-purple-500" })}
+                        <span className="text-pink-500">{type.label}</span>
                       </div>
                     </SelectItem>
                   ))}

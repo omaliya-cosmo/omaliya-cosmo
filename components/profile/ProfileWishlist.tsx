@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { ShoppingCart, X, Eye, AlertCircle } from 'lucide-react';
+import { ShoppingCart, X, Eye, AlertCircle, Trash2, ShoppingBag, ChevronLeft, ChevronRight, Heart, Loader2, Star } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,13 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import Image from 'next/image';
 
 interface WishlistItem {
   id: string;
@@ -41,6 +36,8 @@ interface WishlistItem {
   inStock: boolean;
   category: string;
   dateAdded: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 // Sample wishlist items data
@@ -54,7 +51,9 @@ const sampleWishlistItems: WishlistItem[] = [
     image: '/images/products/serum.jpg',
     inStock: true,
     category: 'Serums',
-    dateAdded: '2023-10-15'
+    dateAdded: '2023-10-15',
+    rating: 4.5,
+    reviewCount: 120
   },
   {
     id: '2',
@@ -64,7 +63,9 @@ const sampleWishlistItems: WishlistItem[] = [
     image: '/images/products/cleanser.jpg',
     inStock: true,
     category: 'Cleansers',
-    dateAdded: '2023-10-10'
+    dateAdded: '2023-10-10',
+    rating: 4.0,
+    reviewCount: 80
   },
   {
     id: '3',
@@ -74,7 +75,9 @@ const sampleWishlistItems: WishlistItem[] = [
     image: '/images/products/mask.jpg',
     inStock: false,
     category: 'Masks',
-    dateAdded: '2023-09-28'
+    dateAdded: '2023-09-28',
+    rating: 3.5,
+    reviewCount: 50
   },
   {
     id: '4',
@@ -85,13 +88,24 @@ const sampleWishlistItems: WishlistItem[] = [
     image: '/images/products/eye-cream.jpg',
     inStock: true,
     category: 'Eye Care',
-    dateAdded: '2023-09-20'
+    dateAdded: '2023-09-20',
+    rating: 4.8,
+    reviewCount: 200
   }
 ];
 
 const ProfileWishlist: React.FC = () => {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>(sampleWishlistItems);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [isAddingToCart, setIsAddingToCart] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 2;
+
+  const totalPages = Math.ceil(wishlistItems.length / itemsPerPage);
+  const filteredWishlist = wishlistItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Handle remove from wishlist
   const handleRemoveFromWishlist = async (itemId: string) => {
@@ -111,222 +125,200 @@ const ProfileWishlist: React.FC = () => {
   };
 
   // Handle add to cart
-  const handleAddToCart = async (item: WishlistItem) => {
+  const handleAddToCart = async (itemId: string) => {
     try {
-      const itemId = item.id;
-      setIsLoading((prev) => ({ ...prev, [itemId]: true }));
+      setIsAddingToCart(itemId);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success(`${item.name} added to cart`);
-      // In a real implementation, you might want to add the item to the cart
-      // state/context and optionally remove it from the wishlist
+      toast.success('Item added to cart');
     } catch (error) {
       console.error('Error adding item to cart:', error);
       toast.error('Failed to add item to cart');
     } finally {
-      setIsLoading((prev) => ({ ...prev, [itemId]: false }));
+      setIsAddingToCart(null);
     }
   };
 
-  // Handle view product details
-  const handleViewProduct = (itemId: string) => {
-    // In a real implementation, this would navigate to the product detail page
-    console.log(`Viewing product details for item ${itemId}`);
-    // Example: router.push(`/product/${itemId}`);
-  };
-
-  // Function to format price
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Wishlist</CardTitle>
-        <CardDescription>
-          Items you've saved for later
-        </CardDescription>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-6">
-        {wishlistItems.length > 0 ? (
-          <div className="space-y-6">
-            {wishlistItems.map((item) => (
-              <div 
-                key={item.id} 
-                className="flex flex-col sm:flex-row items-start gap-4 p-4 border rounded-md relative"
-              >
+    <div className="container mx-auto px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Wishlist</CardTitle>
+          <CardDescription>
+            Items you've saved for later
+          </CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6">
+          {filteredWishlist.length > 0 ? (
+            <div className="space-y-4">
+              {filteredWishlist.map(product => (
                 <div 
-                  className="w-full sm:w-24 h-24 bg-gray-100 rounded-md overflow-hidden relative"
-                  style={{ 
-                    backgroundImage: `url(${item.image})`, 
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
+                  key={product.id}
+                  className="group relative flex flex-col sm:flex-row border rounded-lg overflow-hidden hover:border-purple-200 transition-all"
                 >
-                  {!item.inStock && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Badge variant="destructive" className="text-xs">
-                        Out of Stock
-                      </Badge>
+                  <div className="relative w-full sm:w-36 h-36">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 p-4 flex flex-col">
+                    <div className="flex justify-between">
+                      <div>
+                        <h3 className="font-medium text-base">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-2 mb-1">
+                          {/* Price - show discount if available */}
+                          {product.discountedPrice ? (
+                            <>
+                              <span className="font-semibold text-purple-600">${product.discountedPrice.toFixed(2)}</span>
+                              <span className="text-sm text-muted-foreground line-through">${product.price.toFixed(2)}</span>
+                            </>
+                          ) : (
+                            <span className="font-semibold">${product.price.toFixed(2)}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center text-amber-500">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${
+                                i < Math.round(product.rating || 0)
+                                  ? "fill-current"
+                                  : "text-gray-300 fill-transparent"
+                              }`}
+                            />
+                          ))}
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({product.reviewCount})
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <h3 className="font-medium text-base">{item.name}</h3>
-                    <div className="flex items-center gap-2">
-                      {item.discountedPrice ? (
-                        <>
-                          <span className="text-muted-foreground line-through text-sm">
-                            {formatPrice(item.price)}
-                          </span>
-                          <span className="font-medium text-red-600">
-                            {formatPrice(item.discountedPrice)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-medium">
-                          {formatPrice(item.price)}
-                        </span>
-                      )}
+                    
+                    <div className="mt-auto pt-4 flex flex-wrap gap-2 justify-between items-center">
+                      <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-none">
+                        {product.category}
+                      </Badge>
+                      
+                      <div className="flex gap-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-rose-500 border-rose-200 hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Remove from wishlist</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove from Wishlist</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove "{product.name}" from your wishlist?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleRemoveFromWishlist(product.id)}
+                                className="bg-rose-600 text-white hover:bg-rose-700"
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        <Button 
+                          size="sm"
+                          className="h-8 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                          onClick={() => handleAddToCart(product.id)}
+                          disabled={isAddingToCart === product.id}
+                        >
+                          {isAddingToCart === product.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          Add to Cart
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <Badge variant="outline" className="mt-1 mb-2">
-                    {item.category}
-                  </Badge>
-                  
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                    {item.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mt-auto">
+                </div>
+              ))}
+              
+              {/* Pagination */}
+              {filteredWishlist.length > 0 && (
+                <div className="flex justify-center mt-8">
+                  <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={() => handleViewProduct(item.id)}
+                      className="h-8 w-8 p-0 border-purple-200"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
                     >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>View Details</span>
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="sr-only">Previous Page</span>
                     </Button>
-                    
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <Button
+                        key={i}
+                        variant={currentPage === i + 1 ? "default" : "outline"}
+                        className={`h-8 w-8 p-0 ${
+                          currentPage === i + 1 
+                            ? "bg-purple-600 hover:bg-purple-700" 
+                            : "border-purple-200 hover:bg-purple-50"
+                        }`}
+                        onClick={() => handlePageChange(i + 1)}
+                      >
+                        {i + 1}
+                      </Button>
+                    ))}
                     <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={() => handleAddToCart(item)}
-                      disabled={!item.inStock || isLoading[item.id]}
+                      variant="outline"
+                      className="h-8 w-8 p-0 border-purple-200"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
                     >
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      <span>
-                        {isLoading[item.id] ? 'Adding...' : 'Add to Cart'}
-                      </span>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="sr-only">Next Page</span>
                     </Button>
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          <span>Remove</span>
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove from Wishlist</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to remove "{item.name}" from your wishlist?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleRemoveFromWishlist(item.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            {isLoading[item.id] ? 'Removing...' : 'Remove'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </div>
                 </div>
-                
-                <div className="absolute top-2 right-2 sm:hidden">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <svg 
-                          width="15" 
-                          height="15" 
-                          viewBox="0 0 15 15" 
-                          fill="none" 
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                        >
-                          <path 
-                            d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z" 
-                            fill="currentColor" 
-                            fillRule="evenodd" 
-                            clipRule="evenodd"
-                          ></path>
-                        </svg>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewProduct(item.id)}>
-                        <Eye className="h-3.5 w-3.5 mr-2" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleAddToCart(item)}
-                        disabled={!item.inStock}
-                      >
-                        <ShoppingCart className="h-3.5 w-3.5 mr-2" />
-                        Add to Cart
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleRemoveFromWishlist(item.id)}
-                        className="text-red-600"
-                      >
-                        <X className="h-3.5 w-3.5 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="flex justify-center mb-4">
-              <AlertCircle className="h-12 w-12 text-muted-foreground" />
+              )}
             </div>
-            <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
-            <p className="text-muted-foreground max-w-md mx-auto mb-6">
-              Browse our products and add items to your wishlist to save them for later.
-            </p>
-            <Button>
-              Browse Products
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <Heart className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-xl font-medium mb-2">Your wishlist is empty</h3>
+              <p className="text-muted-foreground text-center mb-6">
+                Products you love will appear here. Start browsing and add items to your wishlist!
+              </p>
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Browse Products
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
