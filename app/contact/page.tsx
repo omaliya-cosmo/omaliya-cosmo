@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Header from '../../components/layout/Header'; // Adjust the path based on your project structure
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -57,7 +58,11 @@ export default function ContactPage() {
   };
 
   return (
+
+    
     <main className="min-h-screen bg-white">
+      <Header userData={null} cartCount={0} />
+      
       {/* Hero Section */}
     <section className="relative py-24 px-4 bg-[url('/images/contact-bg.jpg')] bg-cover bg-center bg-fixed">
       {/* Overlay with animated gradient */}

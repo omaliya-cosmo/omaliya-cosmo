@@ -13,6 +13,7 @@ import AddToCartButton from "@/components/product-detail/AddToCartButton";
 import NewsletterSection from "@/components/home/Newsletter";
 import { Product, ProductCategory, Review } from "@prisma/client";
 import { motion } from "framer-motion";
+import Header from "@/components/layout/Header"; // Adjust the path as needed
 
 interface ProductWithDetails extends Product {
   category?: ProductCategory;
@@ -93,6 +94,8 @@ export default function ProductDetailPage() {
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background elements */}
+      <Header userData={null} cartCount={0} />
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
         <motion.div 

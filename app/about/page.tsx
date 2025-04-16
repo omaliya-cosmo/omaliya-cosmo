@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Header from '@/components/layout/Header';
 
 export default function AboutPage() {
   useEffect(() => {
@@ -26,6 +27,8 @@ export default function AboutPage() {
 
   return (
     <main className="min-h-screen bg-white">
+            <Header userData={null} cartCount={0} />
+
       {/* Hero Section */}
       <section className="relative py-32 px-4 bg-[url('/images/hero-bg.jpg')] bg-cover bg-center bg-fixed">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 to-pink-600/80 backdrop-filter backdrop-blur-sm"></div>

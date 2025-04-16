@@ -289,6 +289,8 @@ export default function ProductsPage() {
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background particles */}
+      <Header userData={null} cartCount={0} />
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
         <motion.div 
