@@ -6,8 +6,8 @@ import ProductGrid from "@/components/products/ProductGrid";
 import ProductsActiveFilters from "@/components/products/ProductsActiveFilters";
 import NewsletterSection from "@/components/home/Newsletter";
 import ClientSortingWrapper from "@/components/products/ClientSortingWrapper";
-import ClientPaginationWrapper from "@/components/products/ClientPaginationWrapper";
 import ClientEmptyStateWrapper from "@/components/products/ClientEmptyStateWrapper";
+import ProductsPagination from "@/components/products/ProductsPagination";
 import {
   ProductCategory,
   Review,
@@ -42,8 +42,7 @@ interface ActiveFilter {
 interface ClientPaginationWrapperProps {
   currentPage: number;
   totalPages: number;
-  currentParams: any;
-  onPageChange: (page: number) => void;
+  currentParams: Record<string, string | undefined>;
 }
 
 export default function ProductsPage() {
@@ -498,10 +497,9 @@ export default function ProductsPage() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className="mt-8"
                 >
-                  <ClientPaginationWrapper
+                  <ProductsPagination
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    currentParams={{}}
                     onPageChange={(page: number) => setCurrentPage(page)}
                   />
                 </motion.div>

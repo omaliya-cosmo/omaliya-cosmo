@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRightIcon } from '@heroicons/react/24/solid';
 
 interface BreadcrumbItem {
   label: string;
@@ -14,33 +13,48 @@ interface ProductsHeaderProps {
   breadcrumbItems: BreadcrumbItem[];
 }
 
-export default function ProductsHeader({ title, description, breadcrumbItems }: ProductsHeaderProps) {
+// Header component with enhanced styling
+export default function ProductsHeader({
+  title,
+  description,
+  breadcrumbItems,
+}: ProductsHeaderProps) {
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-pink-50 py-10 md:py-16">
-      <div className="container mx-auto px-4">
-        {/* Breadcrumbs */}
-        <nav className="mb-6">
-          <ol className="flex flex-wrap items-center text-sm">
-            {breadcrumbItems.map((item, index) => (
-              <li key={index} className="flex items-center">
-                {index > 0 && <ChevronRightIcon className="h-4 w-4 mx-2 text-gray-400" />}
+    <div className="py-12 sm:py-16 container mx-auto px-4">
+      {/* Breadcrumb navigation */}
+      <nav className="mb-6">
+        <ol className="flex space-x-2 text-sm">
+          {breadcrumbItems.map((item, index) => (
+            <React.Fragment key={index}>
+              <li>
                 {item.active ? (
-                  <span className="text-purple-700 font-medium">{item.label}</span>
+                  <span className="font-medium text-purple-700">{item.label}</span>
                 ) : (
-                  <Link href={item.href} className="text-gray-600 hover:text-purple-700">
+                  <Link
+                    href={item.href}
+                    className="text-gray-600 hover:text-purple-600 transition-colors"
+                  >
                     {item.label}
                   </Link>
                 )}
               </li>
-            ))}
-          </ol>
-        </nav>
-        
-        {/* Page Title */}
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">{title}</h1>
-        
-        {/* Description */}
-        <p className="text-gray-600 max-w-3xl">{description}</p>
+              {index < breadcrumbItems.length - 1 && (
+                <li aria-hidden="true" className="text-gray-500">
+                  /
+                </li>
+              )}
+            </React.Fragment>
+          ))}
+        </ol>
+      </nav>
+
+      {/* Title and description with gradient styling */}
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-pink-700">
+        {title}
+      </h1>
+      <div className="relative max-w-3xl">
+        <div className="h-0.5 w-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mb-6"></div>
+        <p className="text-lg text-gray-600 max-w-2xl">{description}</p>
       </div>
     </div>
   );

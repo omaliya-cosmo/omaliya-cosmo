@@ -66,18 +66,18 @@ export default function ProductsPagination({
 
   return (
     <div className="flex flex-col items-center space-y-4 my-12">
-      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+      <div className="relative z-10 inline-flex rounded-lg shadow-sm bg-gradient-to-r from-purple-50 to-pink-50 p-1">
         {/* Previous page button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
-          className={`relative inline-flex items-center px-3 py-2 rounded-l-md border text-sm font-medium ${
+          className={`relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium ${
             currentPage === 1
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-600'
-          } border-gray-200 transition-colors`}
+          } border-gray-200 transition-colors shadow-sm`}
         >
           <span className="sr-only">Previous</span>
           <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -86,35 +86,37 @@ export default function ProductsPagination({
         </motion.button>
 
         {/* Page numbers */}
-        {pages?.map((page, index) => {
-          if (page === '...') {
-            return (
-              <span
-                key={`ellipsis-${index}`}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-700"
-              >
-                ...
-              </span>
-            );
-          }
+        <div className="px-2 flex space-x-2">
+          {pages?.map((page, index) => {
+            if (page === '...') {
+              return (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="relative inline-flex items-center px-3 py-2 border border-transparent bg-transparent text-sm font-medium text-gray-700"
+                >
+                  ...
+                </span>
+              );
+            }
 
-          return (
-            <motion.button
-              key={index}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onPageChange(Number(page))}
-              aria-current={currentPage === page ? 'page' : undefined}
-              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors ${
-                currentPage === page
-                  ? 'z-10 bg-gradient-to-r from-purple-600 to-purple-500 text-white border-purple-500'
-                  : 'bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-600 border-gray-200'
-              }`}
-            >
-              {page}
-            </motion.button>
-          );
-        })}
+            return (
+              <motion.button
+                key={index}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onPageChange(Number(page))}
+                aria-current={currentPage === page ? 'page' : undefined}
+                className={`relative inline-flex items-center min-w-[40px] justify-center px-3 py-2 shadow-sm text-sm font-medium rounded-lg transition-colors ${
+                  currentPage === page
+                    ? 'z-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent shadow-md'
+                    : 'bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-600 border-gray-200'
+                }`}
+              >
+                {page}
+              </motion.button>
+            );
+          })}
+        </div>
 
         {/* Next page button */}
         <motion.button
@@ -122,23 +124,23 @@ export default function ProductsPagination({
           whileTap={{ scale: 0.95 }}
           disabled={currentPage === totalPages}
           onClick={() => onPageChange(currentPage + 1)}
-          className={`relative inline-flex items-center px-3 py-2 rounded-r-md border text-sm font-medium ${
+          className={`relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium ${
             currentPage === totalPages
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-600'
-          } border-gray-200 transition-colors`}
+          } border-gray-200 transition-colors shadow-sm`}
         >
           <span className="sr-only">Next</span>
           <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
           </svg>
         </motion.button>
-      </nav>
+      </div>
 
       {/* Page info text */}
       <div className="text-sm text-gray-500">
-        Page <span className="font-medium text-gray-700">{currentPage}</span> of{' '}
-        <span className="font-medium text-gray-700">{totalPages}</span>
+        Page <span className="font-medium text-purple-700">{currentPage}</span> of{' '}
+        <span className="font-medium text-purple-700">{totalPages}</span>
       </div>
     </div>
   );
