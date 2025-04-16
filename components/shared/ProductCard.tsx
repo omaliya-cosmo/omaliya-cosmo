@@ -21,7 +21,10 @@ interface ProductCardProps {
   product: Product;
   categoryName: string;
   addToCart: (product: Product) => Promise<void>;
+  currency: string;
+  currencySymbol: string; 
   country: string;
+  index?: number; // Added optional index property
 }
 
 export default function ProductCard({

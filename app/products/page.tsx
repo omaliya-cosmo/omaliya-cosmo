@@ -19,6 +19,8 @@ import { motion } from "framer-motion";
 interface Product extends PrismaProduct {
   category?: ProductCategory; // Include the category relation
   reviews?: Review[]; // Include reviews with count and average rating
+  tags: string[]; // Add tags property
+  createdAt: string; // Add createdAt property
 }
 
 // Update the filters state interface

@@ -17,6 +17,8 @@ import { motion } from "framer-motion";
 interface ProductWithDetails extends Product {
   category?: ProductCategory;
   reviews?: Review[];
+  discountPriceLKR?: number; // Add this property
+  discountPriceUSD?: number; // Add this property
 }
 
 export default function ProductDetailPage() {

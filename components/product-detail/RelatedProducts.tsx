@@ -15,6 +15,7 @@ interface Product {
   stock: number;
   discount?: number;
   tags: string[];
+  categoryId: string; // Added categoryId property
 }
 
 interface RelatedProductsProps {
@@ -120,6 +121,12 @@ export default function RelatedProducts({ categoryId, currentProductId }: Relate
             currency="LKR"
             currencySymbol="Rs."
             index={index}
+            categoryName="Default Category" // Replace with actual category name if available
+            addToCart={async () => {
+              console.log(`Added ${product.name} to cart`);
+              return Promise.resolve();
+            }} // Replace with actual addToCart function
+            country="Sri Lanka" // Replace with actual country if available
           />
         ))}
       </motion.div>
