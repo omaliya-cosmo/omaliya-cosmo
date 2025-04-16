@@ -276,24 +276,38 @@ export default function BundlesPage() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 py-12 md:py-20">
-          <div className="container mx-auto px-4">
+        <div className="bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12 md:py-20 overflow-hidden relative">
+          {/* Animated background elements */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 0.5, scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="absolute top-0 right-0 -mt-16 -mr-16 w-80 h-80 bg-purple-200 rounded-full opacity-50 blur-3xl"
+          ></motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 0.5, scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+            className="absolute bottom-0 left-0 -mb-16 -ml-16 w-80 h-80 bg-pink-200 rounded-full opacity-50 blur-3xl"
+          ></motion.div>
+
+          <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-3xl md:text-5xl font-bold mb-4">Bundle & Save</h1>
-                <p className="text-lg md:text-xl text-muted-foreground mb-8">
+                <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Bundle & Save</h1>
+                <p className="text-lg md:text-xl text-gray-600 mb-8">
                   Shop our carefully curated product bundles designed to work perfectly together — at special discounted prices.
                 </p>
                 <div className="flex gap-4 justify-center">
-                  <Button size="lg" className="gap-2">
-                    <Sparkles size={18} />
+                  <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]">
+                    <Sparkles size={18} className="animate-pulse" />
                     Featured Bundles
                   </Button>
-                  <Button size="lg" variant="outline" className="gap-2">
+                  <Button size="lg" variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2">
                     <Tag size={18} />
                     View All Offers
                   </Button>
@@ -306,16 +320,18 @@ export default function BundlesPage() {
         {/* Filters and Sorting */}
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <h2 className="text-2xl font-semibold">Product Bundles</h2>
+            <h2 className="text-2xl font-bold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-700">Discover Our Bundles</h2>
             
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 relative">
+                <div className="absolute left-2 pointer-events-none">
+                  <Filter className="h-4 w-4 text-purple-500" />
+                </div>
                 <Select
                   value={categoryFilter}
                   onValueChange={setCategoryFilter}
                 >
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px] pl-8 border-gray-200 focus:border-purple-400 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,7 +349,7 @@ export default function BundlesPage() {
                 value={sortOption}
                 onValueChange={setSortOption}
               >
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] border-gray-200 focus:border-purple-400 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -388,64 +404,68 @@ export default function BundlesPage() {
               {filteredBundles.map(bundle => (
                 <motion.div
                   key={bundle.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  whileHover={{ y: -5 }}
+                  className="h-full"
                 >
-                  <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <Card className="h-full flex flex-col overflow-hidden border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
                     <div className="relative overflow-hidden" style={{ height: '240px' }}>
                       {bundle.image ? (
                         <div 
-                          className="h-full bg-cover bg-center" 
+                          className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110" 
                           style={{ 
                             backgroundImage: `url('${bundle.image}')`,
                             backgroundColor: 'rgba(0,0,0,0.05)'
                           }}
                         />
                       ) : (
-                        <div className="h-full flex items-center justify-center bg-muted">
-                          <Package className="h-12 w-12 text-muted-foreground/50" />
+                        <div className="h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
+                          <Package className="h-16 w-16 text-purple-300" />
                         </div>
                       )}
                       
                       {bundle.featured && (
                         <div className="absolute top-4 left-4">
-                          <Badge className="bg-primary text-primary-foreground">Featured</Badge>
+                          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
+                            Featured
+                          </Badge>
                         </div>
                       )}
                       
                       <div className="absolute top-4 right-4">
-                        <Badge className="bg-red-500 text-white">
+                        <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
                           Save {bundle.savingsPercentage}%
                         </Badge>
                       </div>
                     </div>
                     
-                    <CardContent className="p-5 flex-grow">
-                      <div className="mb-3">
-                        <h3 className="text-lg font-semibold mb-2">
-                          <Link href={`/bundles/${bundle.id}`} className="hover:text-purple-600 transition-colors">
+                    <CardContent className="p-6 flex-grow">
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold mb-3 transition-colors">
+                          <Link href={`/bundles/${bundle.id}`} className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
                             {bundle.name}
                           </Link>
                         </h3>
-                        <p className="text-muted-foreground text-sm line-clamp-2">
+                        <p className="text-gray-600 text-sm line-clamp-2">
                           {bundle.description}
                         </p>
                       </div>
                       
-                      <Separator className="my-4" />
+                      <Separator className="my-4 bg-gradient-to-r from-transparent via-purple-200 to-transparent h-px" />
                       
                       <div className="space-y-2">
-                        <p className="text-sm font-medium">Includes:</p>
-                        <ul className="text-sm space-y-1">
+                        <p className="text-sm font-medium text-gray-800">Includes:</p>
+                        <ul className="text-sm space-y-2">
                           {bundle.products.slice(0, 3).map((product, idx) => (
-                            <li key={idx} className="flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-primary" />
+                            <li key={idx} className="flex items-center gap-2 text-gray-700">
+                              <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                               {product.name}
                             </li>
                           ))}
                           {bundle.products.length > 3 && (
-                            <li className="text-sm text-muted-foreground">
+                            <li className="text-sm text-purple-600 font-medium pl-3.5 hover:text-pink-600 transition-colors cursor-pointer">
                               + {bundle.products.length - 3} more items
                             </li>
                           )}
@@ -453,20 +473,20 @@ export default function BundlesPage() {
                       </div>
                     </CardContent>
                     
-                    <CardFooter className="p-5 border-t bg-muted/30">
+                    <CardFooter className="p-6 border-t bg-gradient-to-r from-purple-50 to-pink-50">
                       <div className="w-full flex justify-between items-center">
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground line-through">
+                          <p className="text-sm text-gray-500 line-through">
                             ${bundle.originalPrice.toFixed(2)}
                           </p>
-                          <p className="text-lg font-bold text-primary">
+                          <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-700">
                             ${bundle.bundlePrice.toFixed(2)}
                           </p>
                         </div>
                         
                         <Button 
                           onClick={() => addBundleToCart(bundle)}
-                          className="gap-2"
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all"
                         >
                           <ShoppingCart className="h-4 w-4" />
                           Add Bundle
@@ -481,43 +501,123 @@ export default function BundlesPage() {
         </div>
 
         {/* Why Choose Bundles */}
-        <div className="bg-muted/30 py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-              Why Choose Our Product Bundles?
-            </h2>
+        <div className="bg-gradient-to-b from-white to-purple-50 py-16 relative overflow-hidden">
+          {/* Decorative elements */}
+          <motion.div 
+            className="absolute w-80 h-80 rounded-full bg-gradient-to-r from-purple-200/20 to-pink-200/20 blur-3xl"
+            style={{ top: '40%', right: '5%' }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 18,
+              ease: "easeInOut"
+            }}
+          />
+
+          <motion.div 
+            className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-pink-200/20 to-purple-200/20 blur-3xl"
+            style={{ bottom: '10%', left: '5%' }}
+            animate={{
+              y: [0, 30, 0],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 15,
+              ease: "easeInOut"
+            }}
+          />
+
+          <div className="container mx-auto px-4 relative z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <span className="inline-block bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-4 shadow-sm">
+                Bundle Benefits
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-pink-700">
+                Why Choose Our Product Bundles?
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Save money and simplify your beauty routine with our expertly curated product combinations
+              </p>
+            </motion.div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <div className="bg-background p-6 rounded-lg text-center">
-                <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Tag className="h-6 w-6 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+                className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center"
+              >
+                <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
+                  <Tag className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Save More</h3>
-                <p className="text-muted-foreground text-sm">
-                  Enjoy exclusive discounts when you buy our carefully curated product bundles.
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Save More</h3>
+                <p className="text-gray-600">
+                  Enjoy exclusive discounts up to 25% when you buy our carefully curated product bundles.
                 </p>
-              </div>
+              </motion.div>
               
-              <div className="bg-background p-6 rounded-lg text-center">
-                <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Sparkles className="h-6 w-6 text-primary" />
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+                className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center"
+              >
+                <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
+                  <Sparkles className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Perfect Combinations</h3>
-                <p className="text-muted-foreground text-sm">
-                  Products that work together for maximum effectiveness and results.
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Perfect Combinations</h3>
+                <p className="text-gray-600">
+                  Products that work together for maximum effectiveness and results for your beauty routine.
                 </p>
-              </div>
+              </motion.div>
               
-              <div className="bg-background p-6 rounded-lg text-center">
-                <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Package className="h-6 w-6 text-primary" />
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+                className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center"
+              >
+                <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
+                  <Package className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Simplified Routine</h3>
-                <p className="text-muted-foreground text-sm">
-                  Get everything you need in one purchase with our expertly designed bundles.
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Simplified Routine</h3>
+                <p className="text-gray-600">
+                  Get everything you need in one purchase with our expertly designed skincare and beauty bundles.
                 </p>
-              </div>
+              </motion.div>
             </div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              viewport={{ once: true }}
+              className="mt-12 text-center"
+            >
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]"
+              >
+                <Sparkles size={18} />
+                Explore All Bundles
+              </Button>
+            </motion.div>
           </div>
         </div>
       </main>
