@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Package, ShoppingCart, Share2, CheckCircle, Star } from "lucide-react";
+import { Package, ShoppingCart, Share2, CheckCircle, Star, Heart, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Import components
@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import NewsletterSection from "@/components/home/Newsletter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 // Types for bundles
 interface BundleProduct {
@@ -183,7 +186,7 @@ export default function BundleDetailPage() {
           </p>
           <Link
             href="/bundles"
-            className="inline-block bg-indigo-600 text-white px-5 py-2.5 rounded-md hover:bg-indigo-700"
+            className="inline-block bg-pink-600 text-white px-5 py-2.5 rounded-md hover:bg-pink-700"
           >
             Return to Bundles
           </Link>
@@ -200,33 +203,112 @@ export default function BundleDetailPage() {
 
   return (
     <main className="bg-white">
+      <Header userData={null} cartCount={0} />
       <ToastContainer />
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <Breadcrumb className="mb-6">
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/bundles">Bundles</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink isActive>{bundle.name}</BreadcrumbLink>
-          </BreadcrumbItem>
-        </Breadcrumb>
+      
+      {/* Hero Section with animated background elements */}
+      <section className="bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12 relative overflow-hidden">
+        {/* Animated background decorative elements */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.5, scale: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="absolute top-0 right-0 -mt-16 -mr-16 w-80 h-80 bg-purple-200 rounded-full opacity-50 blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.5, scale: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+          className="absolute bottom-0 left-0 -mb-16 -ml-16 w-64 h-64 bg-pink-200 rounded-full opacity-40 blur-3xl"
+        />
+        
+        {/* Floating particles with various sizes and positions */}
+        <motion.div
+          className="absolute w-10 h-10 rounded-full bg-purple-200/70"
+          style={{ top: "15%", left: "10%" }}
+          animate={{
+            y: [-30, 0, -30],
+            x: [20, 0, 20],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: 12,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-8 h-8 rounded-full bg-pink-200/60"
+          style={{ bottom: "20%", right: "15%" }}
+          animate={{
+            y: [0, 25, 0],
+            x: [0, -15, 0],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: 10,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Breadcrumbs */}
+          <Breadcrumb className="mb-6">
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/"><span className="hover:text-purple-600 transition-colors">Home</span></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/bundles"><span className="hover:text-purple-600 transition-colors">Bundles</span></BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink isActive><span className="font-medium">{bundle.name}</span></BreadcrumbLink>
+            </BreadcrumbItem>
+          </Breadcrumb>
+          
+          <div className="flex justify-between items-center mb-8">
+            <Link href="/bundles" className="inline-flex items-center text-purple-600 hover:text-pink-600 transition-colors font-medium text-sm">
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to Bundles
+            </Link>
+            
+            <Button
+              variant="ghost"
+              className="text-purple-600 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"
+              onClick={() => {
+                // In a real app, implement wishlist functionality
+                toast.success("Added to wishlist!", {
+                  position: "bottom-right",
+                  autoClose: 2000,
+                });
+              }}
+            >
+              <Heart className="h-4 w-4" />
+              Save for Later
+            </Button>
+          </div>
+        </div>
+      </section>
 
+      <div className="container mx-auto px-4 py-8 -mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
           {/* Left column: Bundle image */}
-          <div className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-sm group">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative aspect-square bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl overflow-hidden shadow-md group"
+          >
             {/* Gradient background for visual appeal */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-200"></div>
-
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-100/40 to-pink-100/40"></div>
+            
             {/* Loading indicator */}
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="relative w-16 h-16">
-                  <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full animate-pulse"></div>
-                  <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+                  <div className="absolute top-0 left-0 w-full h-full border-4 border-purple-200 rounded-full animate-pulse"></div>
+                  <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-purple-600 rounded-full animate-spin"></div>
                 </div>
               </div>
             )}
@@ -249,53 +331,46 @@ export default function BundleDetailPage() {
                   onLoad={() => setImageLoaded(true)}
                 />
               ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  onLoad={() => setImageLoaded(true)}
-                >
-                  <Package className="h-32 w-32 text-gray-300" />
+                <div className="w-full h-full flex items-center justify-center" onLoad={() => setImageLoaded(true)}>
+                  <Package className="h-32 w-32 text-purple-300" />
                 </div>
               )}
             </motion.div>
 
             {/* Featured badge */}
             {bundle.featured && (
-              <div className="absolute top-4 left-4 bg-indigo-600 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+              <div className="absolute top-4 left-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold z-10 shadow-md">
                 Featured
               </div>
             )}
 
             {/* Savings badge */}
-            <div className="absolute top-4 right-4 bg-red-500 text-white text-xs px-3 py-1.5 rounded-full font-semibold z-10">
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1.5 rounded-full font-semibold z-10 shadow-md">
               Save {bundle.savingsPercentage}%
             </div>
 
             {/* Bundle details overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm font-medium">
+              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
                 Click to explore bundle
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right column: Bundle info and actions */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             {/* Category and tags */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
-              <Badge
-                variant="secondary"
-                className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-              >
-                {bundle.category.charAt(0).toUpperCase() +
-                  bundle.category.slice(1)}
+              <Badge className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 hover:from-purple-200 hover:to-pink-200 border-none">
+                {bundle.category.charAt(0).toUpperCase() + bundle.category.slice(1)}
               </Badge>
-
-              {bundle.tags?.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="border-indigo-200 text-indigo-800"
-                >
+              
+              {bundle.tags?.map(tag => (
+                <Badge key={tag} variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
                   {tag}
                 </Badge>
               ))}
@@ -303,9 +378,7 @@ export default function BundleDetailPage() {
 
             {/* Bundle name and rating */}
             <div className="mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {bundle.name}
-              </h1>
+              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-800 to-pink-700">{bundle.name}</h1>
               <div className="flex items-center mt-2">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
@@ -329,14 +402,10 @@ export default function BundleDetailPage() {
             <p className="text-gray-600 mb-6">{bundle.description}</p>
 
             {/* Pricing section */}
-            <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+            <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg border border-purple-100/50 shadow-sm">
               <div className="flex items-baseline">
-                <span className="text-2xl font-bold text-indigo-700">
-                  ${bundle.bundlePrice.toFixed(2)}
-                </span>
-                <span className="ml-2 text-lg line-through text-gray-500">
-                  ${bundle.originalPrice.toFixed(2)}
-                </span>
+                <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700">${bundle.bundlePrice.toFixed(2)}</span>
+                <span className="ml-2 text-lg line-through text-gray-500">${bundle.originalPrice.toFixed(2)}</span>
                 <span className="ml-2 text-sm text-green-600 font-medium">
                   You save: ${bundle.savings.toFixed(2)} (
                   {bundle.savingsPercentage}%)
@@ -356,7 +425,7 @@ export default function BundleDetailPage() {
                 {bundle.products.map((product) => (
                   <li key={product.id} className="flex justify-between py-2">
                     <span className="flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                      <CheckCircle className="w-4 h-4 mr-2 text-purple-500" />
                       <span className="text-gray-800">{product.name}</span>
                     </span>
                     <span className="text-gray-600 font-medium">
@@ -374,10 +443,10 @@ export default function BundleDetailPage() {
               {/* Quantity selector */}
               <div className="flex items-center">
                 <span className="text-gray-700 mr-4">Quantity:</span>
-                <div className="flex border border-gray-300 rounded">
+                <div className="flex border border-purple-200 rounded-md">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1 border-r border-gray-300"
+                    className="px-3 py-1 border-r border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
                   >
                     -
                   </button>
@@ -386,11 +455,11 @@ export default function BundleDetailPage() {
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-16 text-center py-1 focus:outline-none"
+                    className="w-16 text-center py-1 focus:outline-none focus:ring-1 focus:ring-purple-300"
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-1 border-l border-gray-300"
+                    className="px-3 py-1 border-l border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
                   >
                     +
                   </button>
@@ -399,16 +468,17 @@ export default function BundleDetailPage() {
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-4">
-                <Button
-                  onClick={addBundleToCart}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-md font-medium flex-1 sm:flex-none flex items-center justify-center gap-2"
+                <Button 
+                  onClick={addBundleToCart} 
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-2.5 rounded-md font-medium flex-1 sm:flex-none flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]"
+
                 >
                   <ShoppingCart className="w-4 h-4" />
                   Add Bundle to Cart
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 px-4 py-2.5 rounded-md font-medium flex items-center gap-2"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 px-4 py-2.5 rounded-md font-medium flex items-center gap-2"
                 >
                   <Share2 className="w-4 h-4" />
                   Share
@@ -451,28 +521,28 @@ export default function BundleDetailPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Bundle details tabs */}
         <div className="mb-16">
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="w-full justify-start border-b border-gray-200 mb-8">
-              <TabsTrigger
-                value="description"
-                className="text-sm font-medium px-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600"
+              <TabsTrigger 
+                value="description" 
+                className="text-sm font-medium px-1 py-3 data-[state=active]:border-b-2 data-[state=active]:border-pink-600 data-[state=active]:text-pink-600"
               >
                 Description
               </TabsTrigger>
               <TabsTrigger
                 value="howToUse"
-                className="text-sm font-medium px-1 py-3 ml-8 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600"
+                className="text-sm font-medium px-1 py-3 ml-8 data-[state=active]:border-b-2 data-[state=active]:border-pink-600 data-[state=active]:text-pink-600"
               >
                 How to Use
               </TabsTrigger>
               <TabsTrigger
                 value="reviews"
-                className="text-sm font-medium px-1 py-3 ml-8 data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600"
+                className="text-sm font-medium px-1 py-3 ml-8 data-[state=active]:border-b-2 data-[state=active]:border-pink-600 data-[state=active]:text-pink-600"
               >
                 Reviews
               </TabsTrigger>
@@ -493,7 +563,7 @@ export default function BundleDetailPage() {
                     <ul className="space-y-2 mb-6">
                       {bundle.benefits?.map((benefit, index) => (
                         <li key={index} className="flex items-start">
-                          <CheckCircle className="w-5 h-5 mr-2 text-indigo-600 flex-shrink-0 mt-0.5" />
+                          <CheckCircle className="w-5 h-5 mr-2 text-pink-600 flex-shrink-0 mt-0.5" />
                           <span>{benefit}</span>
                         </li>
                       ))}
@@ -616,7 +686,7 @@ export default function BundleDetailPage() {
 
               {/* Bundle details sidebar */}
               <div className="lg:col-span-1">
-                <div className="bg-gray-50 p-6 rounded-lg sticky top-24">
+                <div className="bg-pink-50 p-6 rounded-lg sticky top-24">
                   <h3 className="text-lg font-bold mb-4">Bundle Details</h3>
                   <dl className="space-y-3">
                     <div className="flex justify-between">
@@ -634,9 +704,7 @@ export default function BundleDetailPage() {
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-600">Bundle Price:</dt>
-                      <dd className="font-medium text-indigo-700">
-                        ${bundle.bundlePrice.toFixed(2)}
-                      </dd>
+                      <dd className="font-medium text-pink-700">${bundle.bundlePrice.toFixed(2)}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-600">You Save:</dt>
@@ -713,24 +781,15 @@ export default function BundleDetailPage() {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Button
-                      variant="secondary"
-                      className="bg-white text-indigo-600 hover:bg-indigo-50"
-                    >
+                    <Button variant="secondary" className="bg-white text-pink-600 hover:bg-pink-50">
                       View Details
                     </Button>
                   </div>
                 </div>
                 <div className="p-4">
-                  <h3 className="font-medium mb-1 text-gray-900">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                    {product.description || "No description available."}
-                  </p>
-                  <p className="font-bold text-indigo-600">
-                    ${product.price.toFixed(2)}
-                  </p>
+                  <h3 className="font-medium mb-1 text-gray-900">{product.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">{product.description || "No description available."}</p>
+                  <p className="font-bold text-pink-600">${product.price.toFixed(2)}</p>
                 </div>
               </div>
             ))}
@@ -739,23 +798,42 @@ export default function BundleDetailPage() {
 
         {/* You may also like section */}
         <div className="mb-16">
-          <h2 className="text-2xl font-bold mb-6">You May Also Like</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-pink-700">You May Also Like</h2>
+            <Button variant="link" className="text-purple-600 hover:text-pink-600 transition-colors">
+              View All Bundles
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[...Array(3)].map((_, index) => (
-              <motion.div
-                key={index}
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-300"
+              <motion.div 
+                key={index} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * index }}
                 whileHover={{ y: -5 }}
+                className="border border-gray-100 rounded-lg overflow-hidden hover:border-purple-200 hover:shadow-xl transition-all duration-300"
               >
-                <div className="aspect-video relative bg-gray-100">
+                <div className="aspect-video relative bg-gradient-to-br from-purple-50 to-pink-50">
                   <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-12 h-12 text-gray-300" />
+                    <Package className="w-12 h-12 text-purple-300" />
                   </div>
-                  <div className="absolute top-2 right-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
+                  <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
                     Save 15%
                   </div>
                 </div>
                 <div className="p-4">
+                  <h3 className="font-medium mb-1 text-gray-900 hover:text-purple-700 transition-colors">Related Bundle {index + 1}</h3>
+                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">Another great collection for your skincare needs with complementary products</p>
+                  
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs text-gray-500 line-through">$104.99</p>
+                      <p className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700">$89.99</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                      View Details
                   <h3 className="font-medium mb-1 text-gray-900">
                     Related Bundle {index + 1}
                   </h3>
@@ -779,6 +857,7 @@ export default function BundleDetailPage() {
       </div>
 
       <NewsletterSection />
+      <Footer />
     </main>
   );
 }

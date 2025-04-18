@@ -11,7 +11,11 @@ import {
   FiMail
 } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { Product } from "@prisma/client";
+import { Product as PrismaProduct } from "@prisma/client";
+
+interface Product extends PrismaProduct {
+  tags?: string[];
+}
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AddToCartButtonProps {

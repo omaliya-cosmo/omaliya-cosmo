@@ -12,10 +12,14 @@ import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import AddToCartButton from "@/components/product-detail/AddToCartButton";
 import NewsletterSection from "@/components/home/Newsletter";
 import { Product, ProductCategory, Review } from "@prisma/client";
+import { motion } from "framer-motion";
+import Header from "@/components/layout/Header"; // Adjust the path as needed
 
 interface ProductWithDetails extends Product {
   category?: ProductCategory;
   reviews?: Review[];
+  discountPriceLKR?: number; // Add this property
+  discountPriceUSD?: number; // Add this property
 }
 
 export default function ProductDetailPage() {
@@ -88,8 +92,73 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <main className="bg-white">
-      <div className="container mx-auto px-4 py-8">
+    <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
+      {/* Animated background elements */}
+      <Header userData={null} cartCount={0} />
+
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large blurred background gradients */}
+        <motion.div 
+          className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-purple-100/30 to-pink-100/30 blur-3xl"
+          style={{ top: '5%', left: '30%', transform: 'translateX(-50%)' }}
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 20,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div 
+          className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-pink-100/20 to-purple-100/20 blur-3xl"
+          style={{ bottom: '10%', right: '5%' }}
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 25,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Floating particles with various sizes */}
+        <motion.div
+          className="absolute w-10 h-10 rounded-full bg-purple-200/60"
+          style={{ top: '15%', left: '10%' }}
+          animate={{
+            y: [-30, 0, -30],
+            x: [20, 0, 20],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 12,
+            ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          className="absolute w-8 h-8 rounded-full bg-pink-200/60"
+          style={{ top: '25%', right: '15%' }}
+          animate={{
+            y: [0, 25, 0],
+            x: [0, -15, 0],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{ 
+            repeat: Infinity,
+            duration: 14,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-8">
         <ProductBreadcrumbs product={product} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">

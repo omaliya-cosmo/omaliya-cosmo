@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { Bell, Mail, Tag, Package, Megaphone, Smartphone, Check, X, Clock, AlertCircle } from 'lucide-react';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -41,446 +56,392 @@ type NotificationType =
   | "account"
   | "system";
 
-interface Notification {
+interface NotificationSetting {
   id: string;
-  type: NotificationType;
+  type: string;
   title: string;
   description: string;
-  dateTime: string;
-  isRead: boolean;
-  link?: string;
-  data?: Record<string, any>;
+  email: boolean;
+  push: boolean;
+  sms: boolean;
 }
 
-export default function ProfileNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  type: 'order' | 'promo' | 'account' | 'system';
+  read: boolean;
+}
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      // In a real app, fetch from API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+const ProfileNotifications: React.FC = () => {
+  // Notification preferences
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationSetting[]>([
+    {
+      id: "orders",
+      type: "order",
+      title: "Order updates",
+      description: "Receive notifications about your orders status and delivery updates",
+      email: true,
+      push: true,
+      sms: false
+    },
+    {
+      id: "promos",
+      type: "promo",
+      title: "Promotions & deals",
+      description: "Stay informed about sales, discounts and special offers",
+      email: true,
+      push: false,
+      sms: false
+    },
+    {
+      id: "account",
+      type: "account",
+      title: "Account activity",
+      description: "Get important updates about your account and security",
+      email: true,
+      push: true,
+      sms: true
+    },
+    {
+      id: "product-updates",
+      type: "system",
+      title: "Product updates",
+      description: "Learn about new products, features and recommendations",
+      email: true,
+      push: false,
+      sms: false
+    },
+  ]);
 
-      const dummyNotifications: Notification[] = [
-        {
-          id: "1",
-          type: "delivery",
-          title: "Your order has been delivered",
-          description: "Order #38492 has been delivered to your address.",
-          dateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          isRead: false,
-          link: "/orders/38492",
-          data: {
-            orderId: "38492",
-          },
-        },
-        {
-          id: "2",
-          type: "promotion",
-          title: "Promotion: 20% off all cosmetics",
-          description: "Limited time offer! Use code COSMO20 at checkout.",
-          dateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          isRead: true,
-          link: "/promotions/cosmo20",
-          data: {
-            promoCode: "COSMO20",
-            expiryDate: new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-          },
-        },
-        {
-          id: "3",
-          type: "payment",
-          title: "New payment method added",
-          description: "You added a new credit card ending in 4382.",
-          dateTime: new Date(
-            Date.now() - 3 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          isRead: true,
-          link: "/profile?tab=security",
-        },
-        {
-          id: "4",
-          type: "order",
-          title: "Order confirmed",
-          description:
-            "Your order #39201 has been confirmed and is being processed.",
-          dateTime: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          isRead: false,
-          link: "/orders/39201",
-          data: {
-            orderId: "39201",
-            items: 3,
-          },
-        },
-        {
-          id: "5",
-          type: "account",
-          title: "Welcome to Omaliya!",
-          description:
-            "Thank you for creating an account. Start exploring our products now.",
-          dateTime: new Date(
-            Date.now() - 7 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          isRead: true,
-          link: "/products",
-        },
-        {
-          id: "6",
-          type: "system",
-          title: "Privacy Policy Update",
-          description:
-            "We've updated our privacy policy. Please review the changes.",
-          dateTime: new Date(
-            Date.now() - 14 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          isRead: true,
-          link: "/privacy-policy",
-        },
-      ];
+  // Recent notifications
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: "1",
+      title: "Order shipped",
+      message: "Your order #12345 has been shipped and will arrive in 3-5 business days.",
+      date: "2025-04-15T10:30:00",
+      type: "order",
+      read: false
+    },
+    {
+      id: "2",
+      title: "Special offer",
+      message: "Enjoy 25% off on all skincare products this weekend. Use code: SKINCARE25",
+      date: "2025-04-14T08:15:00",
+      type: "promo",
+      read: false
+    },
+    {
+      id: "3",
+      title: "Password changed",
+      message: "Your account password was recently changed. If you didn't make this change, please contact customer support.",
+      date: "2025-04-12T14:45:00",
+      type: "account",
+      read: true
+    },
+    {
+      id: "4",
+      title: "New feature available",
+      message: "You can now save multiple payment methods for faster checkout.",
+      date: "2025-04-10T11:20:00",
+      type: "system",
+      read: true
+    },
+    {
+      id: "5",
+      title: "Order delivered",
+      message: "Your order #12230 has been delivered. Enjoy your products!",
+      date: "2025-04-08T16:55:00",
+      type: "order",
+      read: true
+    },
+  ]);
 
-      setNotifications(dummyNotifications);
-      setIsLoading(false);
-    };
+  const [activeTab, setActiveTab] = useState('all');
+  const [emailFrequency, setEmailFrequency] = useState('immediate');
 
-    fetchNotifications();
-  }, []);
-
-  const getTypeIcon = (type: NotificationType) => {
-    switch (type) {
-      case "order":
-        return <ShoppingBag className="h-4 w-4" />;
-      case "delivery":
-        return <Truck className="h-4 w-4" />;
-      case "promotion":
-        return <Percent className="h-4 w-4" />;
-      case "payment":
-        return <CreditCard className="h-4 w-4" />;
-      case "account":
-        return <Bell className="h-4 w-4" />;
-      case "system":
-        return <Info className="h-4 w-4" />;
-      default:
-        return <Bell className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeColor = (type: NotificationType) => {
-    switch (type) {
-      case "order":
-        return "border-blue-500";
-      case "delivery":
-        return "border-green-500";
-      case "promotion":
-        return "border-amber-500";
-      case "payment":
-        return "border-purple-500";
-      case "account":
-        return "border-sky-500";
-      case "system":
-        return "border-slate-500";
-      default:
-        return "border-muted";
-    }
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    try {
-      const date = parseISO(dateString);
-      return formatDistanceToNow(date, { addSuffix: true });
-    } catch (error) {
-      return "Invalid date";
-    }
-  };
-
-  const filteredNotifications = notifications.filter((notif) => {
-    // Apply type filter
-    if (activeFilter !== "all" && activeFilter !== "unread") {
-      if (notif.type !== activeFilter) return false;
-    }
-
-    // Apply unread filter
-    if (activeFilter === "unread" && notif.isRead) {
-      return false;
-    }
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        notif.title.toLowerCase().includes(query) ||
-        notif.description.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
-  });
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === id ? { ...notif, isRead: true } : notif
+  // Toggle notification channel
+  const toggleNotificationChannel = (id: string, channel: 'email' | 'push' | 'sms') => {
+    setNotificationPreferences(preferences =>
+      preferences.map(pref =>
+        pref.id === id ? { ...pref, [channel]: !pref[channel] } : pref
       )
     );
+    
+    toast.success(`Notification preference updated`);
   };
 
+  // Mark notification as read
+  const markAsRead = (id: string) => {
+    setNotifications(notifications.map(notification =>
+      notification.id === id ? { ...notification, read: true } : notification
+    ));
+    
+    toast.success("Notification marked as read");
+  };
+
+  // Mark all notifications as read
   const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notif) => ({ ...notif, isRead: true }))
-    );
+    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+    toast.success("All notifications marked as read");
   };
 
+  // Delete notification
   const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    setNotifications(notifications.filter(notification => notification.id !== id));
+    toast.success("Notification removed");
+  };
+
+  // Filter notifications based on active tab
+  const filteredNotifications = activeTab === 'all'
+    ? notifications
+    : notifications.filter(notification => notification.type === activeTab);
+
+  // Format relative time
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.abs(now.getTime() - date.getTime()) / 36e5;
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else if (diffInHours < 48) {
+      return "yesterday";
+    } else {
+      return date.toLocaleDateString("en-US", { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
   };
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notifications
-            {unreadCount > 0 && (
-              <Badge variant="default" className="ml-2">
-                {unreadCount} new
-              </Badge>
-            )}
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Stay updated on your orders and account activity
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-end">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={markAllAsRead}
-            disabled={!notifications.some((n) => !n.isRead)}
-          >
-            <CheckCheck className="h-3.5 w-3.5 mr-1.5" />
-            Mark all as read
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8">
-                <Filter className="h-3.5 w-3.5 mr-1.5" />
-                Filter
+    <Card>
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>
+          Manage your notification preferences and view recent notifications
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="recent" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="recent" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">Recent Notifications</TabsTrigger>
+            <TabsTrigger value="preferences" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">Notification Preferences</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="recent" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className="overflow-x-auto pb-2">
+                  <TabsList className="w-full justify-start">
+                    <TabsTrigger value="all" className="data-[state=active]:bg-purple-600/10 data-[state=active]:text-purple-700">
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger value="order" className="data-[state=active]:bg-purple-600/10 data-[state=active]:text-purple-700">
+                      <Package className="h-4 w-4 mr-1" />
+                      Orders
+                    </TabsTrigger>
+                    <TabsTrigger value="promo" className="data-[state=active]:bg-purple-600/10 data-[state=active]:text-purple-700">
+                      <Tag className="h-4 w-4 mr-1" />
+                      Promotions
+                    </TabsTrigger>
+                    <TabsTrigger value="account" className="data-[state=active]:bg-purple-600/10 data-[state=active]:text-purple-700">
+                      <Bell className="h-4 w-4 mr-1" />
+                      Account
+                    </TabsTrigger>
+                    <TabsTrigger value="system" className="data-[state=active]:bg-purple-600/10 data-[state=active]:text-purple-700">
+                      <Megaphone className="h-4 w-4 mr-1" />
+                      System
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              </Tabs>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={markAllAsRead}
+                className="whitespace-nowrap border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Mark all as read
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => setActiveFilter("all")}>
-                All notifications
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("unread")}>
-                Unread only
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setActiveFilter("order")}>
-                <ShoppingBag className="h-3.5 w-3.5 mr-2" /> Orders
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("delivery")}>
-                <Truck className="h-3.5 w-3.5 mr-2" /> Deliveries
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("promotion")}>
-                <Percent className="h-3.5 w-3.5 mr-2" /> Promotions
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("payment")}>
-                <CreditCard className="h-3.5 w-3.5 mr-2" /> Payments
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("account")}>
-                <Bell className="h-3.5 w-3.5 mr-2" /> Account
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveFilter("system")}>
-                <Info className="h-3.5 w-3.5 mr-2" /> System
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+            </div>
+            
+            <div className="space-y-4">
+              {filteredNotifications.length > 0 ? (
+                filteredNotifications.map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`border rounded-lg p-4 ${notification.read ? 'bg-card' : 'bg-purple-50 border-purple-100'}`}
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-full mt-1 ${
+                          notification.type === 'order' ? 'bg-blue-100 text-blue-600' : 
+                          notification.type === 'promo' ? 'bg-amber-100 text-amber-600' :
+                          notification.type === 'account' ? 'bg-purple-100 text-purple-600' :
+                          'bg-green-100 text-green-600'
+                        }`}>
+                          {notification.type === 'order' && <Package className="h-4 w-4" />}
+                          {notification.type === 'promo' && <Tag className="h-4 w-4" />}
+                          {notification.type === 'account' && <Bell className="h-4 w-4" />}
+                          {notification.type === 'system' && <Megaphone className="h-4 w-4" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-base">{notification.title}</h4>
+                            {!notification.read && (
+                              <Badge variant="default" className="bg-purple-600 text-white">New</Badge>
+                            )}
+                          </div>
+                          <p className="text-muted-foreground text-sm mt-1">{notification.message}</p>
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatRelativeTime(notification.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!notification.read && (
+                          <Button 
+                            onClick={() => markAsRead(notification.id)} 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span className="sr-only">Mark as read</span>
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => deleteNotification(notification.id)} 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="rounded-full bg-muted p-4">
+                    <Bell className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium">No notifications</h3>
+                  <p className="mt-2 text-sm text-muted-foreground text-center">
+                    You don't have any {activeTab !== 'all' ? activeTab : ''} notifications at the moment.
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="preferences" className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium">Email Digest Frequency</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose how often you'd like to receive email notifications
+                </p>
+                <RadioGroup 
+                  defaultValue={emailFrequency}
+                  onValueChange={setEmailFrequency}
+                  className="flex flex-col space-y-3"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="immediate" id="immediate" className="border-purple-200 text-purple-600"/>
+                    <Label htmlFor="immediate">Send immediately (as they happen)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="daily" id="daily" className="border-purple-200 text-purple-600"/>
+                    <Label htmlFor="daily">Daily digest</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="weekly" id="weekly" className="border-purple-200 text-purple-600" />
+                    <Label htmlFor="weekly">Weekly digest</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <Separator className="my-6" />
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search notifications..."
-          className="pl-9 max-w-sm"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Notification Channels</h3>
+                  <div className="flex text-sm">
+                    <span className="w-20 text-center font-medium text-purple-600">Email</span>
+                    <span className="w-20 text-center font-medium text-purple-600">Push</span>
+                    <span className="w-20 text-center font-medium text-purple-600">SMS</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  {notificationPreferences.map((preference) => (
+                    <div 
+                      key={preference.id} 
+                      className="flex items-center justify-between border-b pb-4 last:border-0"
+                    >
+                      <div>
+                        <h4 className="font-medium">{preference.title}</h4>
+                        <p className="text-sm text-muted-foreground">{preference.description}</p>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="w-20 flex justify-center">
+                          <Switch 
+                            checked={preference.email} 
+                            onCheckedChange={() => toggleNotificationChannel(preference.id, 'email')}
+                            className="data-[state=checked]:bg-purple-600"
+                          />
+                        </div>
+                        <div className="w-20 flex justify-center">
+                          <Switch 
+                            checked={preference.push} 
+                            onCheckedChange={() => toggleNotificationChannel(preference.id, 'push')}
+                            className="data-[state=checked]:bg-purple-600"
+                          />
+                        </div>
+                        <div className="w-20 flex justify-center">
+                          <Switch 
+                            checked={preference.sms} 
+                            onCheckedChange={() => toggleNotificationChannel(preference.id, 'sms')}
+                            className="data-[state=checked]:bg-purple-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-      <Separator className="my-4" />
-
-      {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex gap-4 p-4 border rounded-lg">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-4 w-2/5" />
-                <Skeleton className="h-3 w-4/5" />
-                <Skeleton className="h-3 w-1/5" />
+              <div className="mt-6 p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-purple-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-purple-900">Privacy Note</h4>
+                    <p className="text-sm text-purple-700 mt-1">
+                      You can opt-out of non-essential communications at any time. 
+                      Account-related notifications for security and order processing cannot be disabled.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      ) : filteredNotifications.length > 0 ? (
-        <AnimatePresence initial={false}>
-          <div className="space-y-4">
-            {activeFilter !== "all" && (
-              <div className="flex items-center justify-between mb-2 px-1">
-                <p className="text-sm text-muted-foreground">
-                  {activeFilter === "unread"
-                    ? `Showing ${
-                        filteredNotifications.length
-                      } unread notification${
-                        filteredNotifications.length !== 1 ? "s" : ""
-                      }`
-                    : `Showing ${
-                        filteredNotifications.length
-                      } ${activeFilter} notification${
-                        filteredNotifications.length !== 1 ? "s" : ""
-                      }`}
-                </p>
-                {activeFilter !== "all" && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-muted-foreground"
-                    onClick={() => setActiveFilter("all")}
-                  >
-                    Clear filter
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {filteredNotifications.map((notification) => (
-              <motion.div
-                key={notification.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ duration: 0.2 }}
-                className={`flex gap-3 p-4 rounded-lg border-l-4 ${
-                  notification.isRead
-                    ? "border-l-muted bg-background"
-                    : getTypeColor(notification.type) + " bg-muted/20"
-                } border relative`}
-              >
-                <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    notification.isRead ? "bg-muted" : "bg-primary/10"
-                  }`}
-                >
-                  {getTypeIcon(notification.type)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <h3
-                      className={`font-medium text-base ${
-                        !notification.isRead ? "text-primary" : ""
-                      }`}
-                    >
-                      {notification.title}
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      {!notification.isRead && (
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatRelativeTime(notification.dateTime)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {notification.description}
-                  </p>
-                  {notification.data?.promoCode && (
-                    <div className="mt-2 flex items-center">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {notification.data.promoCode}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        Expires{" "}
-                        {format(
-                          parseISO(notification.data.expiryDate),
-                          "MMM dd"
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  <div className="mt-2 pt-1 flex gap-2">
-                    {notification.link && (
-                      <Button variant="ghost" size="sm" className="h-8 text-xs">
-                        View details
-                      </Button>
-                    )}
-                    {!notification.isRead && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => markAsRead(notification.id)}
-                      >
-                        Mark as read
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-                  onClick={() => deleteNotification(notification.id)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                  <span className="sr-only">Delete</span>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Bell className="h-10 w-10 text-muted-foreground/50" />
-          </div>
-          <h3 className="text-xl font-medium mb-2">No notifications</h3>
-          <p className="text-muted-foreground max-w-sm">
-            {searchQuery
-              ? `We couldn't find any notifications matching "${searchQuery}".`
-              : activeFilter !== "all"
-              ? `You don't have any ${
-                  activeFilter === "unread" ? "unread" : activeFilter
-                } notifications.`
-              : "You don't have any notifications right now. We'll notify you when something important happens."}
-          </p>
-          {(searchQuery || activeFilter !== "all") && (
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => {
-                setSearchQuery("");
-                setActiveFilter("all");
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reset filters
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default ProfileNotifications;

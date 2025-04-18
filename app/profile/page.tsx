@@ -104,10 +104,8 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="w-full flex flex-col items-center justify-center min-h-[80vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">
-          Loading your profile information...
-        </p>
+        <Loader2 className="h-10 w-10 animate-spin text-purple-600 mb-4" />
+        <p className="text-muted-foreground">Loading your profile information...</p>
       </div>
     );
   }
@@ -115,17 +113,15 @@ export default function ProfilePage() {
   return (
     <div className="w-full px-4 py-6 md:py-10 max-w-7xl mx-auto">
       {/* Enhanced Header with User Information and Quick Actions */}
-      <div className="bg-card rounded-lg border shadow-sm p-6 mb-8">
+      <div className="bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-lg border shadow-sm p-6 mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
+            <Avatar className="h-16 w-16 border-2 border-purple-300/50">
               <AvatarImage src="/placeholder-avatar.jpg" alt="John Doe" />
-              <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                JD
-              </AvatarFallback>
+              <AvatarFallback className="text-lg bg-purple-100 text-purple-600">JD</AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">John Doe</h1>
+              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-pink-700">John Doe</h1>
               <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Last login {formatRelativeTime(lastLogin)}</span>
@@ -134,10 +130,10 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1 border-purple-200 hover:bg-purple-50 hover:text-purple-600 transition-colors"
               onClick={() => handleTabChange("notifications")}
             >
               <Bell className="h-4 w-4" />
@@ -154,7 +150,7 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-200"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -167,8 +163,8 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 text-sm">
           <div className="flex gap-3 items-center">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Mail className="h-4 w-4 text-primary" />
+            <div className="bg-purple-100 p-2 rounded-full">
+              <Mail className="h-4 w-4 text-purple-600" />
             </div>
             <div>
               <p className="text-muted-foreground">Email</p>
@@ -176,8 +172,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Phone className="h-4 w-4 text-primary" />
+            <div className="bg-purple-100 p-2 rounded-full">
+              <Phone className="h-4 w-4 text-purple-600" />
             </div>
             <div>
               <p className="text-muted-foreground">Phone</p>
@@ -185,8 +181,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <CreditCard className="h-4 w-4 text-primary" />
+            <div className="bg-purple-100 p-2 rounded-full">
+              <CreditCard className="h-4 w-4 text-purple-600" />
             </div>
             <div>
               <p className="text-muted-foreground">Payment Methods</p>
@@ -194,8 +190,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <MapPin className="h-4 w-4 text-primary" />
+            <div className="bg-purple-100 p-2 rounded-full">
+              <MapPin className="h-4 w-4 text-purple-600" />
             </div>
             <div>
               <p className="text-muted-foreground">Addresses</p>
@@ -212,10 +208,18 @@ export default function ProfilePage() {
       >
         <div className="overflow-x-auto pb-2">
           <TabsList className="inline-flex h-auto p-1 rounded-lg bg-muted">
-            {/* Available Features */}
-            <TabsTrigger
+
+            <TabsTrigger 
+              value="settings"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
+              data-active={activeTab === "settings"}
+            >
+              <User className="h-4 w-4" />
+              <span>Profile</span>
+            </TabsTrigger>
+            <TabsTrigger 
               value="security"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
               data-active={activeTab === "security"}
             >
               <Shield className="h-4 w-4" />
@@ -223,7 +227,7 @@ export default function ProfilePage() {
             </TabsTrigger>
             <TabsTrigger
               value="addresses"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
               data-active={activeTab === "addresses"}
             >
               <MapPin className="h-4 w-4" />
@@ -231,36 +235,31 @@ export default function ProfilePage() {
             </TabsTrigger>
             <TabsTrigger
               value="orders"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
               data-active={activeTab === "orders"}
             >
               <Package className="h-4 w-4" />
               <span>Orders</span>
             </TabsTrigger>
-
-            {/* Separator between available and upcoming features */}
-            <div className="h-8 border-l mx-2 my-auto"></div>
-
-            {/* Upcoming Features - Not Available Yet */}
-            <TabsTrigger
-              value="settings"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-muted-foreground"
-              data-active={activeTab === "settings"}
+            <TabsTrigger 
+              value="payments" 
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
+              data-active={activeTab === "payments"}
             >
               <User className="h-4 w-4" />
               <span>Profile</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="payments"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-muted-foreground"
-              data-active={activeTab === "payments"}
+            <TabsTrigger 
+              value="wishlist"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
+              data-active={activeTab === "wishlist"}
             >
               <CreditCard className="w-4 h-4" />
               <span>Payment Methods</span>
             </TabsTrigger>
             <TabsTrigger
               value="notifications"
-              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm text-muted-foreground"
+              className="flex items-center gap-2 rounded-md px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm"
               data-active={activeTab === "notifications"}
             >
               <Bell className="h-4 w-4" />
@@ -343,7 +342,7 @@ export default function ProfilePage() {
         </div>
       </Tabs>
 
-      <div className="mt-10 bg-muted/40 rounded-lg p-6">
+      <div className="mt-10 bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-lg border shadow-sm p-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <h3 className="text-lg font-medium">
@@ -354,11 +353,11 @@ export default function ProfilePage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2 border-purple-200 hover:bg-purple-50 hover:text-purple-600">
               <BadgeHelp className="h-4 w-4" />
               Help Center
             </Button>
-            <Button className="gap-2">
+            <Button variant="default" className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
               <MessageSquare className="h-4 w-4" />
               Contact Support
             </Button>

@@ -1,80 +1,67 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
-import { ProductCategory } from "@prisma/client";
-import axios from "axios";
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
-interface FilterItem {
+interface ActiveFilter {
   label: string;
   value: string;
   param: string;
 }
 
 interface ProductsActiveFiltersProps {
-  activeFilters: FilterItem[];
+  activeFilters: ActiveFilter[];
   onRemoveFilter: (param: string) => void;
   onClearAll: () => void;
+  animationProps?: any;
 }
 
 export default function ProductsActiveFilters({
   activeFilters,
   onRemoveFilter,
   onClearAll,
+  animationProps,
 }: ProductsActiveFiltersProps) {
   if (activeFilters.length === 0) return null;
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  console.log(activeFilters);
-
-  useEffect(() => {
-    // Fetch categories data
-    axios
-      .get("/api/categories")
-      .then((res) => {
-        setCategories(res.data.categories);
-      })
-      .catch((err) => {
-        console.log(err.message);
-      });
-  }, []);
-
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    return category ? category.name : "Cosmetics"; // Default to "Cosmetics" if not found
-  };
 
   return (
-    <div className="bg-purple-50 rounded-lg p-3 mb-6">
+    <div className="bg-white/80 backdrop-blur-sm py-4 px-6 rounded-xl shadow-sm border border-purple-100/50 mb-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-purple-700 text-sm font-medium mr-2">
-          Active Filters:
-        </span>
-
-        {activeFilters.map((filter, index) => (
-          <button
-            key={index}
-            onClick={() => onRemoveFilter(filter.param)}
-            className="inline-flex items-center px-3 py-1 rounded-full bg-white 
-                     text-purple-700 text-sm shadow-sm border border-purple-200 
-                     hover:bg-purple-100 transition-colors"
+        <span className="text-sm font-medium text-gray-700 mr-2">Active Filters:</span>
+        <AnimatePresence>
+          {activeFilters.map((filter, index) => (
+            <motion.div
+              key={`${filter.param}-${filter.value}`}
+              initial={animationProps?.initial || { scale: 0.8, opacity: 0 }}
+              animate={animationProps?.animate || { scale: 1, opacity: 1 }}
+              exit={animationProps?.exit || { scale: 0.8, opacity: 0 }}
+              transition={animationProps?.transition || { type: "spring", stiffness: 500, damping: 30 }}
+              className="inline-flex items-center gap-1 py-1 pl-3 pr-1.5 bg-gradient-to-r from-purple-100 to-purple-50 rounded-full text-sm text-purple-800 border border-purple-200 shadow-sm"
+            >
+              <span className="font-medium mr-1">{filter.label}:</span>
+              <span className="text-purple-600">{filter.value}</span>
+              <button
+                onClick={() => onRemoveFilter(filter.param)}
+                className="ml-1 p-1 rounded-full hover:bg-purple-200 text-purple-700 transition-colors"
+                aria-label={`Remove ${filter.label} filter`}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        
+        {activeFilters.length > 1 && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onClearAll}
+            className="ml-auto text-sm font-medium text-purple-600 hover:text-pink-600 transition-colors"
           >
-            <span className="text-gray-500 mr-1">{filter.label}:</span>
-            {filter.param === "category"
-              ? getCategoryName(filter.value)
-              : filter.value}
-            <XMarkIcon className="ml-1 h-4 w-4 text-gray-400" />
-          </button>
-        ))}
-
-        <button
-          onClick={onClearAll}
-          className="inline-flex items-center px-3 py-1 rounded-full 
-                   bg-purple-600 text-white text-sm shadow-sm 
-                   hover:bg-purple-700 transition-colors ml-auto"
-        >
-          Clear All Filters
-          <XMarkIcon className="ml-1 h-4 w-4" />
-        </button>
+            Clear All
+          </motion.button>
+        )}
       </div>
     </div>
   );

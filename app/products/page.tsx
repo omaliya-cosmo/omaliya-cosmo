@@ -6,8 +6,8 @@ import ProductGrid from "@/components/products/ProductGrid";
 import ProductsActiveFilters from "@/components/products/ProductsActiveFilters";
 import NewsletterSection from "@/components/home/Newsletter";
 import ClientSortingWrapper from "@/components/products/ClientSortingWrapper";
-import ClientPaginationWrapper from "@/components/products/ClientPaginationWrapper";
 import ClientEmptyStateWrapper from "@/components/products/ClientEmptyStateWrapper";
+import ProductsPagination from "@/components/products/ProductsPagination";
 import {
   ProductCategory,
   Review,
@@ -19,6 +19,8 @@ import { motion } from "framer-motion";
 interface Product extends PrismaProduct {
   category?: ProductCategory; // Include the category relation
   reviews?: Review[]; // Include reviews with count and average rating
+  tags: string[]; // Add tags property
+  createdAt: string; // Add createdAt property
 }
 
 // Update the filters state interface
@@ -42,8 +44,7 @@ interface ActiveFilter {
 interface ClientPaginationWrapperProps {
   currentPage: number;
   totalPages: number;
-  currentParams: any;
-  onPageChange: (page: number) => void;
+  currentParams: Record<string, string | undefined>;
 }
 
 export default function ProductsPage() {
@@ -288,6 +289,8 @@ export default function ProductsPage() {
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background particles */}
+      <Header userData={null} cartCount={0} />
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
         <motion.div 
@@ -498,10 +501,9 @@ export default function ProductsPage() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className="mt-8"
                 >
-                  <ClientPaginationWrapper
+                  <ProductsPagination
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    currentParams={{}}
                     onPageChange={(page: number) => setCurrentPage(page)}
                   />
                 </motion.div>

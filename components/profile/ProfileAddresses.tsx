@@ -370,6 +370,37 @@ const ProfileAddresses: React.FC = () => {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address Type</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select address type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {addressTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        {React.createElement(type.icon, { className: "h-4 w-4 text-purple-500" })}
+                        <span className="text-pink-500">{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
