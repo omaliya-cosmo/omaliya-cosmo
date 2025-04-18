@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
@@ -14,36 +15,35 @@ interface CartItem {
   _id: string;
   productId: string;
   quantity: number;
+  isBundle: boolean;
 }
 
 // Combined structure for display purposes
-interface DisplayCartItem extends CartItem, Product {
-  category?: ProductCategory; // Add category object to the display item
+interface DisplayCartItem {
+  _id: string;
+  productId: string;
+  quantity: number;
+  isBundle: boolean;
+  name: string;
+  description: string;
+  imageUrls: string[];
+  priceLKR: number;
+  priceUSD: number;
+  discountPriceLKR: number | null;
+  discountPriceUSD: number | null;
+  category?: ProductCategory;
+  // Bundle specific fields
+  originalPriceLKR?: number;
+  originalPriceUSD?: number;
+  offerPriceLKR?: number;
+  offerPriceUSD?: number;
+  bundleProducts?: Product[];
 }
-
-const shipping = [
-  {
-    country: "Sri Lanka",
-    fee: 500, // LKR
-  },
-  {
-    country: "USA",
-    fee: 30, // USD
-  },
-  {
-    country: "India",
-    fee: 25, // USD
-  },
-  {
-    country: "Korea",
-    fee: 35, // USD
-  },
-];
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [processingCheckout, setProcessingCheckout] = useState<boolean>(false);
+  // const [processingCheckout, setProcessingCheckout] = useState<boolean>(false);
   const [updatingItem, setUpdatingItem] = useState<string | null>(null);
   const [removingItem, setRemovingItem] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ const CartPage = () => {
   const [discount, setDiscount] = useState<number>(0);
   const [applyingPromo, setApplyingPromo] = useState<boolean>(false);
 
-  const { country, updateCountry } = useCountry();
+  const { country } = useCountry();
   console.log(country);
 
   const subtotal = cartItems.reduce(
@@ -59,10 +59,9 @@ const CartPage = () => {
       sum + (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
     0
   );
-  const [shippingFee, setShippingFee] = useState(0);
 
   const discountAmount = (subtotal * discount) / 100;
-  const total = subtotal + shippingFee - discountAmount;
+  const total = subtotal - discountAmount;
 
   useEffect(() => {
     fetchCartData();
@@ -71,7 +70,7 @@ const CartPage = () => {
   const fetchCartData = async () => {
     try {
       setLoading(true);
-      // Fetch cart items (only productId and quantity)
+      // Fetch cart items (products and bundles)
       const { data: cartData } = await axios.get<{ items: CartItem[] }>(
         "/api/cart"
       );
@@ -79,40 +78,73 @@ const CartPage = () => {
 
       if (cartItemsFromApi.length === 0) {
         setCartItems([]);
+        setLoading(false);
         return;
       }
 
-      // Fetch product details for all productIds in the cart
-      const productIds = cartItemsFromApi.map((item) => item.productId);
-      const { data: productsData } = await axios.post<Product[]>(
-        "/api/products/batch?category=true",
-        { productIds }
-      );
+      // Separate product IDs and bundle IDs
+      const productItems = cartItemsFromApi.filter((item) => !item.isBundle);
+      const bundleItems = cartItemsFromApi.filter((item) => item.isBundle);
 
-      // Merge cart items with product details
-      const mergedItems: DisplayCartItem[] = cartItemsFromApi.map(
-        (cartItem) => {
-          const product = productsData.find(
-            (p) => p.id === cartItem.productId
-          ) || {
-            id: cartItem.productId,
-            name: "Unknown Product",
-            description: "No description available",
-            imageUrls: [],
-            price: 0,
-            priceLKR: 0,
-            priceUSD: 0,
-            discountPriceLKR: null,
-            discountPriceUSD: null,
-            categoryId: "",
-            category: undefined,
-            stock: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          return { ...cartItem, ...product };
-        }
-      );
+      const productIds = productItems.map((item) => item.productId);
+      const bundleIds = bundleItems.map((item) => item.productId);
+
+      // Create an array to store all fetched items
+      const mergedItems: DisplayCartItem[] = [];
+
+      // Fetch product details if there are any product items
+      if (productIds.length > 0) {
+        const { data: productsData } = await axios.post<Product[]>(
+          "/api/products/batch?category=true",
+          { productIds }
+        );
+
+        // Merge product cart items with product details
+        productItems.forEach((cartItem) => {
+          const product = productsData.find((p) => p.id === cartItem.productId);
+          if (product) {
+            mergedItems.push({
+              ...cartItem,
+              ...product,
+            });
+          }
+        });
+      }
+
+      // Fetch bundle details if there are any bundle items
+      if (bundleIds.length > 0) {
+        const { data: bundlesData } = await axios.post(
+          "/api/bundleoffers/batch",
+          { bundleIds }
+        );
+
+        // Merge bundle cart items with bundle details
+        bundleItems.forEach((cartItem) => {
+          const bundle = bundlesData.find(
+            (b: any) => b.id === cartItem.productId
+          );
+          if (bundle) {
+            mergedItems.push({
+              ...cartItem,
+              name: bundle.bundleName,
+              description: `Bundle with ${
+                bundle.products?.length || 0
+              } products`,
+              imageUrls: bundle.imageUrl ? [bundle.imageUrl] : [],
+              priceLKR: bundle.offerPriceLKR,
+              priceUSD: bundle.offerPriceUSD,
+              discountPriceLKR: null,
+              discountPriceUSD: null,
+              originalPriceLKR: bundle.originalPriceLKR,
+              originalPriceUSD: bundle.originalPriceUSD,
+              offerPriceLKR: bundle.offerPriceLKR,
+              offerPriceUSD: bundle.offerPriceUSD,
+              bundleProducts: bundle.products?.map((p: any) => p.product) || [],
+              isBundle: true, // Ensure bundle flag is set
+            });
+          }
+        });
+      }
 
       setCartItems(mergedItems);
     } catch (err: any) {
@@ -154,7 +186,6 @@ const CartPage = () => {
       }
       console.error("Error updating cart:", err);
     } finally {
-      fetchCartData();
       setUpdatingItem(null);
     }
   };
@@ -182,7 +213,6 @@ const CartPage = () => {
       }
       console.error("Error removing item:", err);
     } finally {
-      fetchCartData();
       setRemovingItem(null);
     }
   };
@@ -196,6 +226,8 @@ const CartPage = () => {
         code: promoCode,
       });
       setDiscount(data.discount || 0);
+      // Set promo code discount in cookies
+      Cookies.set("promoCodeDiscount", data.discount.toString());
       toast.success(
         `Promo code applied! You saved Rs ${data.discount.toFixed(2)}`,
         { position: "bottom-right" }
@@ -278,7 +310,7 @@ const CartPage = () => {
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
                     <div className="col-span-12 md:col-span-6 flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-coloRs ">
+                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-colors">
                         {item.imageUrls.length > 0 ? (
                           <Image
                             src={item.imageUrls[0]}
@@ -288,7 +320,7 @@ const CartPage = () => {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="text-gray-400 group-hover:text-purple-500 transition-coloRs ">
+                          <div className="text-gray-400 group-hover:text-purple-500 transition-colors">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-10 w-10"
@@ -313,8 +345,14 @@ const CartPage = () => {
                         )}
                       </div>
                       <div>
-                        <Link href={`/products/Rs {item.productId}`}>
-                          <h3 className="font-semibold text-gray-800 text-lg mb-1 group-hover:text-purple-700 transition-coloRs ">
+                        <Link
+                          href={
+                            item.isBundle
+                              ? `/bundles/${item.productId}`
+                              : `/products/${item.productId}`
+                          }
+                        >
+                          <h3 className="font-semibold text-gray-800 text-lg mb-1 group-hover:text-purple-700 transition-colors">
                             {item.name}
                           </h3>
                         </Link>
@@ -324,7 +362,9 @@ const CartPage = () => {
                           </span>
                           <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
                           <span className="text-sm text-gray-500">
-                            {item.category?.name || "Cosmetics"}
+                            {item.isBundle
+                              ? "Bundle"
+                              : item.category?.name || "Cosmetics"}
                           </span>
                         </div>
                       </div>
@@ -347,17 +387,16 @@ const CartPage = () => {
                       </div>
                       <div className="flex items-center border border-gray-200 rounded-lg shadow-sm">
                         <button
-                          className={`w-8 h-8 flex items-center justify-center Rs {
-                            updatingItem === item.id
+                          className={`w-8 h-8 flex items-center justify-center ${
+                            updatingItem === item._id
                               ? "text-gray-400"
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                          } rounded-l-lg transition-coloRs `}
+                          } rounded-l-lg transition-colors`}
                           onClick={() =>
-                            item.id &&
-                            updateQuantity(item.id, item.quantity - 1)
+                            updateQuantity(item._id, item.quantity - 1)
                           }
                           disabled={
-                            updatingItem === item.id || item.quantity <= 1
+                            updatingItem === item._id || item.quantity <= 1
                           }
                         >
                           <svg
@@ -376,7 +415,7 @@ const CartPage = () => {
                           </svg>
                         </button>
                         <span className="w-8 h-8 flex items-center justify-center text-gray-800 font-medium">
-                          {updatingItem === item.id ? (
+                          {updatingItem === item._id ? (
                             <div className="w-4 h-4 border-2 border-gray-200 border-t-purple-600 rounded-full animate-spin"></div>
                           ) : (
                             item.quantity
@@ -384,15 +423,14 @@ const CartPage = () => {
                         </span>
                         <button
                           className={`w-8 h-8 flex items-center justify-center ${
-                            updatingItem === item.id
+                            updatingItem === item._id
                               ? "text-gray-400"
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                          } rounded-r-lg transition-coloRs `}
+                          } rounded-r-lg transition-colors`}
                           onClick={() =>
-                            item.id &&
-                            updateQuantity(item.id, item.quantity + 1)
+                            updateQuantity(item._id, item.quantity + 1)
                           }
-                          disabled={updatingItem === item.id}
+                          disabled={updatingItem === item._id}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -418,8 +456,8 @@ const CartPage = () => {
                       </div>
                       <span className="font-semibold text-gray-900">
                         {country === "LK"
-                          ? `Rs ${item.priceLKR.toFixed(2)}`
-                          : `$ ${item.priceUSD.toFixed(2)}`}
+                          ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
+                          : `$ ${(item.priceUSD * item.quantity).toFixed(2)}`}
                       </span>
                     </div>
                   </div>
@@ -429,9 +467,9 @@ const CartPage = () => {
                       removingItem === item._id
                         ? "text-gray-400"
                         : "text-gray-400 hover:text-red-500"
-                    } transition-coloRs  hidden group-hover:block`}
-                    onClick={() => item.id && removeItem(item.id)}
-                    disabled={removingItem === item.id}
+                    } transition-colors hidden group-hover:block`}
+                    onClick={() => removeItem(item._id)}
+                    disabled={removingItem === item._id}
                   >
                     {removingItem === item._id ? (
                       <div className="w-5 h-5 border-2 border-gray-200 border-t-red-500 rounded-full animate-spin"></div>
@@ -473,9 +511,9 @@ const CartPage = () => {
                     <button
                       className={`px-4 py-2 bg-purple-600 text-white font-medium rounded-r-lg ${
                         applyingPromo
-                          ? "opacity-70 cuRs or-wait"
+                          ? "opacity-70 cursor-wait"
                           : "hover:bg-purple-700"
-                      } transition-coloRs `}
+                      } transition-colors`}
                       onClick={applyPromoCode}
                       disabled={applyingPromo || !promoCode.trim()}
                     >
@@ -550,32 +588,20 @@ const CartPage = () => {
                         items)
                       </span>
                       <span className="font-medium">
-                        Rs {subtotal.toFixed(2)}
+                        {country === "LK"
+                          ? `Rs ${subtotal.toFixed(2)}`
+                          : `$ ${subtotal.toFixed(2)}`}
                       </span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Shipping</span>
-                      <select
-                        className="font-medium text-green-600 bg-transparent border-none outline-none"
-                        value={shippingFee}
-                        onChange={(e) => setShippingFee(Number(e.target.value))}
-                      >
-                        {shipping.map((option) => (
-                          <option key={option.country} value={option.fee}>
-                            {option.country} -{" "}
-                            {country === "LK"
-                              ? `Rs ${option.fee}`
-                              : `$ ${option.fee}`}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
                         <span className="font-medium">
-                          - Rs {(subtotal * (discount / 100)).toFixed(2)}
+                          -{" "}
+                          {country === "LK"
+                            ? `Rs ${discountAmount.toFixed(2)}`
+                            : `$ ${discountAmount.toFixed(2)}`}
                         </span>
                       </div>
                     )}
@@ -587,7 +613,9 @@ const CartPage = () => {
                         Total
                       </span>
                       <span className="text-lg font-bold text-purple-700">
-                        Rs {total.toFixed(2)}
+                        {country === "LK"
+                          ? `Rs ${total.toFixed(2)}`
+                          : `$ ${total.toFixed(2)}`}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">

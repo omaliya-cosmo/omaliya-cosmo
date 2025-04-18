@@ -1,53 +1,44 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  FiEdit2,
-  FiTrash2,
-  FiPlus,
-  FiSearch,
-  FiRefreshCw,
-  FiPackage,
-} from "react-icons/fi";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FiEdit2, FiTrash2, FiSearch, FiRefreshCw } from "react-icons/fi";
 import axios from "axios";
-import { Customer, Order as PrismaOrder, Product } from "@prisma/client";
+import {
+  Customer,
+  Order as PrismaOrder,
+  Product,
+  OrderItem as PrismaOrderItem,
+} from "@prisma/client";
 
-interface Order extends PrismaOrder {
-  customer: Customer; // Include the customer relation
+interface OrderItem extends PrismaOrderItem {
+  product: Product;
 }
 
-const ReceivedOrdersPage = () => {
-  const [orders, setOrders] = useState<
-    (Order & { items: { name: string; quantity: number }[] | any[] })[]
-  >([]);
+interface Order extends PrismaOrder {
+  customer: Customer;
+  items: OrderItem[];
+}
+
+const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("order_date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [products, setProducts] = useState<Product[]>([]); // Adjust type as needed
 
   const router = useRouter();
+  const status = params.orderStatus.toUpperCase() || "PROCESSING";
 
   const fetchOrders = () => {
     setLoading(true);
     axios
-      .get("/api/products")
-      .then((res) => {
-        setProducts(res.data.products);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-
-    axios
-      .get("/api/orders?status=pending")
+      .get(`/api/orders?status=${status}`)
       .then((res) => {
         setOrders(res.data.orders);
-        console.log(res.data.orders);
+        console.log("status", status);
+        console.log("orders", res.data.orders);
         setLoading(false);
       })
       .catch((err) => {
@@ -58,37 +49,29 @@ const ReceivedOrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [status]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this order?")) return;
-
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
       });
 
       if (!res.ok) throw new Error("Failed to delete order");
 
-      setOrders(orders.filter((order) => order.id !== id));
-    } catch (error) {
-      console.error("Error deleting order:", error);
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+    } catch (err) {
+      console.error(err);
       alert("Failed to delete order");
     }
   };
 
-  const getProductName = (productId: string) => {
-    const product = products.find((product) => product.id === productId);
-    return product ? product.name : ""; // Default to "" if not found
-  };
-
-  // Filter and sort orders
   const filteredOrders = orders
     .filter((order) =>
-      order.customerId?.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.customer?.firstName ?? "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (sortField === "order_date") {
@@ -110,27 +93,34 @@ const ReceivedOrdersPage = () => {
     }
   };
 
+  const titleMap: Record<string, string> = {
+    PENDING: "Pending Orders",
+    PROCESSING: "Processing Orders",
+    SHIPPED: "Shipped Orders",
+    CANCELED: "Canceled Orders",
+    DELIVERED: "Delivered Orders",
+  };
+
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Received Orders
+              {titleMap[status]}
             </h1>
             <p className="text-gray-600 mt-1">
-              Manage orders that are still in the pending status
+              Manage orders with status: {status}
             </p>
           </div>
         </div>
 
-        {/* Search bar */}
         <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 pb-6 border-b">
           <div className="relative flex-grow max-w-md">
             <input
               type="text"
-              placeholder="Search orders by ID..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Search by customer name..."
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -139,7 +129,6 @@ const ReceivedOrdersPage = () => {
               size={18}
             />
           </div>
-
           <button
             onClick={() => setSearchTerm("")}
             className="flex items-center text-gray-600 hover:text-blue-600 py-2"
@@ -150,13 +139,12 @@ const ReceivedOrdersPage = () => {
         </div>
       </div>
 
-      {/* Orders list */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-6 text-center">Loading...</div>
         ) : error ? (
           <div className="p-6 text-center text-red-500">{error}</div>
-        ) : orders.length === 0 ? (
+        ) : filteredOrders.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No orders found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -164,8 +152,8 @@ const ReceivedOrdersPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort("order_date")}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   >
                     <div className="flex items-center">
                       Order Date
@@ -176,57 +164,44 @@ const ReceivedOrdersPage = () => {
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Items
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer Name
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Phone
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Total
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {status === "DELIVERED" && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Delivered At
+                    </th>
+                  )}
+                  {(status === "SHIPPED" || status === "PROCESSING") && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Tracking No
+                    </th>
+                  )}
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-gray-50 odd:bg-white even:bg-gray-50"
-                  >
+                  <tr key={order.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        {new Date(order.orderDate).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "2-digit",
-                        })}
-                      </div>
-                      <div>
-                        {new Date(order.orderDate).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </div>
+                      {new Date(order.orderDate).toLocaleDateString()} <br />
+                      {new Date(order.orderDate).toLocaleTimeString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.items.map((product) => (
-                        <div>
-                          {typeof product === "object" &&
-                          product !== null &&
-                          "name" in product &&
-                          "quantity" in product
-                            ? `${product.name} - ${product.quantity}`
-                            : ""}
+                      {order.items.map((item) => (
+                        <div key={item.id}>
+                          {item.product.name} x {item.quantity}
                         </div>
                       ))}
                     </td>
@@ -234,33 +209,40 @@ const ReceivedOrdersPage = () => {
                       {order.customer.firstName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.customer.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       {order.customer.phoneNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       Rs {order.total.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex flex-col space-y-2">
-                        <button
-                          onClick={() =>
-                            router.push(`/admin/orders/${order.id}`)
-                          }
-                          className="text-indigo-600 hover:text-indigo-900 inline-flex items-center mr-4"
-                        >
-                          <FiEdit2 className="mr-1" size={16} />
-                          View
-                        </button>
+                    {status === "DELIVERED" && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.deliveredAt
+                          ? new Date(order.deliveredAt).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                    )}
+                    {(status === "SHIPPED" || status === "PROCESSING") && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.trackingNumber || "N/A"}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button
+                        onClick={() => router.push(`/admin/orders/${order.id}`)}
+                        className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                      >
+                        <FiEdit2 className="mr-1" size={16} />
+                        View
+                      </button>
+                      {status !== "DELIVERED" && status !== "CANCELED" && (
                         <button
                           onClick={() => handleDelete(order.id)}
-                          className="text-red-600 hover:text-red-900 inline-flex items-center"
+                          className="text-red-600 hover:text-red-900 flex items-center mt-2"
                         >
                           <FiTrash2 className="mr-1" size={16} />
                           Delete
                         </button>
-                      </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -273,4 +255,4 @@ const ReceivedOrdersPage = () => {
   );
 };
 
-export default ReceivedOrdersPage;
+export default OrdersPage;

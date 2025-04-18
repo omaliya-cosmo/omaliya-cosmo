@@ -18,6 +18,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Bell,
+  CheckCheck,
+  Clock,
+  CreditCard,
+  Filter,
+  Info,
+  Package,
+  Percent,
+  RefreshCw,
+  Search,
+  ShoppingBag,
+  Truck,
+  X,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
+
+type NotificationType =
+  | "order"
+  | "delivery"
+  | "promotion"
+  | "payment"
+  | "account"
+  | "system";
 
 interface NotificationSetting {
   id: string;

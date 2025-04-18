@@ -1,24 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/prisma';
+import { prisma } from "@/app/lib/prisma";
+import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const categoryId = searchParams.get('categoryId');
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
-    
+    const includeReviews = searchParams.get("reviews") === "true";
+    const includeCategory = searchParams.get("category") === "true";
+
     const products = await prisma.product.findMany({
-      where: categoryId ? { categoryId } : undefined,
-      take: limit,
       include: {
-        category: true,
+        reviews: includeReviews,
+        category: includeCategory,
       },
     });
-
-    return NextResponse.json({ products });
+    return new Response(JSON.stringify({ products }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error fetching products:', error);
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    return new Response(JSON.stringify({ error: "Failed to fetch products" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

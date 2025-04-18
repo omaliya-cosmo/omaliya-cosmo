@@ -6,6 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Eye, EyeOff, Loader2, Shield, AlertTriangle, CheckCircle, Smartphone, LogOut } from 'lucide-react';
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 import {
   Card,
@@ -59,6 +63,14 @@ const passwordSchema = z.object({
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 const ProfileSecurity: React.FC = () => {
+  const form = useForm<PasswordFormData>({
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -66,29 +78,68 @@ const ProfileSecurity: React.FC = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // React Hook Form with zod validation
-  const form = useForm<PasswordFormData>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmNewPassword: "",
-    },
-  });
 
-  // Event handler for password change
-  const handlePasswordChange = async (data: PasswordFormData) => {
+  const validateForm = (values: PasswordFormData) => {
+    let valid = true;
+
+    if (!values.currentPassword) {
+      form.setError("currentPassword", {
+        message: "Current password is required",
+      });
+      valid = false;
+    }
+
+    if (!values.newPassword) {
+      form.setError("newPassword", { message: "New password is required" });
+      valid = false;
+    } else if (values.newPassword.length < 8) {
+      form.setError("newPassword", {
+        message: "Password must be at least 8 characters",
+      });
+      valid = false;
+    } else if (
+      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
+        values.newPassword
+      )
+    ) {
+      form.setError("newPassword", {
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      });
+      valid = false;
+    }
+
+    if (!values.confirmPassword) {
+      form.setError("confirmPassword", {
+        message: "Please confirm your password",
+      });
+      valid = false;
+    } else if (values.confirmPassword !== values.newPassword) {
+      form.setError("confirmPassword", {
+        message: "The passwords do not match",
+      });
+      valid = false;
+    }
+
+    return valid;
+  };
+
+  const onSubmit = async (values: PasswordFormData) => {
+    if (!validateForm(values)) {
+      return;
+    }
+
     setIsSubmitting(true);
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Password changed successfully!");
-      
-      // Reset form
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      toast.success("Password updated successfully!");
+
       form.reset({
         currentPassword: "",
         newPassword: "",
-        confirmNewPassword: "",
+        confirmPassword: "",
       });
     } catch (error) {
       console.error("Failed to change password:", error);

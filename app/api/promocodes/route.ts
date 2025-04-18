@@ -38,7 +38,6 @@ export async function POST(request: Request) {
     const existingPromoCode = await prisma.promoCode.findFirst({
       where: { code },
     });
-    console.log(existingPromoCode);
 
     if (existingPromoCode) {
       return NextResponse.json(

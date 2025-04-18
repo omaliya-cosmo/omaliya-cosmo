@@ -14,10 +14,8 @@ import HeroSection from "@/components/home/HeroSection";
 import CategoriesSection from "@/components/home/CategoriesSection";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BenefitsBanner from "@/components/home/BenefitsBanner";
-import FeaturedCollection from "@/components/home/FeaturedCollection";
 import Testimonials from "@/components/home/Testimonials";
 import Newsletter from "@/components/home/Newsletter";
-import ProductsSorting from "@/components/products/ProductsSorting"; // Use direct component
 import FeaturedBundles from "@/components/home/FeaturedBundles";
 import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
 
@@ -127,16 +125,6 @@ export default function Home() {
     }
   };
 
-  // Local handlers for sorting and view mode
-  const handleSortChange = (newSort: string) => {
-    setSort(newSort);
-  };
-
-  const handleViewModeChange = (newMode: "grid" | "list") => {
-    setViewMode(newMode);
-    localStorage.setItem("productViewMode", newMode);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <ToastContainer />
@@ -160,7 +148,7 @@ export default function Home() {
               viewMode={viewMode}
             />
           </div>
-          
+
           <div className="bg-white">
             <FeaturedBundles />
           </div>

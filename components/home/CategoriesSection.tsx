@@ -287,7 +287,7 @@ export default function CategoriesSection() {
 
             {/* View All Link */}
             <Link
-              href="/categories"
+              href="/products"
               className="hidden md:flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors group"
             >
               <span className="relative">

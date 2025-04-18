@@ -7,7 +7,7 @@ import { decryptAdminSession } from "@/app/lib/adminSession";
 const protectedUserRoutes = [""];
 const publicUserRoutes = ["/login", "/register"];
 
-const protectedAdminRoutes = [, "/admin/settings"];
+const protectedAdminRoutes = [, "/admin/profile"];
 const publicAdminRoutes = ["/admin/login"];
 
 export default async function middleware(req: NextRequest) {
@@ -64,10 +64,12 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Profile route testing logic
-  if (path.startsWith('/profile')) {
+  if (path.startsWith("/profile")) {
     const isAuthenticated = checkAuthStatus(req);
     if (!isAuthenticated) {
-      console.warn('Profile accessed without authentication - would normally redirect');
+      console.warn(
+        "Profile accessed without authentication - would normally redirect"
+      );
     }
   }
 
@@ -78,7 +80,7 @@ export default async function middleware(req: NextRequest) {
 function checkAuthStatus(request: NextRequest) {
   // For testing, return true to allow access
   return true;
-  
+
   // Later implement your actual auth check:
   // const token = request.cookies.get('token')?.value;
   // return !!token;

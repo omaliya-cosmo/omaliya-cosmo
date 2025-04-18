@@ -65,12 +65,6 @@ const OrderConfirmationPage = () => {
     fetchOrderDetails();
   }, [orderId]);
 
-  // Make sure we have all required values
-  const formatAmount = (amount: number): string => {
-    const value = amount || 0;
-    return value.toFixed(2);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">

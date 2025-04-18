@@ -49,6 +49,36 @@ interface Bundle {
   tags?: string[];
 }
 
+// API response interfaces to match the Prisma schema
+interface ApiProduct {
+  id: string;
+  name: string;
+  description: string;
+  priceLKR: number;
+  priceUSD: number;
+  imageUrls: string[];
+}
+
+interface ProductOnBundle {
+  id: string;
+  productId: string;
+  bundleId: string;
+  product: ApiProduct;
+}
+
+interface ApiBundleOffer {
+  id: string;
+  bundleName: string;
+  originalPriceLKR: number;
+  originalPriceUSD: number;
+  offerPriceLKR: number;
+  offerPriceUSD: number;
+  endDate: string;
+  imageUrl?: string;
+  createdAt: string;
+  products: ProductOnBundle[];
+}
+
 export default function BundlesPage() {
   const [userData, setUserData] = useState<any>(null);
   const { country } = useCountry();
@@ -77,7 +107,7 @@ export default function BundlesPage() {
 
     // Apply category filter
     if (categoryFilter !== "all") {
-      result = result.filter(bundle => bundle.category === categoryFilter);
+      result = result.filter((bundle) => bundle.category === categoryFilter);
     }
 
     // Apply sorting
@@ -93,7 +123,9 @@ export default function BundlesPage() {
         break;
       case "featured":
       default:
-        result = result.filter(b => b.featured).concat(result.filter(b => !b.featured));
+        result = result
+          .filter((b) => b.featured)
+          .concat(result.filter((b) => !b.featured));
         break;
     }
 
@@ -118,122 +150,107 @@ export default function BundlesPage() {
 
   const fetchBundles = async () => {
     try {
-      // In a real app, you would fetch from API
-      // const response = await axios.get("/api/bundleoffers");
-      // setBundles(response.data);
-      
-      // For now, using mock data
-      const mockBundles: Bundle[] = [
-        {
-          id: "bundle-1",
-          name: "Complete Skincare Routine",
-          description: "A complete daily skincare routine with cleanser, toner, serum, and moisturizer",
-          products: [
-            { id: "p1", name: "Gentle Facial Cleanser", price: 24.99 },
-            { id: "p2", name: "Vitamin C Serum", price: 49.99 },
-            { id: "p3", name: "Hydrating Toner", price: 19.99 },
-            { id: "p4", name: "Daily Moisturizer SPF 30", price: 29.99 }
-          ],
-          originalPrice: 124.96,
-          bundlePrice: 99.99,
-          savings: 24.97,
-          savingsPercentage: 20,
-          image: "/placeholder-bundle-skincare.jpg",
-          category: "skincare",
-          featured: true,
-          tags: ["bestseller", "complete routine"]
-        },
-        {
-          id: "bundle-2",
-          name: "Anti-Aging Collection",
-          description: "Target fine lines and wrinkles with this comprehensive anti-aging bundle",
-          products: [
-            { id: "p5", name: "Retinol Night Cream", price: 59.99 },
-            { id: "p6", name: "Eye Contour Serum", price: 42.99 },
-            { id: "p7", name: "Hyaluronic Acid Serum", price: 34.99 }
-          ],
-          originalPrice: 137.97,
-          bundlePrice: 109.99,
-          savings: 27.98,
-          savingsPercentage: 20,
-          image: "/placeholder-bundle-antiaging.jpg",
-          category: "anti-aging",
-          featured: true
-        },
-        {
-          id: "bundle-3",
-          name: "Body Care Essentials",
-          description: "Complete body care routine for silky smooth skin from head to toe",
-          products: [
-            { id: "p8", name: "Body Scrub Coffee", price: 18.99 },
-            { id: "p9", name: "Body Butter Shea", price: 22.99 },
-            { id: "p10", name: "Hand Cream", price: 12.99 }
-          ],
-          originalPrice: 54.97,
-          bundlePrice: 44.99,
-          savings: 9.98,
-          savingsPercentage: 18,
-          image: "/placeholder-bundle-body.jpg",
-          category: "body"
-        },
-        {
-          id: "bundle-4",
-          name: "Hair Care System",
-          description: "Complete hair care system for healthy, shiny hair",
-          products: [
-            { id: "p11", name: "Strengthening Shampoo", price: 24.99 },
-            { id: "p12", name: "Hydrating Conditioner", price: 24.99 },
-            { id: "p13", name: "Hair Oil Treatment", price: 29.99 }
-          ],
-          originalPrice: 79.97,
-          bundlePrice: 64.99,
-          savings: 14.98,
-          savingsPercentage: 19,
-          image: "/placeholder-bundle-hair.jpg",
-          category: "hair"
-        },
-        {
-          id: "bundle-5",
-          name: "Men's Grooming Kit",
-          description: "Essential grooming products for the modern man",
-          products: [
-            { id: "p14", name: "Facial Cleanser for Men", price: 19.99 },
-            { id: "p15", name: "Beard Oil", price: 17.99 },
-            { id: "p16", name: "Moisturizer for Men", price: 22.99 }
-          ],
-          originalPrice: 60.97,
-          bundlePrice: 49.99,
-          savings: 10.98,
-          savingsPercentage: 18,
-          image: "/placeholder-bundle-men.jpg",
-          category: "men"
-        },
-        {
-          id: "bundle-6",
-          name: "Travel Essentials",
-          description: "Travel-sized skincare essentials for on-the-go",
-          products: [
-            { id: "p17", name: "Travel Cleanser", price: 12.99 },
-            { id: "p18", name: "Travel Moisturizer", price: 14.99 },
-            { id: "p19", name: "Travel Sunscreen", price: 9.99 },
-            { id: "p20", name: "Travel Lip Balm", price: 5.99 }
-          ],
-          originalPrice: 43.96,
-          bundlePrice: 34.99,
-          savings: 8.97,
-          savingsPercentage: 20,
-          image: "/placeholder-bundle-travel.jpg",
-          category: "travel",
-          featured: true
-        }
-      ];
+      // Fetch from actual API
+      const response = await axios.get("/api/bundleoffers");
+      const apiBundles: ApiBundleOffer[] = response.data;
+
+      // Transform API response to match our Bundle interface
+      const transformedBundles: Bundle[] = apiBundles.map((bundle) => {
+        // Calculate savings
+        const originalPrice = bundle.originalPriceLKR; // Using LKR price by default
+        const bundlePrice = bundle.offerPriceLKR;
+        const savings = originalPrice - bundlePrice;
+        const savingsPercentage = Math.round((savings / originalPrice) * 100);
+
+        // Extract a category from products or use a default
+        const productCategories = bundle.products.map((p) =>
+          p.product.name.toLowerCase().includes("skin")
+            ? "skincare"
+            : p.product.name.toLowerCase().includes("hair")
+            ? "hair"
+            : p.product.name.toLowerCase().includes("body")
+            ? "body"
+            : p.product.name.toLowerCase().includes("travel")
+            ? "travel"
+            : "other"
+        );
+
+        const mostCommonCategory =
+          productCategories.length > 0
+            ? productCategories.reduce(
+                (acc, curr) => {
+                  if (acc.count[curr]) {
+                    acc.count[curr]++;
+                  } else {
+                    acc.count[curr] = 1;
+                  }
+                  if (
+                    !acc.maxCount ||
+                    acc.count[curr] > acc.count[acc.maxCount]
+                  ) {
+                    acc.maxCount = curr;
+                  }
+                  return acc;
+                },
+                {
+                  count: {} as Record<
+                    "other" | "skincare" | "hair" | "body" | "travel",
+                    number
+                  >,
+                  maxCount: null as
+                    | "skincare"
+                    | "hair"
+                    | "body"
+                    | "travel"
+                    | "other"
+                    | null,
+                }
+              ).maxCount || "other"
+            : "other";
+
+        return {
+          id: bundle.id,
+          name: bundle.bundleName,
+          description: `Collection of ${bundle.products.length} products at a special price`,
+          products: bundle.products.map((p) => ({
+            id: p.product.id,
+            name: p.product.name,
+            price: p.product.priceLKR, // Using LKR price by default
+            image:
+              p.product.imageUrls && p.product.imageUrls.length > 0
+                ? p.product.imageUrls[0]
+                : undefined,
+            description: p.product.description,
+          })),
+          originalPrice,
+          bundlePrice,
+          savings,
+          savingsPercentage,
+          image: bundle.imageUrl,
+          category: mostCommonCategory,
+          featured: false, // Set based on some criteria if available
+          // Optionally add tags
+          tags: [],
+        };
+      });
+
+      // Check if any bundles should be featured (e.g., highest savings)
+      if (transformedBundles.length > 0) {
+        // Feature bundles with highest savings percentage
+        transformedBundles
+          .sort((a, b) => b.savingsPercentage - a.savingsPercentage)
+          .slice(0, Math.min(3, transformedBundles.length))
+          .forEach((bundle) => (bundle.featured = true));
+      }
 
       // Extract unique categories
-      const uniqueCategories = Array.from(new Set(mockBundles.map(bundle => bundle.category)));
+      const uniqueCategories = Array.from(
+        new Set(transformedBundles.map((bundle) => bundle.category))
+      );
       setCategories(uniqueCategories);
-      
-      setBundles(mockBundles);
-      setFilteredBundles(mockBundles);
+
+      setBundles(transformedBundles);
+      setFilteredBundles(transformedBundles);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching bundles:", error);
@@ -246,15 +263,13 @@ export default function BundlesPage() {
     try {
       // In a real app, you would have an API endpoint to handle bundle additions
       // For now, we'll simply add each product individually
-      for (const product of bundle.products) {
-        await axios.post("/api/cart", {
-          productId: product.id,
-          quantity: 1,
-          bundleId: bundle.id // Add bundleId to identify that these are part of a bundle
-        });
-      }
+      await axios.post("/api/cart", {
+        productId: bundle.id,
+        quantity: 1,
+        isBundle: true,
+      });
 
-      setCartCount(prev => prev + bundle.products.length);
+      setCartCount((prev) => prev + 1);
       toast.success(`Added ${bundle.name} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
@@ -336,7 +351,7 @@ export default function BundlesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map(category => (
+                    {categories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                       </SelectItem>
@@ -361,11 +376,11 @@ export default function BundlesPage() {
               </Select>
             </div>
           </div>
-          
+
           {/* Bundles Grid */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map(i => (
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Card key={i} className="overflow-hidden">
                   <div className="h-48 bg-muted animate-pulse" />
                   <CardContent className="p-4">
@@ -383,7 +398,9 @@ export default function BundlesPage() {
           ) : error ? (
             <div className="text-center py-12">
               <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">Oops! Something went wrong</h3>
+              <h3 className="text-xl font-medium mb-2">
+                Oops! Something went wrong
+              </h3>
               <p className="text-muted-foreground mb-6">{error}</p>
               <Button onClick={() => fetchBundles()}>Try Again</Button>
             </div>
@@ -392,16 +409,21 @@ export default function BundlesPage() {
               <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-xl font-medium mb-2">No bundles found</h3>
               <p className="text-muted-foreground mb-6">
-                We couldn't find any bundles matching your filters. Try adjusting your criteria.
+                We couldn't find any bundles matching your filters. Try
+                adjusting your criteria.
               </p>
-              <Button onClick={() => {
-                setCategoryFilter("all");
-                setSortOption("featured");
-              }}>Reset Filters</Button>
+              <Button
+                onClick={() => {
+                  setCategoryFilter("all");
+                  setSortOption("featured");
+                }}
+              >
+                Reset Filters
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBundles.map(bundle => (
+              {filteredBundles.map((bundle) => (
                 <motion.div
                   key={bundle.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -417,7 +439,7 @@ export default function BundlesPage() {
                           className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110" 
                           style={{ 
                             backgroundImage: `url('${bundle.image}')`,
-                            backgroundColor: 'rgba(0,0,0,0.05)'
+                            backgroundColor: "rgba(0,0,0,0.05)",
                           }}
                         />
                       ) : (
@@ -425,7 +447,7 @@ export default function BundlesPage() {
                           <Package className="h-16 w-16 text-purple-300" />
                         </div>
                       )}
-                      
+
                       {bundle.featured && (
                         <div className="absolute top-4 left-4">
                           <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
@@ -433,14 +455,13 @@ export default function BundlesPage() {
                           </Badge>
                         </div>
                       )}
-                      
+
                       <div className="absolute top-4 right-4">
                         <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
                           Save {bundle.savingsPercentage}%
                         </Badge>
                       </div>
-                    </div>
-                    
+                    </div>                    
                     <CardContent className="p-6 flex-grow">
                       <div className="mb-4">
                         <h3 className="text-xl font-semibold mb-3 transition-colors">
@@ -483,8 +504,8 @@ export default function BundlesPage() {
                             ${bundle.bundlePrice.toFixed(2)}
                           </p>
                         </div>
-                        
-                        <Button 
+
+                        <Button
                           onClick={() => addBundleToCart(bundle)}
                           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all"
                         >

@@ -24,12 +24,19 @@ import {
   Eye,
   EyeOff,
   Calendar,
-  PenLine
+  PenLine,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -147,9 +154,11 @@ export default function ProfilePayments() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentCardId, setCurrentCardId] = useState<string | null>(null);
-  const [showCardNumber, setShowCardNumber] = useState<Record<string, boolean>>({});
+  const [showCardNumber, setShowCardNumber] = useState<Record<string, boolean>>(
+    {}
+  );
   const [showCVC, setShowCVC] = useState(false);
-  
+
   // Form for adding/editing payment methods
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
@@ -195,7 +204,9 @@ export default function ProfilePayments() {
               zipCode: "10001",
               country: "United States",
             },
-            lastUsed: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            lastUsed: new Date(
+              Date.now() - 5 * 24 * 60 * 60 * 1000
+            ).toISOString(),
           },
           {
             id: "card_2",
@@ -212,7 +223,9 @@ export default function ProfilePayments() {
               zipCode: "10001",
               country: "United States",
             },
-            lastUsed: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            lastUsed: new Date(
+              Date.now() - 30 * 24 * 60 * 60 * 1000
+            ).toISOString(),
           },
           {
             id: "card_3",
@@ -243,10 +256,10 @@ export default function ProfilePayments() {
 
     loadPaymentMethods();
   }, []);
-    // Detect card type from number
+  // Detect card type from number
   const detectCardType = (cardNumber: string): CardType => {
-    const cleanNumber = cardNumber.replace(/\s+/g, '');
-    
+    const cleanNumber = cardNumber.replace(/\s+/g, "");
+
     if (/^4[0-9]{12}(?:[0-9]{3,6})?$/.test(cleanNumber)) {
       return CardType.VISA;
     } else if (/^5[1-5][0-9]{14}$/.test(cleanNumber)) {
@@ -260,41 +273,47 @@ export default function ProfilePayments() {
     } else if (/^3(?:0[0-5]|[68][0-9])[0-9]{11}$/.test(cleanNumber)) {
       return CardType.DINERS;
     }
-    
+
     return CardType.UNKNOWN;
   };
 
   // Format card number with spaces for display
   const formatCardNumber = (cardNumber: string): string => {
-    const cleanNumber = cardNumber.replace(/\s+/g, '');
+    const cleanNumber = cardNumber.replace(/\s+/g, "");
     const cardType = detectCardType(cleanNumber);
-    
+
     if (cardType === CardType.AMEX) {
-      return cleanNumber.replace(/(\d{4})(\d{6})(\d{5})/, '$1 $2 $3');
+      return cleanNumber.replace(/(\d{4})(\d{6})(\d{5})/, "$1 $2 $3");
     }
-    
-    return cleanNumber.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+    return cleanNumber.replace(/(\d{4})(?=\d)/g, "$1 ");
   };
 
   // Mask card number for display
   const maskCardNumber = (cardNumber: string): string => {
-    const cleanNumber = cardNumber.replace(/\s+/g, '');
+    const cleanNumber = cardNumber.replace(/\s+/g, "");
     const lastFourDigits = cleanNumber.slice(-4);
-    const maskedPart = '•'.repeat(cleanNumber.length - 4);
-    
+    const maskedPart = "•".repeat(cleanNumber.length - 4);
+
     if (detectCardType(cleanNumber) === CardType.AMEX) {
-      return `${maskedPart.slice(0, 4)} ${maskedPart.slice(4, 10)} ${lastFourDigits}`;
+      return `${maskedPart.slice(0, 4)} ${maskedPart.slice(
+        4,
+        10
+      )} ${lastFourDigits}`;
     }
-    
-    const formatted = `${maskedPart.slice(0, 4)} ${maskedPart.slice(4, 8)} ${maskedPart.slice(8, 12)} ${lastFourDigits}`;
+
+    const formatted = `${maskedPart.slice(0, 4)} ${maskedPart.slice(
+      4,
+      8
+    )} ${maskedPart.slice(8, 12)} ${lastFourDigits}`;
     return formatted;
   };
 
   // Toggle card number visibility
   const toggleCardNumberVisibility = (cardId: string) => {
-    setShowCardNumber(prev => ({
+    setShowCardNumber((prev) => ({
       ...prev,
-      [cardId]: !prev[cardId]
+      [cardId]: !prev[cardId],
     }));
   };
 
@@ -302,32 +321,32 @@ export default function ProfilePayments() {
   const onAddCard = async (values: PaymentFormValues) => {
     try {
       setIsLoading(true);
-      
+
       // In a real app, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const newCard: PaymentMethod = {
         id: `card_${Date.now()}`,
         cardholderName: values.cardholderName,
-        cardNumber: values.cardNumber.replace(/\s+/g, ''),
+        cardNumber: values.cardNumber.replace(/\s+/g, ""),
         expMonth: values.expMonth,
         expYear: values.expYear,
         cardType: detectCardType(values.cardNumber),
         isDefault: values.isDefault,
         billingAddress: values.billingAddress,
       };
-      
+
       // If setting as default, update other cards
       if (values.isDefault) {
-        const updatedMethods = paymentMethods.map(method => ({
+        const updatedMethods = paymentMethods.map((method) => ({
           ...method,
-          isDefault: false
+          isDefault: false,
         }));
         setPaymentMethods([...updatedMethods, newCard]);
       } else {
         setPaymentMethods([...paymentMethods, newCard]);
       }
-      
+
       toast.success("Payment method added successfully");
       setIsAddDialogOpen(false);
       form.reset();
@@ -342,14 +361,14 @@ export default function ProfilePayments() {
   // Handle edit payment method
   const onEditCard = async (values: PaymentFormValues) => {
     if (!currentCardId) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       // In a real app, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedMethods = paymentMethods.map(method => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const updatedMethods = paymentMethods.map((method) => {
         if (method.id === currentCardId) {
           return {
             ...method,
@@ -360,18 +379,18 @@ export default function ProfilePayments() {
             billingAddress: values.billingAddress,
           };
         }
-        
+
         // If current card is set as default, remove default from others
         if (values.isDefault) {
           return {
             ...method,
-            isDefault: false
+            isDefault: false,
           };
         }
-        
+
         return method;
       });
-      
+
       setPaymentMethods(updatedMethods);
       toast.success("Payment method updated successfully");
       setIsEditMode(false);
@@ -388,18 +407,18 @@ export default function ProfilePayments() {
   const deletePaymentMethod = async (id: string) => {
     try {
       setIsLoading(true);
-      
+
       // In a real app, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const isDefault = paymentMethods.find(m => m.id === id)?.isDefault;
-      let updatedMethods = paymentMethods.filter(method => method.id !== id);
-      
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const isDefault = paymentMethods.find((m) => m.id === id)?.isDefault;
+      let updatedMethods = paymentMethods.filter((method) => method.id !== id);
+
       // If we deleted the default card and have other cards left, make another one default
       if (isDefault && updatedMethods.length > 0) {
         updatedMethods[0].isDefault = true;
       }
-      
+
       setPaymentMethods(updatedMethods);
       toast.success("Payment method removed");
     } catch (error) {
@@ -414,15 +433,15 @@ export default function ProfilePayments() {
   const setDefaultMethod = async (id: string) => {
     try {
       setIsLoading(true);
-      
+
       // In a real app, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const updatedMethods = paymentMethods.map(method => ({
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const updatedMethods = paymentMethods.map((method) => ({
         ...method,
-        isDefault: method.id === id
+        isDefault: method.id === id,
       }));
-      
+
       setPaymentMethods(updatedMethods);
       toast.success("Default payment method updated");
     } catch (error) {
@@ -435,9 +454,9 @@ export default function ProfilePayments() {
 
   // Edit a payment method - opens dialog and populates form
   const editPaymentMethod = (id: string) => {
-    const card = paymentMethods.find(method => method.id === id);
+    const card = paymentMethods.find((method) => method.id === id);
     if (!card) return;
-    
+
     form.reset({
       cardholderName: card.cardholderName,
       cardNumber: card.cardNumber, // In real app, this would be retrieved from backend
@@ -452,9 +471,9 @@ export default function ProfilePayments() {
         state: "",
         zipCode: "",
         country: "United States",
-      }
+      },
     });
-    
+
     setCurrentCardId(id);
     setIsEditMode(true);
     setIsAddDialogOpen(true);
@@ -528,15 +547,18 @@ export default function ProfilePayments() {
             Manage your payment methods for a quicker checkout
           </p>
         </div>
-        
-        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-          if (!open) {
-            form.reset();
-            setIsEditMode(false);
-            setCurrentCardId(null);
-          }
-          setIsAddDialogOpen(open);
-        }}>
+
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              form.reset();
+              setIsEditMode(false);
+              setCurrentCardId(null);
+            }
+            setIsAddDialogOpen(open);
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="flex items-center gap-1.5">
               <Plus className="h-4 w-4" />
@@ -549,14 +571,19 @@ export default function ProfilePayments() {
                 {isEditMode ? "Edit Payment Method" : "Add Payment Method"}
               </DialogTitle>
               <DialogDescription>
-                {isEditMode 
-                  ? "Update your card details and billing information." 
+                {isEditMode
+                  ? "Update your card details and billing information."
                   : "Enter your card details to save a new payment method."}
               </DialogDescription>
             </DialogHeader>
-            
+
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(isEditMode ? onEditCard : onAddCard)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(
+                  isEditMode ? onEditCard : onAddCard
+                )}
+                className="space-y-6"
+              >
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -571,7 +598,7 @@ export default function ProfilePayments() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="cardNumber"
@@ -580,14 +607,17 @@ export default function ProfilePayments() {
                         <FormLabel>Card Number</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Input 
-                              placeholder="1234 5678 9012 3456" 
+                            <Input
+                              placeholder="1234 5678 9012 3456"
                               {...field}
                               disabled={isEditMode} // Don't allow editing card number
                               onChange={(e) => {
                                 // Format card number with spaces as user types
-                                const val = e.target.value.replace(/\s+/g, '');
-                                const formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+                                const val = e.target.value.replace(/\s+/g, "");
+                                const formatted = val.replace(
+                                  /(\d{4})(?=\d)/g,
+                                  "$1 "
+                                );
                                 field.onChange(formatted);
                               }}
                               className="pr-10"
@@ -595,7 +625,7 @@ export default function ProfilePayments() {
                             {isEditMode ? (
                               <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             ) : (
-                              <Button 
+                              <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
@@ -615,7 +645,7 @@ export default function ProfilePayments() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="expiration">Expiration Date</Label>
@@ -634,7 +664,9 @@ export default function ProfilePayments() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {Array.from({ length: 12 }, (_, i) => {
-                                    const month = (i + 1).toString().padStart(2, '0');
+                                    const month = (i + 1)
+                                      .toString()
+                                      .padStart(2, "0");
                                     return (
                                       <SelectItem key={month} value={month}>
                                         {month}
@@ -661,7 +693,9 @@ export default function ProfilePayments() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {Array.from({ length: 10 }, (_, i) => {
-                                    const year = (new Date().getFullYear() + i).toString();
+                                    const year = (
+                                      new Date().getFullYear() + i
+                                    ).toString();
                                     return (
                                       <SelectItem key={year} value={year}>
                                         {year}
@@ -676,7 +710,7 @@ export default function ProfilePayments() {
                         />
                       </div>
                     </div>
-                    
+
                     <FormField
                       control={form.control}
                       name="cvc"
@@ -685,13 +719,13 @@ export default function ProfilePayments() {
                           <FormLabel>CVC</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Input 
-                                placeholder="123" 
+                              <Input
+                                placeholder="123"
                                 maxLength={4}
                                 type={showCVC ? "text" : "password"}
                                 {...field}
                               />
-                              <Button 
+                              <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
@@ -712,12 +746,12 @@ export default function ProfilePayments() {
                     />
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Billing Address</h4>
-                  
+
                   <FormField
                     control={form.control}
                     name="billingAddress.street"
@@ -731,7 +765,7 @@ export default function ProfilePayments() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -746,7 +780,7 @@ export default function ProfilePayments() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="billingAddress.state"
@@ -761,7 +795,7 @@ export default function ProfilePayments() {
                       )}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -776,7 +810,7 @@ export default function ProfilePayments() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="billingAddress.country"
@@ -791,10 +825,16 @@ export default function ProfilePayments() {
                               <SelectValue placeholder="Select country" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="United States">United States</SelectItem>
+                              <SelectItem value="United States">
+                                United States
+                              </SelectItem>
                               <SelectItem value="Canada">Canada</SelectItem>
-                              <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                              <SelectItem value="Australia">Australia</SelectItem>
+                              <SelectItem value="United Kingdom">
+                                United Kingdom
+                              </SelectItem>
+                              <SelectItem value="Australia">
+                                Australia
+                              </SelectItem>
                               <SelectItem value="Germany">Germany</SelectItem>
                               <SelectItem value="France">France</SelectItem>
                               <SelectItem value="Japan">Japan</SelectItem>
@@ -806,9 +846,9 @@ export default function ProfilePayments() {
                     />
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -832,7 +872,7 @@ export default function ProfilePayments() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="saveForFuture"
@@ -856,7 +896,7 @@ export default function ProfilePayments() {
                     )}
                   />
                 </div>
-                
+
                 <DialogFooter>
                   <div className="w-full flex flex-col-reverse sm:flex-row justify-between gap-4 sm:gap-3">
                     <div className="flex items-center text-sm text-muted-foreground">
@@ -876,9 +916,7 @@ export default function ProfilePayments() {
                             {isEditMode ? "Updating..." : "Adding..."}
                           </>
                         ) : (
-                          <>
-                            {isEditMode ? "Update" : "Add"} Payment Method
-                          </>
+                          <>{isEditMode ? "Update" : "Add"} Payment Method</>
                         )}
                       </Button>
                     </div>
@@ -924,8 +962,10 @@ export default function ProfilePayments() {
               >
                 <div className="flex flex-col sm:flex-row gap-6">
                   {/* Credit Card Visual */}
-                  <div 
-                    className={`w-full sm:w-[280px] h-[170px] rounded-lg ${getCardColor(method.cardType)} p-4 relative overflow-hidden flex flex-col justify-between`}
+                  <div
+                    className={`w-full sm:w-[280px] h-[170px] rounded-lg ${getCardColor(
+                      method.cardType
+                    )} p-4 relative overflow-hidden flex flex-col justify-between`}
                   >
                     {/* Card chip and type */}
                     <div className="flex justify-between items-start">
@@ -936,16 +976,14 @@ export default function ProfilePayments() {
                         {getCardLogo(method.cardType)}
                       </div>
                     </div>
-                    
+
                     {/* Card number */}
                     <div className="text-white font-mono text-lg tracking-widest my-4 flex items-center">
-                      {showCardNumber[method.id] ? (
-                        formatCardNumber(method.cardNumber)
-                      ) : (
-                        maskCardNumber(method.cardNumber)
-                      )}
-                      <Button 
-                        variant="ghost" 
+                      {showCardNumber[method.id]
+                        ? formatCardNumber(method.cardNumber)
+                        : maskCardNumber(method.cardNumber)}
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-6 w-6 ml-1 text-white opacity-80 hover:opacity-100 hover:text-white"
                         onClick={() => toggleCardNumberVisibility(method.id)}
@@ -957,37 +995,52 @@ export default function ProfilePayments() {
                         )}
                       </Button>
                     </div>
-                    
+
                     {/* Cardholder name and expiry */}
                     <div className="flex justify-between items-end">
                       <div className="space-y-1">
-                        <p className="text-white/70 text-xs uppercase tracking-wider">Card Holder</p>
-                        <p className="text-white font-medium tracking-wide">{method.cardholderName}</p>
+                        <p className="text-white/70 text-xs uppercase tracking-wider">
+                          Card Holder
+                        </p>
+                        <p className="text-white font-medium tracking-wide">
+                          {method.cardholderName}
+                        </p>
                       </div>
                       <div className="text-right space-y-1">
-                        <p className="text-white/70 text-xs uppercase tracking-wider">Expires</p>
-                        <p className="text-white font-medium">{method.expMonth}/{method.expYear.slice(-2)}</p>
+                        <p className="text-white/70 text-xs uppercase tracking-wider">
+                          Expires
+                        </p>
+                        <p className="text-white font-medium">
+                          {method.expMonth}/{method.expYear.slice(-2)}
+                        </p>
                       </div>
                     </div>
-                    
+
                     {/* Abstract decoration */}
                     <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full" />
                     <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-black/10 backdrop-blur-sm rounded-full" />
                   </div>
-                  
+
                   {/* Card details and actions */}
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-medium flex items-center gap-2">
-                          {method.cardType.charAt(0).toUpperCase() + method.cardType.slice(1)} •••• {method.cardNumber.slice(-4)}
+                          {method.cardType.charAt(0).toUpperCase() +
+                            method.cardType.slice(1)}{" "}
+                          •••• {method.cardNumber.slice(-4)}
                           {method.isDefault && (
-                            <Badge variant="outline" className="text-primary border-primary ml-2">Default</Badge>
+                            <Badge
+                              variant="outline"
+                              className="text-primary border-primary ml-2"
+                            >
+                              Default
+                            </Badge>
                           )}
                         </h3>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => editPaymentMethod(method.id)}
@@ -995,22 +1048,31 @@ export default function ProfilePayments() {
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
                           </Button>
-                          
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                              >
                                 <Trash2 className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Remove payment method?</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Remove payment method?
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to remove this card? This action cannot be undone.
+                                  Are you sure you want to remove this card?
+                                  This action cannot be undone.
                                   {method.isDefault && (
                                     <div className="mt-2 p-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-md">
-                                      This is your default payment method. Another card will be set as default if available.
+                                      This is your default payment method.
+                                      Another card will be set as default if
+                                      available.
                                     </div>
                                   )}
                                 </AlertDialogDescription>
@@ -1028,29 +1090,35 @@ export default function ProfilePayments() {
                           </AlertDialog>
                         </div>
                       </div>
-                      
+
                       <p className="text-muted-foreground mt-1">
                         Expires {method.expMonth}/{method.expYear}
                       </p>
-                      
+
                       <div className="mt-3 text-sm">
-                        <p className="text-muted-foreground">Billing Address:</p>
+                        <p className="text-muted-foreground">
+                          Billing Address:
+                        </p>
                         <p>
-                          {method.billingAddress?.street}, {method.billingAddress?.city}, {method.billingAddress?.state} {method.billingAddress?.zipCode}
+                          {method.billingAddress?.street},{" "}
+                          {method.billingAddress?.city},{" "}
+                          {method.billingAddress?.state}{" "}
+                          {method.billingAddress?.zipCode}
                         </p>
                       </div>
-                      
+
                       {method.lastUsed && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Last used: {format(new Date(method.lastUsed), 'MMMM d, yyyy')}
+                          Last used:{" "}
+                          {format(new Date(method.lastUsed), "MMMM d, yyyy")}
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mt-4">
                       {!method.isDefault && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => setDefaultMethod(method.id)}
                         >
@@ -1058,9 +1126,9 @@ export default function ProfilePayments() {
                           Set as Default
                         </Button>
                       )}
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => editPaymentMethod(method.id)}
                       >
@@ -1081,7 +1149,8 @@ export default function ProfilePayments() {
           </div>
           <h3 className="text-lg font-medium">No payment methods</h3>
           <p className="text-muted-foreground mt-1 mb-6 max-w-md mx-auto">
-            You haven't added any payment methods yet. Add a payment method to make checkout faster.
+            You haven't added any payment methods yet. Add a payment method to
+            make checkout faster.
           </p>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -1091,24 +1160,25 @@ export default function ProfilePayments() {
       )}
 
       <Separator className="my-8" />
-      
+
       <div className="flex flex-col sm:flex-row items-start gap-4 justify-between">
         <div>
           <h3 className="text-lg font-medium flex items-center gap-1.5">
-            <Shield className="h-4 w-4" /> 
+            <Shield className="h-4 w-4" />
             Payment Security
           </h3>
           <p className="text-muted-foreground mt-1">
-            We protect your payment information using industry-leading encryption.
+            We protect your payment information using industry-leading
+            encryption.
           </p>
         </div>
-        
+
         <Button variant="outline" className="self-start">
           <Lock className="mr-2 h-4 w-4" />
           Manage Security Settings
         </Button>
       </div>
-      
+
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div className="p-4 border rounded-lg flex flex-col items-center text-center">
           <Shield className="h-8 w-8 text-primary mb-2" />
@@ -1117,7 +1187,7 @@ export default function ProfilePayments() {
             Your card details are encrypted and securely stored
           </p>
         </div>
-        
+
         <div className="p-4 border rounded-lg flex flex-col items-center text-center">
           <Lock className="h-8 w-8 text-primary mb-2" />
           <h4 className="font-medium">Secure Payments</h4>
@@ -1125,7 +1195,7 @@ export default function ProfilePayments() {
             All transactions are processed through secure channels
           </p>
         </div>
-        
+
         <div className="p-4 border rounded-lg flex flex-col items-center text-center">
           <AlertCircle className="h-8 w-8 text-primary mb-2" />
           <h4 className="font-medium">Fraud Protection</h4>
