@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FiTrash2, FiPlus, FiUpload } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiUpload, FiThumbsUp, FiEye } from "react-icons/fi";
 import axios from "axios";
 
 import {
   Product,
   ProductsOnBundles as PrismaProductsOnBundles,
   PromoCode,
-  Videos,
 } from "@prisma/client";
 import { BundleOffer as PrismaBundleOffer } from "@prisma/client";
 
@@ -18,6 +17,16 @@ interface ProductsOnBundles extends PrismaProductsOnBundles {
 
 interface BundleOffer extends PrismaBundleOffer {
   products: ProductsOnBundles[];
+}
+
+interface Videos {
+  id: string;
+  title: string;
+  videoUrl: string;
+  thumbnail: string | null;
+  likes: number;
+  views: number;
+  platform: string;
 }
 
 const SettingsPage = () => {
@@ -49,9 +58,17 @@ const SettingsPage = () => {
   const [newVideo, setNewVideo] = useState({
     title: "",
     videoUrl: "",
+    thumbnail: "",
+    likes: 0,
+    views: 0,
+    platform: "YouTube",
   });
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<
+    string | null
+  >(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   const fetchPromoCodes = async () => {
     setLoading(true);
@@ -157,6 +174,49 @@ const SettingsPage = () => {
       fileReader.readAsDataURL(file);
 
       uploadImageToCloudinary(file);
+    }
+  };
+
+  const uploadThumbnailToCloudinary = async (file: File) => {
+    setUploadingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "omaliya");
+
+      const response = await fetch(
+        "https://api.cloudinary.com/v1_1/omaliya/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      if (data.secure_url) {
+        setNewVideo({ ...newVideo, thumbnail: data.secure_url });
+        setVideoThumbnailPreview(data.secure_url);
+      }
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      alert("Failed to upload thumbnail. Please try again.");
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const fileReader = new FileReader();
+      fileReader.onload = (e) => {
+        if (e.target?.result) {
+          setVideoThumbnailPreview(e.target.result as string);
+        }
+      };
+      fileReader.readAsDataURL(file);
+
+      uploadThumbnailToCloudinary(file);
     }
   };
 
@@ -266,14 +326,29 @@ const SettingsPage = () => {
   };
 
   const handleAddVideo = async () => {
-    if (!newVideo.title || !newVideo.videoUrl) {
-      alert("Please fill in all fields");
+    if (!newVideo.title || !newVideo.videoUrl || !newVideo.platform) {
+      alert("Please fill in all required fields");
       return;
     }
     try {
-      await axios.post("/api/videos", newVideo);
+      await axios.post("/api/videos", {
+        title: newVideo.title,
+        videoUrl: newVideo.videoUrl,
+        thumbnail: newVideo.thumbnail || null,
+        likes: Number(newVideo.likes),
+        views: Number(newVideo.views),
+        platform: newVideo.platform,
+      });
       fetchVideos();
-      setNewVideo({ title: "", videoUrl: "" });
+      setNewVideo({
+        title: "",
+        videoUrl: "",
+        thumbnail: "",
+        likes: 0,
+        views: 0,
+        platform: "YouTube",
+      });
+      setVideoThumbnailPreview(null);
       setIsVideoModalOpen(false);
     } catch (error) {
       alert("Failed to add video");
@@ -648,9 +723,29 @@ const SettingsPage = () => {
                 key={video.id}
                 className="bg-gray-100 p-4 rounded-lg shadow-md"
               >
+                {video.thumbnail && (
+                  <div className="mb-3">
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-40 object-cover rounded-md"
+                    />
+                  </div>
+                )}
                 <h2 className="text-lg font-bold text-gray-800">
                   {video.title}
                 </h2>
+                <p className="text-sm text-gray-600 mb-2">
+                  Platform: {video.platform}
+                </p>
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                  <span className="flex items-center">
+                    <FiThumbsUp className="mr-1" /> {video.likes}
+                  </span>
+                  <span className="flex items-center">
+                    <FiEye className="mr-1" /> {video.views}
+                  </span>
+                </div>
                 <a
                   href={video.videoUrl}
                   target="_blank"
@@ -674,14 +769,14 @@ const SettingsPage = () => {
       {/* Add Video Modal */}
       {isVideoModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             <h2 className="text-lg font-medium text-gray-800 mb-4">
               Add New Video Link
             </h2>
             <div className="space-y-4">
               <input
                 type="text"
-                placeholder="Video Title"
+                placeholder="Video Title *"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={newVideo.title}
                 onChange={(e) =>
@@ -690,13 +785,116 @@ const SettingsPage = () => {
               />
               <input
                 type="url"
-                placeholder="Video URL"
+                placeholder="Video URL *"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={newVideo.videoUrl}
                 onChange={(e) =>
                   setNewVideo({ ...newVideo, videoUrl: e.target.value })
                 }
               />
+
+              <div className="border-dashed border-2 border-gray-300 rounded-lg p-4 text-center">
+                {videoThumbnailPreview ? (
+                  <div className="relative">
+                    <img
+                      src={videoThumbnailPreview}
+                      alt="Thumbnail Preview"
+                      className="mx-auto h-40 object-contain mb-2"
+                    />
+                    <button
+                      onClick={() => {
+                        setVideoThumbnailPreview(null);
+                        setNewVideo({ ...newVideo, thumbnail: "" });
+                      }}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="videoThumbnail"
+                      className="cursor-pointer flex flex-col items-center justify-center"
+                    >
+                      <FiUpload className="text-gray-400 text-4xl mb-2" />
+                      <span className="text-gray-500">
+                        {uploadingThumbnail
+                          ? "Uploading..."
+                          : "Upload Thumbnail (Optional)"}
+                      </span>
+                    </label>
+                    <input
+                      id="videoThumbnail"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleThumbnailChange}
+                      disabled={uploadingThumbnail}
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Platform *
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={newVideo.platform}
+                    onChange={(e) =>
+                      setNewVideo({ ...newVideo, platform: e.target.value })
+                    }
+                  >
+                    <option value="YouTube">YouTube</option>
+                    <option value="Vimeo">Vimeo</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Likes
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Likes"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={newVideo.likes}
+                    onChange={(e) =>
+                      setNewVideo({
+                        ...newVideo,
+                        likes: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Views
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Views"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={newVideo.views}
+                    onChange={(e) =>
+                      setNewVideo({
+                        ...newVideo,
+                        views: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex justify-end mt-6 space-x-4">
               <button

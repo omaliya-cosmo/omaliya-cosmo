@@ -3,7 +3,7 @@ import { prisma } from "@/app/lib/prisma";
 
 export async function GET() {
   try {
-    const videos = await prisma.videos.findMany(); // Fetch all videos from the database
+    const videos = await prisma.videos.findMany();
     return NextResponse.json(videos, { status: 200 });
   } catch (error) {
     console.error("Error fetching videos:", error);
@@ -17,11 +17,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, videoUrl } = body;
+    const { title, videoUrl, thumbnail, platform, likes, views } = body;
 
-    if (!title || !videoUrl) {
+    if (!title || !videoUrl || !platform) {
       return NextResponse.json(
-        { error: "Title and URL are required" },
+        { error: "Title, URL, and platform are required" },
         { status: 400 }
       );
     }
@@ -30,6 +30,10 @@ export async function POST(request: Request) {
       data: {
         title,
         videoUrl,
+        thumbnail: thumbnail || null,
+        platform,
+        likes: likes || 0,
+        views: views || 0,
       },
     });
 

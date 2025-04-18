@@ -133,6 +133,10 @@ model Videos {
   title       String
   videoUrl    String   @map("video_url")
   createdAt   DateTime @default(now()) @map("created_at")
+  thumbnail   String  // Optional thumbnail image URL
+  likes       Int      @default(0) // Number of likes
+  views       Int      @default(0) // Number of views
+  platform    String   // Video platform (YouTube, Vimeo, etc.)
 }
 
 // BundleOffer model

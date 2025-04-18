@@ -267,15 +267,15 @@ export default function ProductsPage() {
         duration: custom.duration || 10,
         repeat: Infinity,
         ease: "easeInOut",
-      }
-    })
+      },
+    }),
   };
 
   // Fade in animation for content sections
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
+    transition: { duration: 0.6 },
   };
 
   // Animation for the active filter badges
@@ -283,7 +283,7 @@ export default function ProductsPage() {
     initial: { scale: 0.8, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
     exit: { scale: 0.8, opacity: 0, transition: { duration: 0.2 } },
-    transition: { type: "spring", stiffness: 500, damping: 30 }
+    transition: { type: "spring", stiffness: 500, damping: 30 },
   };
 
   return (
@@ -293,79 +293,115 @@ export default function ProductsPage() {
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
-        <motion.div 
+        <motion.div
           className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-purple-100/30 to-pink-100/30 blur-3xl"
-          style={{ top: '5%', left: '30%', transform: 'translateX(-50%)' }}
+          style={{ top: "5%", left: "30%", transform: "translateX(-50%)" }}
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.3, 0.5, 0.3],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 20,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        
-        <motion.div 
+
+        <motion.div
           className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-pink-100/20 to-purple-100/20 blur-3xl"
-          style={{ bottom: '10%', right: '5%' }}
+          style={{ bottom: "10%", right: "5%" }}
           animate={{
             scale: [1, 1.15, 1],
             opacity: [0.2, 0.4, 0.2],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 25,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        
+
         {/* Floating particles with various sizes and positions */}
         <motion.div
           className="absolute w-16 h-16 rounded-full bg-purple-200/60"
-          style={{ top: '15%', left: '10%' }}
-          custom={{ y: -30, x: 20, opacityStart: 0.5, opacityEnd: 0.7, duration: 12 }}
+          style={{ top: "15%", left: "10%" }}
+          custom={{
+            y: -30,
+            x: 20,
+            opacityStart: 0.5,
+            opacityEnd: 0.7,
+            duration: 12,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
-        
+
         <motion.div
           className="absolute w-12 h-12 rounded-full bg-pink-200/60"
-          style={{ top: '25%', right: '15%' }}
-          custom={{ y: 25, x: -15, opacityStart: 0.4, opacityEnd: 0.6, duration: 14 }}
+          style={{ top: "25%", right: "15%" }}
+          custom={{
+            y: 25,
+            x: -15,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 14,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
-        
+
         <motion.div
           className="absolute w-20 h-20 rounded-full bg-purple-100/50"
-          style={{ bottom: '20%', left: '25%' }}
-          custom={{ y: -20, x: 15, opacityStart: 0.3, opacityEnd: 0.5, duration: 16 }}
+          style={{ bottom: "20%", left: "25%" }}
+          custom={{
+            y: -20,
+            x: 15,
+            opacityStart: 0.3,
+            opacityEnd: 0.5,
+            duration: 16,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
-        
+
         <motion.div
           className="absolute w-14 h-14 rounded-full bg-gradient-to-tr from-purple-200/40 to-pink-200/40 blur-sm"
-          style={{ bottom: '35%', right: '10%' }}
-          custom={{ y: 20, x: -10, opacityStart: 0.3, opacityEnd: 0.5, duration: 11 }}
+          style={{ bottom: "35%", right: "10%" }}
+          custom={{
+            y: 20,
+            x: -10,
+            opacityStart: 0.3,
+            opacityEnd: 0.5,
+            duration: 11,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
-        
+
         <motion.div
           className="absolute w-8 h-8 rounded-full bg-purple-300/50"
-          style={{ top: '55%', left: '8%' }}
-          custom={{ y: 15, x: 8, opacityStart: 0.4, opacityEnd: 0.6, duration: 9 }}
+          style={{ top: "55%", left: "8%" }}
+          custom={{
+            y: 15,
+            x: 8,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 9,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
-        
+
         <motion.div
           className="absolute w-10 h-10 rounded-full bg-pink-300/50"
-          style={{ top: '40%', right: '20%' }}
-          custom={{ y: -12, x: -6, opacityStart: 0.4, opacityEnd: 0.6, duration: 10 }}
+          style={{ top: "40%", right: "20%" }}
+          custom={{
+            y: -12,
+            x: -6,
+            opacityStart: 0.4,
+            opacityEnd: 0.6,
+            duration: 10,
+          }}
           variants={floatingParticle}
           animate="animate"
         />
@@ -374,7 +410,7 @@ export default function ProductsPage() {
       <div className="relative z-10">
         <div className="bg-gradient-to-r from-purple-150 to-pink-50 shadow-lg px-10">
           {/* Products header with enhanced styling */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -390,7 +426,7 @@ export default function ProductsPage() {
           </motion.div>
         </div>
 
-        <motion.div 
+        <motion.div
           className="container mx-auto px-4 py-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -398,7 +434,7 @@ export default function ProductsPage() {
         >
           {/* Active filters with animation */}
           {activeFilters.length > 0 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -414,7 +450,7 @@ export default function ProductsPage() {
 
           <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
             {/* Filter sidebar with subtle animations */}
-            <motion.aside 
+            <motion.aside
               className="lg:w-1/4"
               {...fadeIn}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -429,7 +465,7 @@ export default function ProductsPage() {
             </motion.aside>
 
             {/* Main product content with animations */}
-            <motion.div 
+            <motion.div
               className="lg:w-3/4"
               {...fadeIn}
               transition={{ duration: 0.5, delay: 0.4 }}
