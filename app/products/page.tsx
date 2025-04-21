@@ -3,11 +3,11 @@ import React, { useState, useEffect } from "react";
 import ProductsHeader from "@/components/products/ProductsHeader";
 import ProductFilterSidebar from "@/components/products/ProductFilterSidebar";
 import ProductGrid from "@/components/products/ProductGrid";
-import ProductsActiveFilters from "@/components/products/ProductsActiveFilters";
 import NewsletterSection from "@/components/home/Newsletter";
 import ClientSortingWrapper from "@/components/products/ClientSortingWrapper";
 import ClientEmptyStateWrapper from "@/components/products/ClientEmptyStateWrapper";
 import ProductsPagination from "@/components/products/ProductsPagination";
+import CategoryTabsFilter from "@/components/products/CategoryTabsFilter";
 import {
   ProductCategory,
   Review,
@@ -15,12 +15,28 @@ import {
 } from "@prisma/client";
 import Header from "@/components/layout/Header";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+
+// Define ProductTag enum
+enum ProductTag {
+  NEW_ARRIVALS = "NEW_ARRIVALS",
+  BEST_SELLERS = "BEST_SELLERS",
+  SPECIAL_DEALS = "SPECIAL_DEALS",
+  GIFT_SETS = "GIFT_SETS",
+  TRENDING_NOW = "TRENDING_NOW",
+}
 
 interface Product extends PrismaProduct {
   category?: ProductCategory; // Include the category relation
   reviews?: Review[]; // Include reviews with count and average rating
-  tags: string[]; // Add tags property
-  createdAt: string; // Add createdAt property
+  tags: ProductTag[]; // Add tags property
+}
+
+interface CartProduct {
+  id: string;
+  name: string;
 }
 
 // Update the filters state interface
@@ -34,13 +50,6 @@ interface Filters {
   tags?: string[];
 }
 
-// Add this to track active filters
-interface ActiveFilter {
-  label: string;
-  value: string;
-  param: string;
-}
-
 interface ClientPaginationWrapperProps {
   currentPage: number;
   totalPages: number;
@@ -48,40 +57,91 @@ interface ClientPaginationWrapperProps {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sort, setSort] = useState("default"); // Change initial value to 'default'
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Add viewMode state
   const [filters, setFilters] = useState<Filters>({
-    category: "",
+    category: searchParams.get("category") || "",
     minPrice: undefined,
     maxPrice: undefined,
     inStock: false,
     rating: undefined,
     search: "",
-    tags: [],
+    tags: searchParams.get("feature") ? [searchParams.get("feature")!] : [],
   });
 
   const [country, setCountry] = useState("LKR"); // Default country currency
   const pageSize = 12;
 
+  // New state variables for header props
+  const [userData, setUserData] = useState<any>(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [bundleoffers, setBundleoffers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+
+  // Handle category change from tabs
+  const handleCategoryChange = (category: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      category,
+    }));
+    setCurrentPage(1);
+  };
+
+  // New effect to load user data and cart count
+  useEffect(() => {
+    const fetchCartData = async () => {
+      try {
+        const res = await axios.get("/api/cart");
+        const data = res.data;
+        const totalItems =
+          data.items?.reduce(
+            (sum: number, item: any) => sum + item.quantity,
+            0
+          ) || 0;
+
+        setCartCount(totalItems);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+      }
+    };
+
+    fetchCartData();
+  }, []);
+
   useEffect(() => {
     // Fetch all products from the API
     async function fetchProducts() {
       try {
-        const axios = (await import("axios")).default;
-        const response = await axios.get("/api/products");
-        setProducts(response.data.products);
-        setFilteredProducts(response.data.products); // Initialize with all products
-        console.log(response.data.products);
-      } catch (error) {
-        console.error("Error fetching products:", error);
+        setLoading(true);
+
+        // Fetch products
+        const productsResponse = await axios.get(
+          "/api/products?category=true&reviews=true"
+        );
+        setProducts(productsResponse.data.products);
+        setFilteredProducts(productsResponse.data.products); // Initialize with all products
+
+        // Fetch categories for the header
+        const categoriesResponse = await axios.get("/api/categories");
+        setCategories(categoriesResponse.data.categories || []);
+
+        // Fetch bundle offers for the header
+        const bundleoffersResponse = await axios.get("/api/bundleoffers");
+        setBundleoffers(bundleoffersResponse.data || []);
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError(err);
+        setLoading(false);
       }
     }
-
-    console.log(filteredProducts);
 
     fetchProducts();
   }, []);
@@ -91,9 +151,14 @@ export default function ProductsPage() {
 
     // Apply filters
     if (filters.category) {
-      filtered = filtered.filter(
-        (product) => product.category?.id === filters.category
-      );
+      filtered = filtered.filter((product) => {
+        console.log(
+          "filter",
+          product.category?.name.toLowerCase(),
+          filters.category
+        );
+        return product.category?.name.toLowerCase() === filters.category;
+      });
     }
 
     if (filters.minPrice !== undefined) {
@@ -136,7 +201,9 @@ export default function ProductsPage() {
 
     if (filters.tags && filters.tags.length > 0) {
       filtered = filtered.filter((product) =>
-        filters.tags!.some((tag) => product.tags.includes(tag))
+        filters.tags!.some((tag) =>
+          product.tags.includes(tag as unknown as ProductTag)
+        )
       );
     }
 
@@ -181,44 +248,17 @@ export default function ProductsPage() {
     setFilteredProducts(filtered);
   }, [filters, sort, products, country]);
 
-  // Add this useEffect to update active filters when filters change
   useEffect(() => {
-    const newActiveFilters: ActiveFilter[] = [];
+    // Update filters when search params change
+    const category = searchParams.get("category") || "";
+    const feature = searchParams.get("feature");
 
-    if (filters.category) {
-      newActiveFilters.push({
-        label: "Category",
-        value: filters.category,
-        param: "category",
-      });
-    }
-
-    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      newActiveFilters.push({
-        label: "Price",
-        value: `${filters.minPrice || 0} - ${filters.maxPrice || "∞"}`,
-        param: "price",
-      });
-    }
-
-    if (filters.rating) {
-      newActiveFilters.push({
-        label: "Rating",
-        value: `${filters.rating}+ stars`,
-        param: "rating",
-      });
-    }
-
-    if (filters.inStock) {
-      newActiveFilters.push({
-        label: "Availability",
-        value: "In Stock",
-        param: "inStock",
-      });
-    }
-
-    setActiveFilters(newActiveFilters);
-  }, [filters]);
+    setFilters((prev) => ({
+      ...prev,
+      category,
+      tags: feature ? [feature] : prev.tags,
+    }));
+  }, [searchParams]);
 
   // Handle pagination
   const paginatedProducts = filteredProducts.slice(
@@ -256,6 +296,27 @@ export default function ProductsPage() {
     });
   };
 
+  const addToCart = async (product: CartProduct) => {
+    try {
+      await axios.post("/api/cart", {
+        productId: product.id,
+        quantity: 1,
+      });
+
+      setCartCount((prev) => prev + 1);
+      toast.success(`Added ${product.name} to your cart!`, {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error adding to cart";
+      toast.error(errorMessage, {
+        position: "bottom-right",
+      });
+    }
+  };
+
   // Animation variants for floating particles
   const floatingParticle = {
     animate: (custom: any) => ({
@@ -278,18 +339,18 @@ export default function ProductsPage() {
     transition: { duration: 0.6 },
   };
 
-  // Animation for the active filter badges
-  const filterBadgeAnimation = {
-    initial: { scale: 0.8, opacity: 0 },
-    animate: { scale: 1, opacity: 1 },
-    exit: { scale: 0.8, opacity: 0, transition: { duration: 0.2 } },
-    transition: { type: "spring", stiffness: 500, damping: 30 },
-  };
-
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background particles */}
-      <Header userData={null} cartCount={0} />
+      <Header
+        userData={userData}
+        cartCount={cartCount}
+        products={products}
+        categories={categories}
+        bundles={bundleoffers}
+        loading={loading}
+        error={error}
+      />
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
@@ -432,21 +493,11 @@ export default function ProductsPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {/* Active filters with animation */}
-          {activeFilters.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ProductsActiveFilters
-                activeFilters={activeFilters}
-                onRemoveFilter={handleRemoveFilter}
-                onClearAll={clearAllFilters}
-                animationProps={filterBadgeAnimation}
-              />
-            </motion.div>
-          )}
+          {/* Category Tabs */}
+          <CategoryTabsFilter
+            currentCategory={filters.category}
+            onCategoryChange={handleCategoryChange}
+          />
 
           <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
             {/* Filter sidebar with subtle animations */}
@@ -512,19 +563,27 @@ export default function ProductsPage() {
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
                 {paginatedProducts.length > 0 ? (
-                  <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-purple-100/50">
+                  <div className="">
                     <ProductGrid
                       products={paginatedProducts}
                       currency={country === "LKR" ? "LKR" : "USD"}
                       currencySymbol={country === "LKR" ? "Rs" : "$"}
                       viewMode={viewMode}
+                      onAddToCart={(productId) => {
+                        const product = products.find(
+                          (p) => p.id === productId
+                        );
+                        if (product) {
+                          addToCart({ id: product.id, name: product.name });
+                        }
+                      }}
                     />
                   </div>
                 ) : (
                   <ClientEmptyStateWrapper
                     message="No products found"
                     suggestion="Try adjusting your filters or search terms to find what you're looking for."
-                    hasFilters={activeFilters.length > 0}
+                    hasFilters={filters.category || filters.tags?.length > 0}
                   />
                 )}
               </motion.div>
@@ -548,9 +607,6 @@ export default function ProductsPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* Newsletter section */}
-      <NewsletterSection />
     </main>
   );
 }

@@ -3,9 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { XMarkIcon, FunnelIcon, StarIcon } from "@heroicons/react/24/solid";
 import { AnimatePresence, motion } from "framer-motion";
-import { ProductCategory } from "@prisma/client";
-import axios from "axios";
 import { useCountry } from "@/app/lib/hooks/useCountry";
+
+enum ProductTag {
+  NEW_ARRIVALS = "NEW_ARRIVALS",
+  BEST_SELLERS = "BEST_SELLERS",
+  SPECIAL_DEALS = "SPECIAL_DEALS",
+  GIFT_SETS = "GIFT_SETS",
+  TRENDING_NOW = "TRENDING_NOW",
+}
 
 interface FilterSidebarProps {
   currentFilters: {
@@ -15,6 +21,7 @@ interface FilterSidebarProps {
     inStock: boolean;
     rating?: number;
     search: string;
+    tags?: string[];
   };
   onFilterChange: (filters: any) => void;
   productCount: number;
@@ -38,38 +45,36 @@ const priceRangesLKR = [
   { label: "Over LKR 10000", min: 10000, max: Infinity },
 ];
 
+// Define tag display names
+const tagDisplayNames: Record<string, string> = {
+  [ProductTag.NEW_ARRIVALS]: "New Arrivals",
+  [ProductTag.BEST_SELLERS]: "Best Sellers",
+  [ProductTag.SPECIAL_DEALS]: "Special Deals",
+  [ProductTag.GIFT_SETS]: "Gift Sets",
+  [ProductTag.TRENDING_NOW]: "Trending Now",
+};
+
 export default function ProductFilterSidebar({
   currentFilters,
   onFilterChange,
   productCount,
 }: FilterSidebarProps) {
   const [expandedSections, setExpandedSections] = useState({
-    category: true,
     price: true,
     rating: true,
     availability: true,
+    tags: true,
   });
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const { country, updateCountry } = useCountry();
 
   // Check if any filters are active
-  const hasActiveFilters = 
-    currentFilters.category || 
-    currentFilters.minPrice !== undefined || 
-    currentFilters.maxPrice !== undefined || 
-    currentFilters.inStock || 
-    currentFilters.rating !== undefined;
-
-  useEffect(() => {
-    axios
-      .get("/api/categories")
-      .then((res) => {
-        setCategories(res.data.categories);
-      })
-      .catch((err) => {
-        console.log(err.message);
-      });
-  }, []);
+  const hasActiveFilters =
+    currentFilters.category ||
+    currentFilters.minPrice !== undefined ||
+    currentFilters.maxPrice !== undefined ||
+    currentFilters.inStock ||
+    currentFilters.rating !== undefined ||
+    (currentFilters.tags && currentFilters.tags.length > 0);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
@@ -86,13 +91,7 @@ export default function ProductFilterSidebar({
       maxPrice: null,
       inStock: false,
       rating: undefined,
-    });
-  };
-
-  const clearCategory = () => {
-    onFilterChange({
-      ...currentFilters,
-      category: "",
+      tags: [],
     });
   };
 
@@ -101,11 +100,13 @@ export default function ProductFilterSidebar({
     onFilterChange({
       ...currentFilters,
       minPrice: null,
-      maxPrice: null
+      maxPrice: null,
     });
-    
+
     // Force a check on the "Any Price" option (first in the list)
-    const anyPriceRadio = document.getElementById('price-0') as HTMLInputElement;
+    const anyPriceRadio = document.getElementById(
+      "price-0"
+    ) as HTMLInputElement;
     if (anyPriceRadio) {
       anyPriceRadio.checked = true;
     }
@@ -118,6 +119,13 @@ export default function ProductFilterSidebar({
     });
   };
 
+  const clearTags = () => {
+    onFilterChange({
+      ...currentFilters,
+      tags: [],
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-5 sticky top-24">
       <div className="flex justify-between items-center mb-6">
@@ -125,9 +133,9 @@ export default function ProductFilterSidebar({
           <FunnelIcon className="h-5 w-5 text-purple-600" />
           Filters
         </h2>
-        
+
         {hasActiveFilters && (
-          <button 
+          <button
             onClick={clearAllFilters}
             className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center"
           >
@@ -137,22 +145,24 @@ export default function ProductFilterSidebar({
         )}
       </div>
 
-      {/* Categories Section */}
+      {/* Tags Section */}
       <div className="mb-6 border-b border-gray-200 pb-6">
         <div className="flex justify-between items-center">
           <button
             className="flex items-center text-left grow"
-            onClick={() => toggleSection("category")}
+            onClick={() => toggleSection("tags")}
           >
-            <h3 className="text-sm font-medium text-gray-900">Categories</h3>
+            <h3 className="text-sm font-medium text-gray-900">
+              Product Features
+            </h3>
             <span className="text-purple-600 ml-2">
-              {expandedSections.category ? "-" : "+"}
+              {expandedSections.tags ? "-" : "+"}
             </span>
           </button>
-          
-          {currentFilters.category && (
-            <button 
-              onClick={clearCategory}
+
+          {currentFilters.tags && currentFilters.tags.length > 0 && (
+            <button
+              onClick={clearTags}
               className="text-xs text-gray-500 hover:text-purple-600"
             >
               Clear
@@ -161,7 +171,7 @@ export default function ProductFilterSidebar({
         </div>
 
         <AnimatePresence>
-          {expandedSections.category && (
+          {expandedSections.tags && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -169,41 +179,31 @@ export default function ProductFilterSidebar({
               transition={{ duration: 0.2 }}
               className="mt-4 space-y-2 overflow-hidden"
             >
-              <div className="flex items-center mb-2">
-                <input
-                  id={`category-all`}
-                  type="radio"
-                  checked={!currentFilters.category}
-                  onChange={() => clearCategory()}
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500"
-                />
-                <label
-                  htmlFor={`category-all`}
-                  className="ml-3 text-sm text-gray-600"
-                >
-                  All Categories
-                </label>
-              </div>
-              
-              {categories.map((category) => (
-                <div key={category.id} className="flex items-center">
+              {Object.values(ProductTag).map((tag) => (
+                <div key={tag} className="flex items-center">
                   <input
-                    id={`category-${category.id}`}
-                    type="radio"
-                    checked={currentFilters.category === category.id}
-                    onChange={() =>
+                    id={`tag-${tag}`}
+                    type="checkbox"
+                    checked={currentFilters.tags?.includes(tag) || false}
+                    onChange={(e) => {
+                      let newTags = [...(currentFilters.tags || [])];
+                      if (e.target.checked) {
+                        newTags.push(tag);
+                      } else {
+                        newTags = newTags.filter((t) => t !== tag);
+                      }
                       onFilterChange({
                         ...currentFilters,
-                        category: category.id,
-                      })
-                    }
+                        tags: newTags,
+                      });
+                    }}
                     className="h-4 w-4 text-purple-600 focus:ring-purple-500"
                   />
                   <label
-                    htmlFor={`category-${category.id}`}
+                    htmlFor={`tag-${tag}`}
                     className="ml-3 text-sm text-gray-600"
                   >
-                    {category.name}
+                    {tagDisplayNames[tag]}
                   </label>
                 </div>
               ))}
@@ -224,10 +224,12 @@ export default function ProductFilterSidebar({
               {expandedSections.price ? "-" : "+"}
             </span>
           </button>
-          
-          {((currentFilters.minPrice !== undefined && currentFilters.minPrice !== null) || 
-            (currentFilters.maxPrice !== undefined && currentFilters.maxPrice !== null)) && (
-            <button 
+
+          {((currentFilters.minPrice !== undefined &&
+            currentFilters.minPrice !== null) ||
+            (currentFilters.maxPrice !== undefined &&
+              currentFilters.maxPrice !== null)) && (
+            <button
               onClick={clearPriceRange}
               className="text-xs text-gray-500 hover:text-purple-600"
             >
@@ -252,9 +254,13 @@ export default function ProductFilterSidebar({
                       id={`price-${index}`}
                       type="radio"
                       checked={
-                        (index === 0 && (currentFilters.minPrice === undefined || currentFilters.minPrice === null) && 
-                         (currentFilters.maxPrice === undefined || currentFilters.maxPrice === null)) ||
-                        (currentFilters.minPrice === range.min && currentFilters.maxPrice === range.max)
+                        (index === 0 &&
+                          (currentFilters.minPrice === undefined ||
+                            currentFilters.minPrice === null) &&
+                          (currentFilters.maxPrice === undefined ||
+                            currentFilters.maxPrice === null)) ||
+                        (currentFilters.minPrice === range.min &&
+                          currentFilters.maxPrice === range.max)
                       }
                       onChange={() =>
                         onFilterChange({
@@ -269,9 +275,13 @@ export default function ProductFilterSidebar({
                       htmlFor={`price-${index}`}
                       className={`ml-3 text-sm ${
                         // Highlight active filter
-                        (index === 0 && (currentFilters.minPrice === undefined || currentFilters.minPrice === null) && 
-                         (currentFilters.maxPrice === undefined || currentFilters.maxPrice === null)) ||
-                        (currentFilters.minPrice === range.min && currentFilters.maxPrice === range.max)
+                        (index === 0 &&
+                          (currentFilters.minPrice === undefined ||
+                            currentFilters.minPrice === null) &&
+                          (currentFilters.maxPrice === undefined ||
+                            currentFilters.maxPrice === null)) ||
+                        (currentFilters.minPrice === range.min &&
+                          currentFilters.maxPrice === range.max)
                           ? "text-purple-700 font-medium"
                           : "text-gray-600"
                       }`}
@@ -298,9 +308,9 @@ export default function ProductFilterSidebar({
               {expandedSections.rating ? "-" : "+"}
             </span>
           </button>
-          
+
           {currentFilters.rating !== undefined && (
-            <button 
+            <button
               onClick={clearRating}
               className="text-xs text-gray-500 hover:text-purple-600"
             >
@@ -422,7 +432,8 @@ export default function ProductFilterSidebar({
       {/* Product count */}
       <div className="pt-2 border-t border-gray-200">
         <p className="text-sm text-gray-500">
-          Showing <span className="font-medium">{productCount}</span> {productCount === 1 ? "product" : "products"}
+          Showing <span className="font-medium">{productCount}</span>{" "}
+          {productCount === 1 ? "product" : "products"}
         </p>
       </div>
     </div>

@@ -11,15 +11,17 @@ export async function GET(req: NextRequest) {
       if (!item._id) {
         return {
           ...item,
-          _id: `${item.productId}-${item.isBundle ? "bundle" : "product"}-${index}`,
+          _id: `${item.productId}-${
+            item.isBundle ? "bundle" : "product"
+          }-${index}`,
         };
       }
       return item;
     });
-    
+
     // Update cookie with IDs if needed
     (await cookies()).set("cart", JSON.stringify(cart), { path: "/" });
-    
+
     return NextResponse.json(cart, { status: 200 });
   } catch (error) {
     return NextResponse.json(
@@ -55,7 +57,9 @@ export async function POST(req: NextRequest) {
         : existingItem.quantity + quantity;
     } else {
       // Add a unique ID when adding a new item
-      const _id = `${productId}-${isBundle ? "bundle" : "product"}-${Date.now()}`;
+      const _id = `${productId}-${
+        isBundle ? "bundle" : "product"
+      }-${Date.now()}`;
       cart.items.push({ _id, productId, quantity, isBundle });
     }
 

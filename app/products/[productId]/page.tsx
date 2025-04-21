@@ -7,35 +7,102 @@ import ProductGallery from "@/components/product-detail/ProductGallery";
 import ProductInfo from "@/components/product-detail/ProductInfo";
 import ProductPricing from "@/components/product-detail/ProductPricing";
 import ProductDetails from "@/components/product-detail/ProductDetails";
-import ProductReviews from "@/components/product-detail/ProductReviews";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import AddToCartButton from "@/components/product-detail/AddToCartButton";
 import NewsletterSection from "@/components/home/Newsletter";
-import { Product, ProductCategory, Review } from "@prisma/client";
+import {
+  Product as PrismaProduct,
+  ProductCategory,
+  Review,
+} from "@prisma/client";
 import { motion } from "framer-motion";
-import Header from "@/components/layout/Header"; // Adjust the path as needed
+import Header from "@/components/layout/Header";
+import { getCustomerFromToken } from "@/app/actions";
+import Footer from "@/components/layout/Footer";
 
-interface ProductWithDetails extends Product {
+interface Product extends PrismaProduct {
   category?: ProductCategory;
   reviews?: Review[];
-  discountPriceLKR?: number; // Add this property
-  discountPriceUSD?: number; // Add this property
 }
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
-  const [product, setProduct] = useState<ProductWithDetails | null>(null);
+  const [product, setProduct] = useState<Product>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currency, setCurrency] = useState<"LKR" | "USD">("LKR");
   const [quantity, setQuantity] = useState(1);
+
+  // States for header data
+  const [userData, setUserData] = useState<any>(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [bundleoffers, setBundleoffers] = useState([]);
+  const [headerLoading, setHeaderLoading] = useState(true);
+  const [headerError, setHeaderError] = useState(null);
+
+  // Function to fetch cart count - moved outside useEffect to be reusable
+  const fetchCartCount = async () => {
+    try {
+      const res = await axios.get("/api/cart");
+      const data = res.data;
+      const totalItems =
+        data.items?.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0
+        ) || 0;
+
+      setCartCount(totalItems);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+    }
+  };
+
+  // Fetch user data and cart count
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const userData = await getCustomerFromToken();
+      setUserData(userData);
+    };
+
+    fetchUserData();
+    fetchCartCount();
+  }, []);
+
+  // Fetch header data (products, categories, bundles)
+  useEffect(() => {
+    const fetchHeaderData = async () => {
+      setHeaderLoading(true);
+      try {
+        // Fetch featured products for header
+        const productsResponse = await axios.get("/api/products");
+        setProducts(productsResponse.data.products);
+
+        // Fetch categories
+        const categoriesResponse = await axios.get("/api/categories");
+        setCategories(categoriesResponse.data.categories);
+
+        // Fetch bundle offers
+        const bundlesResponse = await axios.get("/api/bundleoffers");
+        setBundleoffers(bundlesResponse.data);
+      } catch (err) {
+        console.error("Error fetching header data:", err);
+        setHeaderError(err);
+      } finally {
+        setHeaderLoading(false);
+      }
+    };
+
+    fetchHeaderData();
+  }, []);
 
   useEffect(() => {
     async function fetchProduct() {
       try {
         setLoading(true);
         const response = await axios.get(`/api/products/${productId}`);
-        setProduct(response.data.product);
+        setProduct(response.data);
       } catch (err) {
         console.error("Error fetching product:", err);
         setError("Failed to load product details");
@@ -94,71 +161,79 @@ export default function ProductDetailPage() {
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background elements */}
-      <Header userData={null} cartCount={0} />
+      <Header
+        userData={userData}
+        cartCount={cartCount}
+        products={products}
+        categories={categories}
+        bundles={bundleoffers}
+        loading={headerLoading}
+        error={headerError}
+      />
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
-        <motion.div 
+        <motion.div
           className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-purple-100/30 to-pink-100/30 blur-3xl"
-          style={{ top: '5%', left: '30%', transform: 'translateX(-50%)' }}
+          style={{ top: "5%", left: "30%", transform: "translateX(-50%)" }}
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.3, 0.5, 0.3],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 20,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        
-        <motion.div 
+
+        <motion.div
           className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-pink-100/20 to-purple-100/20 blur-3xl"
-          style={{ bottom: '10%', right: '5%' }}
+          style={{ bottom: "10%", right: "5%" }}
           animate={{
             scale: [1, 1.15, 1],
             opacity: [0.2, 0.4, 0.2],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 25,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        
+
         {/* Floating particles with various sizes */}
         <motion.div
           className="absolute w-10 h-10 rounded-full bg-purple-200/60"
-          style={{ top: '15%', left: '10%' }}
+          style={{ top: "15%", left: "10%" }}
           animate={{
             y: [-30, 0, -30],
             x: [20, 0, 20],
             opacity: [0.4, 0.6, 0.4],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 12,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        
+
         <motion.div
           className="absolute w-8 h-8 rounded-full bg-pink-200/60"
-          style={{ top: '25%', right: '15%' }}
+          style={{ top: "25%", right: "15%" }}
           animate={{
             y: [0, 25, 0],
             x: [0, -15, 0],
             opacity: [0.3, 0.5, 0.3],
           }}
-          transition={{ 
+          transition={{
             repeat: Infinity,
             duration: 14,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 container mx-auto px-24 py-8">
         <ProductBreadcrumbs product={product} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
@@ -167,14 +242,14 @@ export default function ProductDetailPage() {
 
           {/* Right column: Product info and actions */}
           <div>
-            <ProductInfo 
-              name={product.name} 
-              description={product.description} 
-              category={product.category} 
+            <ProductInfo
+              name={product.name}
+              description={product.description}
+              category={product.category}
               stock={product.stock}
             />
-            
-            <ProductPricing 
+
+            <ProductPricing
               priceLKR={product.priceLKR}
               discountPriceLKR={product.discountPriceLKR}
               priceUSD={product.priceUSD}
@@ -208,28 +283,33 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
               </div>
-              
+
               {/* Add to cart button */}
-              <AddToCartButton 
-                product={product} 
-                quantity={quantity} 
+              <AddToCartButton
+                product={product}
+                quantity={quantity}
                 currency={currency}
+                onAddToCartSuccess={fetchCartCount}
               />
             </div>
           </div>
         </div>
 
-        {/* Product details, specifications, etc */}
-        <ProductDetails product={product} />
-
-        {/* Reviews section */}
-        <ProductReviews reviews={product.reviews || []} productId={product.id} />
+        {/* Product details and reviews */}
+        <ProductDetails
+          product={product}
+          reviews={product.reviews || []}
+          productId={product.id}
+        />
 
         {/* Related products */}
-        <RelatedProducts categoryId={product.categoryId} currentProductId={product.id} />
+        <RelatedProducts
+          categoryId={product.categoryId}
+          currentProductId={product.id}
+        />
       </div>
-      
-      <NewsletterSection />
+
+      <Footer />
     </main>
   );
 }

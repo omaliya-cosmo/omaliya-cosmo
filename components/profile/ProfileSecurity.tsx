@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Eye, EyeOff, Loader2, Shield, AlertTriangle, CheckCircle, Smartphone, LogOut } from 'lucide-react';
 import React, { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  Smartphone,
+  LogOut,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -46,19 +52,25 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 // Validation schema for password change
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-  confirmNewPassword: z.string(),
-}).refine(data => data.newPassword === data.confirmNewPassword, {
-  message: "Passwords don't match",
-  path: ["confirmNewPassword"],
-});
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(
+        /[^A-Za-z0-9]/,
+        "Password must contain at least one special character"
+      ),
+    confirmNewPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Passwords don't match",
+    path: ["confirmNewPassword"],
+  });
 
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
@@ -77,7 +89,6 @@ const ProfileSecurity: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   const validateForm = (values: PasswordFormData) => {
     let valid = true;
@@ -153,11 +164,13 @@ const ProfileSecurity: React.FC = () => {
   const handleToggle2FA = async () => {
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       setTwoFactorEnabled(!twoFactorEnabled);
-      toast.success(twoFactorEnabled 
-        ? "Two-factor authentication disabled" 
-        : "Two-factor authentication enabled");
+      toast.success(
+        twoFactorEnabled
+          ? "Two-factor authentication disabled"
+          : "Two-factor authentication enabled"
+      );
     } catch (error) {
       console.error("Failed to toggle 2FA:", error);
       toast.error("Failed to update two-factor authentication settings.");
@@ -169,7 +182,7 @@ const ProfileSecurity: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       toast.success("Successfully logged out from all devices");
     } catch (error) {
       console.error("Failed to logout from devices:", error);
@@ -192,7 +205,7 @@ const ProfileSecurity: React.FC = () => {
         <div>
           <h3 className="text-lg font-medium mb-4">Change Password</h3>
           <Form {...form}>
-            <form 
+            <form
               onSubmit={form.handleSubmit(handlePasswordChange)}
               className="space-y-4"
             >
@@ -215,7 +228,9 @@ const ProfileSecurity: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
                       >
                         {showCurrentPassword ? (
                           <EyeOff className="h-4 w-4 text-gray-500" />
@@ -257,7 +272,8 @@ const ProfileSecurity: React.FC = () => {
                       </Button>
                     </div>
                     <FormDescription className="text-xs text-gray-500">
-                      Password should be at least 8 characters and include uppercase, lowercase, number, and special character.
+                      Password should be at least 8 characters and include
+                      uppercase, lowercase, number, and special character.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -282,7 +298,9 @@ const ProfileSecurity: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="h-4 w-4 text-gray-500" />
@@ -295,8 +313,8 @@ const ProfileSecurity: React.FC = () => {
                   </FormItem>
                 )}
               />
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
@@ -317,7 +335,9 @@ const ProfileSecurity: React.FC = () => {
 
         {/* Two-factor authentication */}
         <div>
-          <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
+          <h3 className="text-lg font-medium mb-4">
+            Two-Factor Authentication
+          </h3>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="two-factor">Two-factor authentication</Label>
@@ -326,14 +346,18 @@ const ProfileSecurity: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Switch 
-                id="two-factor" 
-                checked={twoFactorEnabled} 
+              <Switch
+                id="two-factor"
+                checked={twoFactorEnabled}
                 onCheckedChange={handleToggle2FA}
                 className="data-[state=checked]:bg-purple-600"
               />
-              <span className={`text-sm font-medium ${twoFactorEnabled ? 'text-purple-600' : 'text-muted-foreground'}`}>
-                {twoFactorEnabled ? 'Enabled' : 'Disabled'}
+              <span
+                className={`text-sm font-medium ${
+                  twoFactorEnabled ? "text-purple-600" : "text-muted-foreground"
+                }`}
+              >
+                {twoFactorEnabled ? "Enabled" : "Disabled"}
               </span>
             </div>
           </div>
@@ -341,7 +365,9 @@ const ProfileSecurity: React.FC = () => {
             <div className="mt-4 p-4 bg-purple-50 text-purple-700 rounded-md flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-purple-500 flex-shrink-0" />
               <p className="text-sm">
-                Two-factor authentication is enabled on your account. You'll need to enter a code from your authenticator app when signing in.
+                Two-factor authentication is enabled on your account. You'll
+                need to enter a code from your authenticator app when signing
+                in.
               </p>
             </div>
           )}
@@ -349,13 +375,17 @@ const ProfileSecurity: React.FC = () => {
             <div className="mt-4 p-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-md flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
               <p className="text-sm">
-                Two-factor authentication is disabled. We recommend enabling this feature to better secure your account.
+                Two-factor authentication is disabled. We recommend enabling
+                this feature to better secure your account.
               </p>
             </div>
           )}
           {twoFactorEnabled && (
             <div className="mt-4">
-              <Button variant="outline" className="flex items-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+              >
                 <Smartphone className="h-4 w-4" />
                 Configure Authenticator App
               </Button>
@@ -367,7 +397,9 @@ const ProfileSecurity: React.FC = () => {
 
         {/* Active Sessions & Logout */}
         <div>
-          <h3 className="text-lg font-medium mb-4">Sessions & Login Activity</h3>
+          <h3 className="text-lg font-medium mb-4">
+            Sessions & Login Activity
+          </h3>
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="text-muted-foreground text-sm">
@@ -395,11 +427,11 @@ const ProfileSecurity: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex items-center gap-2 border-rose-200 text-rose-600 hover:bg-rose-50"
                 >
                   <LogOut className="h-4 w-4" />
@@ -410,7 +442,8 @@ const ProfileSecurity: React.FC = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Logout from all devices?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will end all your active sessions. You'll need to login again on all your devices.
+                    This will end all your active sessions. You'll need to login
+                    again on all your devices.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -444,13 +477,20 @@ const ProfileSecurity: React.FC = () => {
             <div className="flex items-start gap-3">
               <Shield className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-purple-900">Your account is well-protected</p>
+                <p className="font-medium text-purple-900">
+                  Your account is well-protected
+                </p>
                 <p className="text-sm text-purple-700 mt-0.5">
-                  You've taken all recommended security measures for your account.
+                  You've taken all recommended security measures for your
+                  account.
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 hover:bg-purple-50">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-purple-200 text-purple-700 hover:bg-purple-50"
+            >
               Security Checkup
             </Button>
           </div>

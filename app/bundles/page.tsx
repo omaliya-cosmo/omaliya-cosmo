@@ -89,7 +89,10 @@ export default function BundlesPage() {
   const [cartCount, setCartCount] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("featured");
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [bundleoffers, setBundleoffers] = useState<any[]>([]);
+  const [bundleCategories, setBundleCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -99,6 +102,8 @@ export default function BundlesPage() {
     fetchAdmin();
     fetchCartData();
     fetchBundles();
+    fetchProducts();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -153,6 +158,9 @@ export default function BundlesPage() {
       // Fetch from actual API
       const response = await axios.get("/api/bundleoffers");
       const apiBundles: ApiBundleOffer[] = response.data;
+
+      // Set the bundleoffers for Header component
+      setBundleoffers(apiBundles);
 
       // Transform API response to match our Bundle interface
       const transformedBundles: Bundle[] = apiBundles.map((bundle) => {
@@ -247,7 +255,7 @@ export default function BundlesPage() {
       const uniqueCategories = Array.from(
         new Set(transformedBundles.map((bundle) => bundle.category))
       );
-      setCategories(uniqueCategories);
+      setBundleCategories(uniqueCategories);
 
       setBundles(transformedBundles);
       setFilteredBundles(transformedBundles);
@@ -256,6 +264,25 @@ export default function BundlesPage() {
       console.error("Error fetching bundles:", error);
       setError("Failed to load bundle offers. Please try again later.");
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      // Fetch products (limit to a few for the header)
+      const productsResponse = await axios.get("/api/products?limit=4");
+      setProducts(productsResponse.data.products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get("/api/categories");
+      setCategories(response.data.categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -287,7 +314,15 @@ export default function BundlesPage() {
     <div className="min-h-screen flex flex-col">
       <ToastContainer />
 
-      <Header userData={userData} cartCount={cartCount} />
+      <Header
+        userData={userData}
+        cartCount={cartCount}
+        products={products}
+        categories={categories}
+        bundles={bundleoffers}
+        loading={loading}
+        error={error}
+      />
 
       <main className="flex-grow">
         {/* Hero Section */}
@@ -313,70 +348,20 @@ export default function BundlesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Bundle & Save</h1>
+                <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+                  Bundle & Save
+                </h1>
                 <p className="text-lg md:text-xl text-gray-600 mb-8">
-                  Shop our carefully curated product bundles designed to work perfectly together — at special discounted prices.
+                  Shop our carefully curated product bundles designed to work
+                  perfectly together — at special discounted prices.
                 </p>
-                <div className="flex gap-4 justify-center">
-                  <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]">
-                    <Sparkles size={18} className="animate-pulse" />
-                    Featured Bundles
-                  </Button>
-                  <Button size="lg" variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50 gap-2">
-                    <Tag size={18} />
-                    View All Offers
-                  </Button>
-                </div>
               </motion.div>
             </div>
           </div>
         </div>
 
         {/* Filters and Sorting */}
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-700">Discover Our Bundles</h2>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2 relative">
-                <div className="absolute left-2 pointer-events-none">
-                  <Filter className="h-4 w-4 text-purple-500" />
-                </div>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger className="w-full sm:w-[180px] pl-8 border-gray-200 focus:border-purple-400 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Select
-                value={sortOption}
-                onValueChange={setSortOption}
-              >
-                <SelectTrigger className="w-full sm:w-[180px] border-gray-200 focus:border-purple-400 focus:ring focus:ring-purple-200 focus:ring-opacity-50">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="featured">Featured</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="savings">Highest Savings</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
+        <div className="container mx-auto px-24 py-8">
           {/* Bundles Grid */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -433,11 +418,14 @@ export default function BundlesPage() {
                   className="h-full"
                 >
                   <Card className="h-full flex flex-col overflow-hidden border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
-                    <div className="relative overflow-hidden" style={{ height: '240px' }}>
+                    <div
+                      className="relative overflow-hidden"
+                      style={{ height: "240px" }}
+                    >
                       {bundle.image ? (
-                        <div 
-                          className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110" 
-                          style={{ 
+                        <div
+                          className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110"
+                          style={{
                             backgroundImage: `url('${bundle.image}')`,
                             backgroundColor: "rgba(0,0,0,0.05)",
                           }}
@@ -461,11 +449,14 @@ export default function BundlesPage() {
                           Save {bundle.savingsPercentage}%
                         </Badge>
                       </div>
-                    </div>                    
+                    </div>
                     <CardContent className="p-6 flex-grow">
                       <div className="mb-4">
                         <h3 className="text-xl font-semibold mb-3 transition-colors">
-                          <Link href={`/bundles/${bundle.id}`} className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
+                          <Link
+                            href={`/bundles/${bundle.id}`}
+                            className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                          >
                             {bundle.name}
                           </Link>
                         </h3>
@@ -473,14 +464,19 @@ export default function BundlesPage() {
                           {bundle.description}
                         </p>
                       </div>
-                      
+
                       <Separator className="my-4 bg-gradient-to-r from-transparent via-purple-200 to-transparent h-px" />
-                      
+
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-800">Includes:</p>
+                        <p className="text-sm font-medium text-gray-800">
+                          Includes:
+                        </p>
                         <ul className="text-sm space-y-2">
                           {bundle.products.slice(0, 3).map((product, idx) => (
-                            <li key={idx} className="flex items-center gap-2 text-gray-700">
+                            <li
+                              key={idx}
+                              className="flex items-center gap-2 text-gray-700"
+                            >
                               <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                               {product.name}
                             </li>
@@ -493,7 +489,7 @@ export default function BundlesPage() {
                         </ul>
                       </div>
                     </CardContent>
-                    
+
                     <CardFooter className="p-6 border-t bg-gradient-to-r from-purple-50 to-pink-50">
                       <div className="w-full flex justify-between items-center">
                         <div className="space-y-1">
@@ -524,36 +520,36 @@ export default function BundlesPage() {
         {/* Why Choose Bundles */}
         <div className="bg-gradient-to-b from-white to-purple-50 py-16 relative overflow-hidden">
           {/* Decorative elements */}
-          <motion.div 
+          <motion.div
             className="absolute w-80 h-80 rounded-full bg-gradient-to-r from-purple-200/20 to-pink-200/20 blur-3xl"
-            style={{ top: '40%', right: '5%' }}
+            style={{ top: "40%", right: "5%" }}
             animate={{
               y: [0, -30, 0],
               opacity: [0.3, 0.5, 0.3],
             }}
-            transition={{ 
+            transition={{
               repeat: Infinity,
               duration: 18,
-              ease: "easeInOut"
+              ease: "easeInOut",
             }}
           />
 
-          <motion.div 
+          <motion.div
             className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-pink-200/20 to-purple-200/20 blur-3xl"
-            style={{ bottom: '10%', left: '5%' }}
+            style={{ bottom: "10%", left: "5%" }}
             animate={{
               y: [0, 30, 0],
               opacity: [0.3, 0.5, 0.3],
             }}
-            transition={{ 
+            transition={{
               repeat: Infinity,
               duration: 15,
-              ease: "easeInOut"
+              ease: "easeInOut",
             }}
           />
 
           <div className="container mx-auto px-4 relative z-10">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -567,12 +563,13 @@ export default function BundlesPage() {
                 Why Choose Our Product Bundles?
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
-                Save money and simplify your beauty routine with our expertly curated product combinations
+                Save money and simplify your beauty routine with our expertly
+                curated product combinations
               </p>
             </motion.div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
@@ -583,13 +580,16 @@ export default function BundlesPage() {
                 <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
                   <Tag className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Save More</h3>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">
+                  Save More
+                </h3>
                 <p className="text-gray-600">
-                  Enjoy exclusive discounts up to 25% when you buy our carefully curated product bundles.
+                  Enjoy exclusive discounts up to 25% when you buy our carefully
+                  curated product bundles.
                 </p>
               </motion.div>
-              
-              <motion.div 
+
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
@@ -600,13 +600,16 @@ export default function BundlesPage() {
                 <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
                   <Sparkles className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Perfect Combinations</h3>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">
+                  Perfect Combinations
+                </h3>
                 <p className="text-gray-600">
-                  Products that work together for maximum effectiveness and results for your beauty routine.
+                  Products that work together for maximum effectiveness and
+                  results for your beauty routine.
                 </p>
               </motion.div>
-              
-              <motion.div 
+
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
@@ -617,28 +620,15 @@ export default function BundlesPage() {
                 <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-md">
                   <Package className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Simplified Routine</h3>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">
+                  Simplified Routine
+                </h3>
                 <p className="text-gray-600">
-                  Get everything you need in one purchase with our expertly designed skincare and beauty bundles.
+                  Get everything you need in one purchase with our expertly
+                  designed skincare and beauty bundles.
                 </p>
               </motion.div>
             </div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              viewport={{ once: true }}
-              className="mt-12 text-center"
-            >
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]"
-              >
-                <Sparkles size={18} />
-                Explore All Bundles
-              </Button>
-            </motion.div>
           </div>
         </div>
       </main>

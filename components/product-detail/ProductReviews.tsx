@@ -1,19 +1,18 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FiStar, 
-  FiUser, 
+import {
+  FiStar,
+  FiUser,
   FiMessageSquare,
   FiSearch,
   FiFilter,
   FiCheck,
   FiThumbsUp,
   FiThumbsDown,
-  FiImage,
   FiX,
   FiChevronDown,
-  FiAlertCircle
+  FiAlertCircle,
 } from "react-icons/fi";
 import { Review } from "@prisma/client";
 
@@ -42,7 +41,7 @@ const SORT_OPTIONS = [
   { value: "oldest", label: "Oldest first" },
   { value: "highest", label: "Highest rating" },
   { value: "lowest", label: "Lowest rating" },
-  { value: "helpful", label: "Most helpful" }
+  { value: "helpful", label: "Most helpful" },
 ];
 
 const FILTER_OPTIONS = [
@@ -53,10 +52,13 @@ const FILTER_OPTIONS = [
   { value: "2", label: "2 stars" },
   { value: "1", label: "1 star" },
   { value: "verified", label: "Verified purchases" },
-  { value: "images", label: "With images" }
+  { value: "images", label: "With images" },
 ];
 
-const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews, productId }) => {
+const ProductReviews: React.FC<ProductReviewsProps> = ({
+  reviews: initialReviews,
+  productId,
+}) => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
@@ -65,26 +67,24 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
   const [sortOption, setSortOption] = useState("newest");
   const [filterOption, setFilterOption] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [reviews, setReviews] = useState<ExtendedReview[]>(initialReviews);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
-  const [ratingCriteria, setRatingCriteria] = useState({
-    quality: 5,
-    value: 5,
-    appearance: 5,
-  });
 
   // Calculate average rating
-  const averageRating = reviews.length > 0
-    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-    : "0.0";
+  const averageRating =
+    reviews.length > 0
+      ? (
+          reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
+        ).toFixed(1)
+      : "0.0";
 
   // Rating distribution
-  const ratingDistribution = [5, 4, 3, 2, 1].map(rating => {
-    const count = reviews.filter(review => review.rating === rating).length;
+  const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
+    const count = reviews.filter((review) => review.rating === rating).length;
     const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
     return { rating, count, percentage };
   });
@@ -92,33 +92,43 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
   // Handle filtering and sorting
   useEffect(() => {
     let filteredReviews = [...initialReviews];
-    
+
     // Apply filters
     if (filterOption !== "all") {
       if (filterOption === "verified") {
-        filteredReviews = filteredReviews.filter(review => review.isVerifiedPurchase);
+        filteredReviews = filteredReviews.filter(
+          (review) => review.isVerifiedPurchase
+        );
       } else if (filterOption === "images") {
-        filteredReviews = filteredReviews.filter(review => review.images && review.images.length > 0);
+        filteredReviews = filteredReviews.filter(
+          (review) => review.images && review.images.length > 0
+        );
       } else {
         const ratingFilter = parseInt(filterOption);
-        filteredReviews = filteredReviews.filter(review => review.rating === ratingFilter);
+        filteredReviews = filteredReviews.filter(
+          (review) => review.rating === ratingFilter
+        );
       }
     }
-    
+
     // Apply search
     if (searchQuery.trim()) {
-      filteredReviews = filteredReviews.filter(review => 
+      filteredReviews = filteredReviews.filter((review) =>
         review.review?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // Apply sorting
     switch (sortOption) {
       case "newest":
-        filteredReviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        filteredReviews.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
         break;
       case "oldest":
-        filteredReviews.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        filteredReviews.sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
         break;
       case "highest":
         filteredReviews.sort((a, b) => b.rating - a.rating);
@@ -127,41 +137,39 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
         filteredReviews.sort((a, b) => a.rating - b.rating);
         break;
       case "helpful":
-        filteredReviews.sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0));
+        filteredReviews.sort(
+          (a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0)
+        );
         break;
       default:
         break;
     }
-    
+
     setReviews(filteredReviews);
   }, [initialReviews, sortOption, filterOption, searchQuery]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // In a real implementation, this would send the review to your API
     setIsSubmitting(true);
-    
+
     try {
       // Mock API call
       console.log("Submitting review:", {
         productId,
         rating: reviewRating,
         text: reviewText,
-        images: reviewImages,
-        criteria: ratingCriteria
       });
-      
+
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Reset form
       setReviewText("");
       setReviewRating(5);
-      setReviewImages([]);
-      setRatingCriteria({ quality: 5, value: 5, appearance: 5 });
       setShowReviewForm(false);
-      
+
       // In a real app, you would refresh the reviews or add the new one to the list
       alert("Thank you for your review!");
     } catch (error) {
@@ -175,10 +183,10 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
   // Format date to readable string
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -187,79 +195,72 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     let interval = Math.floor(seconds / 31536000);
     if (interval >= 1) {
       return interval === 1 ? `${interval} year ago` : `${interval} years ago`;
     }
-    
+
     interval = Math.floor(seconds / 2592000);
     if (interval >= 1) {
-      return interval === 1 ? `${interval} month ago` : `${interval} months ago`;
+      return interval === 1
+        ? `${interval} month ago`
+        : `${interval} months ago`;
     }
-    
+
     interval = Math.floor(seconds / 86400);
     if (interval >= 1) {
       return interval === 1 ? `${interval} day ago` : `${interval} days ago`;
     }
-    
+
     interval = Math.floor(seconds / 3600);
     if (interval >= 1) {
       return interval === 1 ? `${interval} hour ago` : `${interval} hours ago`;
     }
-    
+
     interval = Math.floor(seconds / 60);
     if (interval >= 1) {
-      return interval === 1 ? `${interval} minute ago` : `${interval} minutes ago`;
+      return interval === 1
+        ? `${interval} minute ago`
+        : `${interval} minutes ago`;
     }
-    
-    return 'Just now';
-  };
 
-  // Handle image uploads (mock implementation)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      // In a real app, you would upload the image to your server/CDN
-      // Here we'll just create object URLs for preview
-      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-      setReviewImages([...reviewImages, ...newImages]);
-    }
-  };
-
-  // Remove an uploaded image
-  const removeImage = (indexToRemove: number) => {
-    setReviewImages(reviewImages.filter((_, index) => index !== indexToRemove));
+    return "Just now";
   };
 
   // Handle voting on review helpfulness (mock implementation)
   const handleHelpfulVote = (reviewId: string, helpful: boolean) => {
     // In a real app, you would send this to your API
-    console.log(`Marked review ${reviewId} as ${helpful ? 'helpful' : 'not helpful'}`);
-    
+    console.log(
+      `Marked review ${reviewId} as ${helpful ? "helpful" : "not helpful"}`
+    );
+
     // For demo purposes, just update the UI optimistically
-    setReviews(reviews.map(review => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          helpfulCount: (review.helpfulCount || 0) + (helpful ? 1 : -1)
-        };
-      }
-      return review;
-    }));
+    setReviews(
+      reviews.map((review) => {
+        if (review.id === reviewId) {
+          return {
+            ...review,
+            helpfulCount: (review.helpfulCount || 0) + (helpful ? 1 : -1),
+          };
+        }
+        return review;
+      })
+    );
   };
 
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
+      transition: { staggerChildren: 0.05 },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   // Display reviews (either all or limited number)
@@ -267,54 +268,61 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
   const hasMoreReviews = reviews.length > 5;
 
   return (
-    <motion.div 
+    <motion.div
       className="mt-16 border-t border-gray-200 pt-10"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
       id="reviews"
     >
-      <motion.h2 
+      <motion.h2
         className="text-2xl font-bold text-gray-900 flex items-center"
         variants={itemVariants}
       >
         <FiMessageSquare className="mr-2" />
         Customer Reviews ({reviews.length})
       </motion.h2>
-      
+
       {/* Review summary */}
-      <motion.div 
+      <motion.div
         className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8"
         variants={itemVariants}
       >
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <div className="flex items-center">
-            <span className="text-5xl font-bold text-gray-900 mr-4">{averageRating}</span>
+            <span className="text-5xl font-bold text-gray-900 mr-4">
+              {averageRating}
+            </span>
             <div>
               <div className="flex items-center">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <FiStar
                     key={star}
-                    className={star <= Math.round(Number(averageRating)) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                    className={
+                      star <= Math.round(Number(averageRating))
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-gray-300"
+                    }
                     size={20}
                   />
                 ))}
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                Based on {reviews.length}{" "}
+                {reviews.length === 1 ? "review" : "reviews"}
               </p>
             </div>
           </div>
-          
+
           {/* Rating distribution */}
           <div className="mt-6 space-y-3">
             {ratingDistribution.map(({ rating, count, percentage }) => (
               <div key={rating} className="flex items-center">
-                <button 
+                <button
                   onClick={() => setFilterOption(rating.toString())}
                   className="w-16 text-sm text-gray-700 hover:text-indigo-600 hover:underline text-left"
                 >
-                  {rating} {rating === 1 ? 'star' : 'stars'}
+                  {rating} {rating === 1 ? "star" : "stars"}
                 </button>
                 <div className="flex-1 h-3 mx-2 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div
@@ -324,17 +332,22 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                     className="h-full bg-yellow-400"
                   />
                 </div>
-                <span className="w-10 text-sm text-gray-700 text-right">{count}</span>
+                <span className="w-10 text-sm text-gray-700 text-right">
+                  {count}
+                </span>
               </div>
             ))}
           </div>
         </div>
-        
+
         <div className="flex flex-col justify-between bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-100 p-6 shadow-sm">
           <div>
-            <h3 className="font-medium text-indigo-900 mb-2">Share your experience</h3>
+            <h3 className="font-medium text-indigo-900 mb-2">
+              Share your experience
+            </h3>
             <p className="text-indigo-800 opacity-90 mb-6">
-              Your feedback helps other shoppers make better decisions and allows us to improve our products.
+              Your feedback helps other shoppers make better decisions and
+              allows us to improve our products.
             </p>
           </div>
           <button
@@ -346,9 +359,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
           </button>
         </div>
       </motion.div>
-      
+
       {/* Search, sort and filter controls */}
-      <motion.div 
+      <motion.div
         className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4"
         variants={itemVariants}
       >
@@ -364,7 +377,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full md:w-64 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
-        
+
         <div className="flex flex-wrap gap-3">
           {/* Sort dropdown */}
           <div className="relative">
@@ -372,10 +385,17 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
               onClick={() => setShowSortOptions(!showSortOptions)}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
             >
-              <span className="text-sm">Sort by: {SORT_OPTIONS.find(opt => opt.value === sortOption)?.label}</span>
-              <FiChevronDown className={`transition-transform ${showSortOptions ? 'rotate-180' : ''}`} />
+              <span className="text-sm">
+                Sort by:{" "}
+                {SORT_OPTIONS.find((opt) => opt.value === sortOption)?.label}
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  showSortOptions ? "rotate-180" : ""
+                }`}
+              />
             </button>
-            
+
             <AnimatePresence>
               {showSortOptions && (
                 <motion.div
@@ -385,7 +405,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                   className="absolute right-0 top-12 z-10 w-56 mt-1 bg-white border border-gray-200 rounded-md shadow-lg"
                 >
                   <div className="py-1">
-                    {SORT_OPTIONS.map(option => (
+                    {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => {
@@ -393,9 +413,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                           setShowSortOptions(false);
                         }}
                         className={`w-full text-left px-4 py-2 text-sm ${
-                          sortOption === option.value 
-                            ? 'bg-indigo-50 text-indigo-700 font-medium' 
-                            : 'text-gray-700 hover:bg-gray-50'
+                          sortOption === option.value
+                            ? "bg-indigo-50 text-indigo-700 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
                         {option.label}
@@ -406,26 +426,33 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
               )}
             </AnimatePresence>
           </div>
-          
+
           {/* Filter dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowFilterOptions(!showFilterOptions)}
               className={`flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 ${
-                filterOption !== "all" 
-                  ? "border-indigo-300 bg-indigo-50 text-indigo-700" 
+                filterOption !== "all"
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
                   : "border-gray-300 bg-white text-gray-700"
               }`}
             >
-              <FiFilter className={filterOption !== "all" ? "text-indigo-500" : ""} />
-              <span className="text-sm">{
-                filterOption === "all" 
-                  ? "Filter reviews" 
-                  : FILTER_OPTIONS.find(opt => opt.value === filterOption)?.label
-              }</span>
-              <FiChevronDown className={`transition-transform ${showFilterOptions ? 'rotate-180' : ''}`} />
+              <FiFilter
+                className={filterOption !== "all" ? "text-indigo-500" : ""}
+              />
+              <span className="text-sm">
+                {filterOption === "all"
+                  ? "Filter reviews"
+                  : FILTER_OPTIONS.find((opt) => opt.value === filterOption)
+                      ?.label}
+              </span>
+              <FiChevronDown
+                className={`transition-transform ${
+                  showFilterOptions ? "rotate-180" : ""
+                }`}
+              />
             </button>
-            
+
             <AnimatePresence>
               {showFilterOptions && (
                 <motion.div
@@ -435,7 +462,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                   className="absolute right-0 top-12 z-10 w-56 mt-1 bg-white border border-gray-200 rounded-md shadow-lg"
                 >
                   <div className="py-1">
-                    {FILTER_OPTIONS.map(option => (
+                    {FILTER_OPTIONS.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => {
@@ -443,9 +470,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                           setShowFilterOptions(false);
                         }}
                         className={`w-full text-left px-4 py-2 text-sm ${
-                          filterOption === option.value 
-                            ? 'bg-indigo-50 text-indigo-700 font-medium' 
-                            : 'text-gray-700 hover:bg-gray-50'
+                          filterOption === option.value
+                            ? "bg-indigo-50 text-indigo-700 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
                         {option.label}
@@ -458,27 +485,29 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
           </div>
         </div>
       </motion.div>
-      
+
       {/* Review form */}
       <AnimatePresence>
         {showReviewForm && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
             className="mt-8 border rounded-lg p-6 bg-white shadow-sm"
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Write a Review</h3>
-              <button 
+              <h3 className="text-lg font-medium text-gray-900">
+                Write a Review
+              </h3>
+              <button
                 onClick={() => setShowReviewForm(false)}
                 className="text-gray-400 hover:text-gray-500"
               >
                 <FiX size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmitReview}>
               {/* Overall rating */}
               <div className="mb-6">
@@ -496,91 +525,35 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                       className="p-1"
                     >
                       <FiStar
-                        className={star <= (hoverRating || reviewRating) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                        className={
+                          star <= (hoverRating || reviewRating)
+                            ? "text-yellow-400 fill-yellow-400"
+                            : "text-gray-300"
+                        }
                         size={32}
                       />
                     </button>
                   ))}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  {reviewRating === 5 ? "Excellent - Very satisfied with this product" :
-                   reviewRating === 4 ? "Good - Happy with this product" :
-                   reviewRating === 3 ? "Average - Product is okay" :
-                   reviewRating === 2 ? "Poor - Product has issues" :
-                                         "Terrible - Very disappointed"
-                  }
+                  {reviewRating === 5
+                    ? "Excellent - Very satisfied with this product"
+                    : reviewRating === 4
+                    ? "Good - Happy with this product"
+                    : reviewRating === 3
+                    ? "Average - Product is okay"
+                    : reviewRating === 2
+                    ? "Poor - Product has issues"
+                    : "Terrible - Very disappointed"}
                 </p>
               </div>
-              
-              {/* Specific rating criteria */}
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quality
-                  </label>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRatingCriteria({...ratingCriteria, quality: star})}
-                        className="p-1"
-                      >
-                        <FiStar
-                          className={star <= ratingCriteria.quality ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
-                          size={16}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Value for Money
-                  </label>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRatingCriteria({...ratingCriteria, value: star})}
-                        className="p-1"
-                      >
-                        <FiStar
-                          className={star <= ratingCriteria.value ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
-                          size={16}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Appearance
-                  </label>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRatingCriteria({...ratingCriteria, appearance: star})}
-                        className="p-1"
-                      >
-                        <FiStar
-                          className={star <= ratingCriteria.appearance ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
-                          size={16}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
+
               {/* Review text */}
               <div className="mb-4">
-                <label htmlFor="review" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="review"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Your Review
                 </label>
                 <textarea
@@ -596,47 +569,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                   Minimum 10 characters, maximum 1000 characters
                 </p>
               </div>
-              
-              {/* Image upload */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Add Photos (optional)
-                </label>
-                
-                <div className="flex flex-wrap gap-3 mb-3">
-                  {reviewImages.map((image, index) => (
-                    <div key={index} className="relative w-20 h-20 rounded border border-gray-200 overflow-hidden">
-                      <img src={image} alt={`Review image ${index + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-0 right-0 bg-white rounded-full p-1 shadow-sm"
-                      >
-                        <FiX size={12} />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {reviewImages.length < 5 && (
-                    <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer hover:bg-gray-50 transition-colors duration-200">
-                      <FiImage className="text-gray-400 mb-1" size={20} />
-                      <span className="text-xs text-gray-500">Add photo</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleImageUpload} 
-                        className="hidden" 
-                        multiple={reviewImages.length < 4}
-                      />
-                    </label>
-                  )}
-                </div>
-                
-                <p className="text-xs text-gray-500">
-                  You can upload up to 5 images. Please ensure they are relevant to the product.
-                </p>
-              </div>
-              
+
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
@@ -652,16 +585,30 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                 >
                   {isSubmitting ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Submitting...
                     </>
                   ) : (
-                    <>
-                      Submit Review
-                    </>
+                    <>Submit Review</>
                   )}
                 </button>
               </div>
@@ -669,25 +616,24 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Review list */}
-      <motion.div 
-        className="mt-8 space-y-6"
-        variants={itemVariants}
-      >
+      <motion.div className="mt-8 space-y-6" variants={itemVariants}>
         {reviews.length === 0 ? (
           searchQuery || filterOption !== "all" ? (
             <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
               <FiAlertCircle className="mx-auto text-gray-400 mb-3" size={36} />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No matching reviews</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No matching reviews
+              </h3>
               <p className="text-gray-600">
-                {searchQuery && filterOption !== "all" 
-                  ? `No ${filterOption}-star reviews containing "${searchQuery}"` 
-                  : searchQuery 
-                    ? `No reviews containing "${searchQuery}"` 
-                    : `No ${filterOption}-star reviews`}
+                {searchQuery && filterOption !== "all"
+                  ? `No ${filterOption}-star reviews containing "${searchQuery}"`
+                  : searchQuery
+                  ? `No reviews containing "${searchQuery}"`
+                  : `No ${filterOption}-star reviews`}
               </p>
-              <button 
+              <button
                 onClick={() => {
                   setSearchQuery("");
                   setFilterOption("all");
@@ -699,9 +645,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
             </div>
           ) : (
             <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
-              <FiMessageSquare className="mx-auto text-gray-400 mb-3" size={36} />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No reviews yet</h3>
-              <p className="text-gray-600 mb-4">Be the first to share your thoughts on this product</p>
+              <FiMessageSquare
+                className="mx-auto text-gray-400 mb-3"
+                size={36}
+              />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No reviews yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Be the first to share your thoughts on this product
+              </p>
               <button
                 onClick={() => setShowReviewForm(true)}
                 className="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 inline-flex items-center"
@@ -712,21 +665,25 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
             </div>
           )
         ) : (
-          <motion.div 
+          <motion.div
             className="space-y-8"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
             {displayedReviews.map((review) => {
-              const customerInitials = `${review.customer?.firstName?.charAt(0) || ''}${review.customer?.lastName?.charAt(0) || ''}`;
+              const customerInitials = `${
+                review.customer?.firstName?.charAt(0) || ""
+              }${review.customer?.lastName?.charAt(0) || ""}`;
               const isExpanded = activeReviewId === review.id;
-              
+
               return (
-                <motion.div 
-                  key={review.id} 
+                <motion.div
+                  key={review.id}
                   className={`border rounded-lg overflow-hidden transition-all duration-200 ${
-                    isExpanded ? 'shadow-md border-indigo-200' : 'border-gray-200'
+                    isExpanded
+                      ? "shadow-md border-indigo-200"
+                      : "border-gray-200"
                   }`}
                   variants={itemVariants}
                 >
@@ -734,9 +691,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                     <div className="flex items-start">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 mr-4 flex-shrink-0">
                         {review.customer?.avatar ? (
-                          <img 
-                            src={review.customer.avatar} 
-                            alt="Reviewer" 
+                          <img
+                            src={review.customer.avatar}
+                            alt="Reviewer"
                             className="w-full h-full rounded-full object-cover"
                           />
                         ) : (
@@ -745,15 +702,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex flex-wrap justify-between items-start gap-2">
                           <div>
                             <h4 className="font-medium text-gray-900 flex items-center">
-                              {review.customer 
-                                ? `${review.customer.firstName || ''} ${review.customer.lastName || ''}`.trim() || 'Anonymous User'
-                                : 'Anonymous User'
-                              }
+                              {review.customer
+                                ? `${review.customer.firstName || ""} ${
+                                    review.customer.lastName || ""
+                                  }`.trim() || "Anonymous User"
+                                : "Anonymous User"}
                               {review.isVerifiedPurchase && (
                                 <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full flex items-center">
                                   <FiCheck className="mr-1" size={10} />
@@ -761,62 +719,83 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                                 </span>
                               )}
                             </h4>
-                            <p className="text-xs text-gray-500 mt-0.5">{timeAgo(review.date.toString())}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {timeAgo(review.date.toString())}
+                            </p>
                           </div>
-                          
+
                           <div className="flex items-center">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <FiStar
                                 key={star}
-                                className={star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                                className={
+                                  star <= review.rating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }
                                 size={16}
                               />
                             ))}
                           </div>
                         </div>
-                        
+
                         {/* Review title (if available) */}
                         {review.title && (
-                          <h5 className="font-medium text-gray-900 mt-3 mb-1">{review.title}</h5>
+                          <h5 className="font-medium text-gray-900 mt-3 mb-1">
+                            {review.title}
+                          </h5>
                         )}
-                        
+
                         {/* Review content */}
-                        <div className={`text-gray-700 prose prose-sm max-w-none mt-3 ${
-                          review.review && review.review.length > 300 && !isExpanded
-                            ? 'line-clamp-3'
-                            : ''
-                        }`}>
-                          <p>{review.review || 'No written review provided.'}</p>
+                        <div
+                          className={`text-gray-700 prose prose-sm max-w-none mt-3 ${
+                            review.review &&
+                            review.review.length > 300 &&
+                            !isExpanded
+                              ? "line-clamp-3"
+                              : ""
+                          }`}
+                        >
+                          <p>
+                            {review.review || "No written review provided."}
+                          </p>
                         </div>
-                        
+
                         {/* Read more / less button */}
                         {review.review && review.review.length > 300 && (
                           <button
-                            onClick={() => setActiveReviewId(isExpanded ? null : review.id)}
+                            onClick={() =>
+                              setActiveReviewId(isExpanded ? null : review.id)
+                            }
                             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium mt-2"
                           >
-                            {isExpanded ? 'Show less' : 'Read more'}
+                            {isExpanded ? "Show less" : "Read more"}
                           </button>
                         )}
-                        
+
                         {/* Review images */}
                         {review.images && review.images.length > 0 && (
                           <div className="mt-4 flex flex-wrap gap-2">
                             {review.images.map((image, index) => (
-                              <div key={index} className="w-16 h-16 rounded overflow-hidden border border-gray-200">
-                                <img 
-                                  src={image} 
-                                  alt={`Review image ${index + 1}`} 
+                              <div
+                                key={index}
+                                className="w-16 h-16 rounded overflow-hidden border border-gray-200"
+                              >
+                                <img
+                                  src={image}
+                                  alt={`Review image ${index + 1}`}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Helpful voting */}
                         <div className="mt-4 flex items-center text-sm">
-                          <span className="text-gray-500 mr-3">Was this review helpful?</span>
+                          <span className="text-gray-500 mr-3">
+                            Was this review helpful?
+                          </span>
                           <button
                             onClick={() => handleHelpfulVote(review.id, true)}
                             className="mr-2 px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 flex items-center"
@@ -829,16 +808,18 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                           >
                             <FiThumbsDown size={14} className="mr-1" /> No
                           </button>
-                          
+
                           {(review.helpfulCount || 0) > 0 && (
                             <span className="ml-3 text-xs text-gray-500">
-                              {review.helpfulCount} {review.helpfulCount === 1 ? 'person' : 'people'} found this helpful
+                              {review.helpfulCount}{" "}
+                              {review.helpfulCount === 1 ? "person" : "people"}{" "}
+                              found this helpful
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Store reply (if exists) */}
                     {review.replyText && (
                       <div className="mt-4 ml-16 bg-gray-50 p-4 rounded-md border border-gray-200">
@@ -847,18 +828,26 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                             <FiMessageSquare size={14} />
                           </div>
                           <div>
-                            <h5 className="font-medium text-gray-900">{review.replyAuthor || 'Store Team'}</h5>
-                            <p className="text-xs text-gray-500">{review.replyDate ? timeAgo(review.replyDate) : ''}</p>
+                            <h5 className="font-medium text-gray-900">
+                              {review.replyAuthor || "Store Team"}
+                            </h5>
+                            <p className="text-xs text-gray-500">
+                              {review.replyDate
+                                ? timeAgo(review.replyDate)
+                                : ""}
+                            </p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-700">{review.replyText}</p>
+                        <p className="text-sm text-gray-700">
+                          {review.replyText}
+                        </p>
                       </div>
                     )}
                   </div>
                 </motion.div>
               );
             })}
-            
+
             {/* Load more button */}
             {hasMoreReviews && (
               <motion.div
@@ -869,7 +858,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews: initialReviews
                   onClick={() => setShowAllReviews(!showAllReviews)}
                   className="text-indigo-600 hover:text-indigo-800 px-4 py-2 border border-indigo-200 rounded-md hover:bg-indigo-50"
                 >
-                  {showAllReviews ? `Show less reviews` : `Load all ${reviews.length} reviews`}
+                  {showAllReviews
+                    ? `Show less reviews`
+                    : `Load all ${reviews.length} reviews`}
                 </button>
               </motion.div>
             )}

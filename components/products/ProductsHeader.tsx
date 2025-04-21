@@ -1,5 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
 
 interface BreadcrumbItem {
   label: string;
@@ -20,7 +20,7 @@ export default function ProductsHeader({
   breadcrumbItems,
 }: ProductsHeaderProps) {
   return (
-    <div className="py-12 sm:py-16 container mx-auto px-4">
+    <div className="py-12 sm:py-12 container mx-auto px-4">
       {/* Breadcrumb navigation */}
       <nav className="mb-6">
         <ol className="flex space-x-2 text-sm">
@@ -28,7 +28,9 @@ export default function ProductsHeader({
             <React.Fragment key={index}>
               <li>
                 {item.active ? (
-                  <span className="font-medium text-purple-700">{item.label}</span>
+                  <span className="font-medium text-purple-700">
+                    {item.label}
+                  </span>
                 ) : (
                   <Link
                     href={item.href}

@@ -9,6 +9,7 @@ import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
 import { Product, ProductCategory } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
 // Define the cart item structure from the cart API
 interface CartItem {
@@ -41,6 +42,7 @@ interface DisplayCartItem {
 }
 
 const CartPage = () => {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   // const [processingCheckout, setProcessingCheckout] = useState<boolean>(false);
@@ -50,6 +52,7 @@ const CartPage = () => {
   const [promoCode, setPromoCode] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
   const [applyingPromo, setApplyingPromo] = useState<boolean>(false);
+  const [cartCount, setCartCount] = useState(0);
 
   const { country } = useCountry();
   console.log(country);
@@ -66,6 +69,19 @@ const CartPage = () => {
   useEffect(() => {
     fetchCartData();
   }, []);
+
+  // Function to update the cart count
+  const updateCartCount = () => {
+    const count = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    setCartCount(count);
+    // Refresh the UI to update the header
+    router.refresh();
+  };
+
+  // Update cart count whenever cart items change
+  useEffect(() => {
+    updateCartCount();
+  }, [cartItems]);
 
   const fetchCartData = async () => {
     try {
