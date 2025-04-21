@@ -21,6 +21,7 @@ export interface Product {
   discountPriceUSD: number | null;
   stock: number;
   orderItems?: OrderItem[];
+  tags?: string[]; // Added tags field
 }
 
 export interface ProductCategory {
