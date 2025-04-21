@@ -11,18 +11,13 @@ import {
 } from "@prisma/client";
 
 interface Product extends PrismaProduct {
-  category?: ProductCategory;
-  reviews?: Review[]; 
-  discountPriceLKR?: number; 
-  discountPriceUSD?: number; 
+  reviews?: Review[];
 }
 
 interface ProductCardProps {
   product: Product;
   categoryName: string;
   addToCart: (product: Product) => Promise<void>;
-  currency: string;
-  currencySymbol: string; 
   country: string;
   index?: number; // Added optional index property
 }
@@ -37,7 +32,7 @@ export default function ProductCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Update price calculation
   const price = country === "LK" ? product.priceLKR : product.priceUSD;
   const discountPrice =
@@ -116,11 +111,11 @@ export default function ProductCard({
           <svg
             key={i}
             className={`w-4 h-4 ${
-              i < fullStars 
-                ? "text-amber-400" 
-                : i === fullStars && hasHalfStar 
-                  ? "text-gradient-star"
-                  : "text-gray-200"
+              i < fullStars
+                ? "text-amber-400"
+                : i === fullStars && hasHalfStar
+                ? "text-gradient-star"
+                : "text-gray-200"
             }`}
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
@@ -144,14 +139,16 @@ export default function ProductCard({
       <motion.div
         ref={cardRef}
         className="relative w-full group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col hover:shadow-lg transition-all duration-300"
-        whileHover={{ 
-          y: -8, 
-          transition: { type: "spring", stiffness: 300, damping: 15 } 
+        whileHover={{
+          y: -8,
+          transition: { type: "spring", stiffness: 300, damping: 15 },
         }}
         style={{
           perspective: "1200px",
           transformStyle: "preserve-3d",
-          transform: isHovered ? `rotateY(${rotation.y}deg) rotateX(${rotation.x}deg)` : "none",
+          transform: isHovered
+            ? `rotateY(${rotation.y}deg) rotateX(${rotation.x}deg)`
+            : "none",
           transition: "transform 0.2s ease-out",
         }}
         onMouseMove={handleMouseMove}
@@ -186,7 +183,7 @@ export default function ProductCard({
                 {discountPercentage}% OFF
               </span>
             )}
-            
+
             {/* Low stock indicator */}
             {product.stock > 0 && product.stock <= 5 && (
               <span className="bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
@@ -214,10 +211,8 @@ export default function ProductCard({
           <h3 className="text-gray-900 font-medium text-lg mb-1.5 line-clamp-1 group-hover:text-purple-700 transition-colors">
             {product.name}
           </h3>
-          
-          <div className="mb-2">
-            {renderStars()}
-          </div>
+
+          <div className="mb-2">{renderStars()}</div>
 
           <p className="text-gray-600 text-sm line-clamp-2 mb-4 flex-grow">
             {product.description}
@@ -243,8 +238,8 @@ export default function ProductCard({
                 isAddingToCart
                   ? "bg-gray-200 text-gray-500"
                   : product.stock <= 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white transform hover:scale-105"
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white transform hover:scale-105"
               } transition-all duration-200 shadow-sm`}
               onClick={handleAddToCart}
               disabled={isAddingToCart || product.stock <= 0}
@@ -308,9 +303,15 @@ export default function ProductCard({
           .group:hover {
             z-index: 10;
           }
-          
+
           .text-gradient-star {
-            background: linear-gradient(to right, #fbbf24 0%, #fbbf24 50%, #e5e7eb 50%, #e5e7eb 100%);
+            background: linear-gradient(
+              to right,
+              #fbbf24 0%,
+              #fbbf24 50%,
+              #e5e7eb 50%,
+              #e5e7eb 100%
+            );
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;

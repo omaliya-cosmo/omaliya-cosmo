@@ -16,6 +16,7 @@ model Product {
   id                String           @id @default(auto()) @map("_id") @db.ObjectId
   name              String
   description       String
+  fullDescription String             @map("full_description") // Detailed product description
   imageUrls         String[]         @map("image_urls") // Array of image URLs
   categoryId        String           @db.ObjectId @map("category_id")
   category          ProductCategory  @relation(fields: [categoryId], references: [id])
@@ -29,6 +30,16 @@ model Product {
   updatedAt         DateTime         @updatedAt @map("updated_at") // Timestamp for last update
   orderItems        OrderItem[]      // Relation to order items
   bundleOffers      ProductsOnBundles[] // Relation to bundle offers
+  tags             ProductTag[]    @default([]) // Product promotional tags
+}
+
+// Enum for product promotional tags
+enum ProductTag {
+  NEW_ARRIVALS
+  BEST_SELLERS
+  SPECIAL_DEALS
+  GIFT_SETS
+  TRENDING_NOW
 }
 
 // ProductCategory model

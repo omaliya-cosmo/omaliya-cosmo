@@ -4,24 +4,12 @@ import Image from "next/image";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-
-// Types for better type safety
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  image: string;
-  description: string;
-  productCount?: number;
-  featured?: boolean;
-  trending?: boolean;
-}
+import { ProductCategory } from "@prisma/client";
 
 export default function CategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [ref, inView] = useInView({
@@ -63,101 +51,16 @@ export default function CategoriesSection() {
     fetchCategories();
   };
 
-  // Fallback categories if API fails or for initial loading
-  const fallbackCategories: Category[] = [
-    {
-      id: "1",
-      name: "Skincare",
-      slug: "skincare",
-      image: "/images/categories/skincare.jpg",
-      description: "Nourish and protect your skin",
-      productCount: 42,
-      featured: true,
-      trending: true,
-    },
-    {
-      id: "2",
-      name: "Makeup",
-      slug: "makeup",
-      image: "/images/categories/makeup.jpg",
-      description: "Enhance your natural beauty",
-      productCount: 38,
-      trending: true,
-    },
-    {
-      id: "3",
-      name: "Haircare",
-      slug: "haircare",
-      image: "/images/categories/haircare.jpg",
-      description: "Healthy, beautiful hair",
-      productCount: 27,
-    },
-    {
-      id: "4",
-      name: "Body Care",
-      slug: "body-care",
-      image: "/images/categories/bodycare.jpg",
-      description: "Pamper your body",
-      productCount: 31,
-      featured: true,
-    },
-    {
-      id: "5",
-      name: "Fragrances",
-      slug: "fragrances",
-      image: "/images/categories/fragrances.jpg",
-      description: "Discover your signature scent",
-      productCount: 18,
-    },
-    {
-      id: "6",
-      name: "Tools",
-      slug: "tools",
-      image: "/images/categories/tools.jpg",
-      description: "Professional beauty tools",
-      productCount: 24,
-    },
-  ];
-
-  const allCategories = categories.length > 0 ? categories : fallbackCategories;
-
-  // Filter categories based on active tab
-  const filteredCategories = allCategories.filter((category) => {
+  // Filter categories based on search query
+  const filteredCategories = categories.filter((category) => {
     if (searchQuery) {
       return (
         category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         category.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
-    if (activeTab === "all") return true;
-    if (activeTab === "featured") return category.featured;
-    if (activeTab === "trending") return category.trending;
     return true;
   });
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut",
-      },
-    },
-  };
 
   return (
     <section
@@ -187,8 +90,8 @@ export default function CategoriesSection() {
             </span>
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto relative z-10">
-            Discover our specially curated categories designed to meet all your
-            beauty needs. From skincare to makeup, we've got you covered.
+            From everyday essentials to unique finds, explore a wide range of
+            categories designed to meet all your shopping needs in one place.
           </p>
         </motion.div>
 
@@ -199,43 +102,6 @@ export default function CategoriesSection() {
           className="mb-10"
         >
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Category Tabs */}
-            <div className="flex space-x-2 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  activeTab === "all"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
-                }`}
-                aria-current={activeTab === "all" ? "page" : undefined}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveTab("featured")}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  activeTab === "featured"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
-                }`}
-                aria-current={activeTab === "featured" ? "page" : undefined}
-              >
-                Featured
-              </button>
-              <button
-                onClick={() => setActiveTab("trending")}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  activeTab === "trending"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
-                }`}
-                aria-current={activeTab === "trending" ? "page" : undefined}
-              >
-                Trending
-              </button>
-            </div>
-
             {/* Search Bar */}
             <div className="relative w-full md:w-auto">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -405,16 +271,15 @@ export default function CategoriesSection() {
               No categories found
             </h3>
             <p className="text-gray-500 mb-6">
-              Try adjusting your search or filter criteria
+              Try adjusting your search criteria
             </p>
             <button
               onClick={() => {
-                setActiveTab("all");
                 setSearchQuery("");
               }}
               className="text-white bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-2.5 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300"
             >
-              Clear filters
+              Clear search
             </button>
           </motion.div>
         )}
@@ -422,7 +287,7 @@ export default function CategoriesSection() {
         <AnimatePresence mode="wait">
           {!loading && !error && filteredCategories.length > 0 && (
             <motion.div
-              key={activeTab + searchQuery}
+              key={searchQuery}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -540,30 +405,6 @@ function CategoryCard({ category, index, isHovered, onHover, onLeave }: any) {
               loading={index < 3 ? "eager" : "lazy"}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500"></div>
-          </div>
-
-          {/* Category badges */}
-          <div className="absolute top-3 left-3 flex gap-2 z-10">
-            {category.trending && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-lg"
-              >
-                TRENDING
-              </motion.span>
-            )}
-            {category.featured && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-lg"
-              >
-                FEATURED
-              </motion.span>
-            )}
           </div>
 
           {/* Category name, description, and product count */}

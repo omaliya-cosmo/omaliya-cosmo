@@ -145,7 +145,6 @@ export default function Home() {
               categories={categories}
               addToCart={addToCart}
               country={country || ""}
-              viewMode={viewMode}
             />
           </div>
 
@@ -163,10 +162,6 @@ export default function Home() {
 
           <div className="bg-white">
             <Testimonials />
-          </div>
-
-          <div className="bg-white">
-            <Newsletter />
           </div>
         </div>
       </main>

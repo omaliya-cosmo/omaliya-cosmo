@@ -56,7 +56,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-purple-50 via-white to-pink-50 overflow-hidden py-16 md:py-24 px-10">
+    <section className="relative bg-gradient-to-br from-purple-50 via-white to-pink-50 overflow-hidden py-16 md:py-10 px-10 md:px-16">
       {/* Animated background elements */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -113,7 +113,7 @@ export default function HeroSection() {
               className="text-4xl md:text-5xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight"
               variants={fadeIn}
             >
-              Discover Your Natural
+              Your One-Stop for
               <motion.span
                 className="block bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 bg-clip-text text-transparent"
                 initial={{ backgroundPosition: "0% 50%" }}
@@ -124,8 +124,9 @@ export default function HeroSection() {
                   repeatType: "reverse",
                 }}
               >
-                Radiance
+                Everything
               </motion.span>
+              Online!
             </motion.h1>
 
             <motion.div
@@ -137,9 +138,9 @@ export default function HeroSection() {
               className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto md:mx-0"
               variants={fadeIn}
             >
-              Organic skincare products crafted with natural ingredients for a
-              healthier, more vibrant you. Embrace beauty that comes from
-              nature.
+              Discover Your Style, Fast! Shop trends, enjoy exclusive deals, and
+              get premium products delivered to your door. Start exploring
+              today!
             </motion.p>
 
             <motion.div
@@ -296,7 +297,7 @@ export default function HeroSection() {
 
           {/* Hero Image */}
           <motion.div
-            className="md:w-1/2 relative"
+            className="md:w-5/12 relative mx-auto -mt-36"
             initial="hidden"
             animate={isVisible ? "visible" : "hidden"}
             variants={staggerChildren}

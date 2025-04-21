@@ -5,37 +5,15 @@ import Link from "next/link";
 import ProductCard from "../shared/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-
-interface Product {
-  id: string;
-  name: string;
-  price: {
-    usd: number;
-    lkr: number;
-  };
-  image: string;
-  categoryId: string;
-  rating?: number;
-  isNew?: boolean;
-  isBestSeller?: boolean;
-  isOnSale?: boolean;
-  discountPercentage?: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
+import { Product, ProductCategory } from "@prisma/client";
 
 interface FeaturedProductsProps {
   products: Product[];
   loading: boolean;
   error: string | null;
-  categories: Category[];
+  categories: ProductCategory[];
   addToCart: (product: Product) => void;
   country: string;
-  viewMode?: "grid" | "list";
 }
 
 export default function FeaturedProducts({
@@ -45,9 +23,8 @@ export default function FeaturedProducts({
   categories,
   addToCart,
   country,
-  viewMode = "grid",
 }: FeaturedProductsProps) {
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeTag, setActiveTag] = useState("all");
   const [visibleProducts, setVisibleProducts] = useState(8);
   const [searchQuery, setSearchQuery] = useState("");
   const [ref, inView] = useInView({
@@ -60,24 +37,17 @@ export default function FeaturedProducts({
     return category ? category.name : "Cosmetics"; // Default to "Cosmetics" if not found
   };
 
-  // Get list of unique categories from products for the filter tabs
-  const productCategories = useMemo(() => {
-    if (!products || products.length === 0) return [];
+  // Define the filter tabs
+  const filterTabs = [
+    { id: "all", name: "All Products" },
+    { id: "new-arrivals", name: "New Arrivals" },
+    { id: "best-sellers", name: "Best Sellers" },
+    { id: "special-deals", name: "Special Deals" },
+    { id: "gift-sets", name: "Gift Sets" },
+    { id: "trending", name: "Trending Now" },
+  ];
 
-    const uniqueCategories = Array.from(
-      new Set(products.map((product) => product.categoryId))
-    ).map((categoryId) => {
-      const category = categories.find((cat) => cat.id === categoryId);
-      return {
-        id: categoryId,
-        name: category ? category.name : "Unknown",
-      };
-    });
-
-    return uniqueCategories;
-  }, [products, categories]);
-
-  // Filter products based on active category and search query
+  // Filter products based on active tag and search query
   const filteredProducts = useMemo(() => {
     if (!products) return [];
 
@@ -90,24 +60,38 @@ export default function FeaturedProducts({
         return false;
       }
 
-      // Filter by category
-      if (activeCategory !== "all" && product.categoryId !== activeCategory) {
-        return false;
+      // Filter by tag
+      if (activeTag !== "all") {
+        // Check if product has tags property and if it contains the active tag
+        if (!product.tags) return false;
+
+        // If tags is a string, convert to array first
+        const productTags =
+          typeof product.tags === "string"
+            ? JSON.parse(product.tags as string)
+            : product.tags;
+
+        if (
+          !Array.isArray(productTags) ||
+          !productTags.includes(activeTag.replace(/-/g, " "))
+        ) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [products, activeCategory, searchQuery]);
+  }, [products, activeTag, searchQuery]);
 
   // Load more products
   const handleLoadMore = () => {
     setVisibleProducts((prev) => Math.min(prev + 4, filteredProducts.length));
   };
 
-  // Reset visible products count when category changes
+  // Reset visible products count when tag changes
   useEffect(() => {
     setVisibleProducts(8);
-  }, [activeCategory, searchQuery]);
+  }, [activeTag, searchQuery]);
 
   // Container and item animation variants
   const containerVariants = {
@@ -282,85 +266,45 @@ export default function FeaturedProducts({
             Featured Products
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Discover our handpicked selection of premium products, crafted with
-            the finest ingredients for exceptional results.
+            Discover thousands of high-quality products handpicked to meet your
+            every need — from the latest trends to timeless everyday essentials.
           </p>
         </motion.div>
 
-        {/* Filter and Search Controls */}
+        {/* Combined Filter, Search, and Link Controls in One Line */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4"
+          className="flex flex-col md:flex-row items-center justify-between w-full mb-8 gap-4 py-2 px-4 rounded-lg"
         >
-          {/* Category filters */}
-          <div className="flex overflow-x-auto hide-scrollbar py-2 md:py-0 w-full md:w-auto">
-            <div className="flex space-x-2 bg-white p-1 rounded-lg shadow-sm">
-              <button
-                onClick={() => setActiveCategory("all")}
-                className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeCategory === "all"
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                }`}
-                aria-current={activeCategory === "all" ? "page" : undefined}
-              >
-                All Products
-              </button>
-
-              {productCategories.slice(0, 4).map((category) => (
+          {/* Tag filters */}
+          <div className="flex overflow-x-auto hide-scrollbar py-1 md:py-0 min-w-0">
+            <div className="flex space-x-2">
+              {filterTabs.map((tab) => (
                 <button
-                  key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
-                  className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeCategory === category.id
+                  key={tab.id}
+                  onClick={() => setActiveTag(tab.id)}
+                  className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTag === tab.id
                       ? "bg-purple-100 text-purple-700"
                       : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                   }`}
-                  aria-current={
-                    activeCategory === category.id ? "page" : undefined
-                  }
+                  aria-current={activeTag === tab.id ? "page" : undefined}
                 >
-                  {category.name}
+                  {tab.name}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Search input */}
-          <div className="relative w-full md:w-auto">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg
-                className="w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                ></path>
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="block w-full md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-              placeholder="Search products"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-              >
+          {/* Search and All Products Link side by side */}
+          <div className="flex items-center gap-2 md:ml-auto shrink-0">
+            {/* Search input */}
+            <div className="relative w-full md:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
-                  className="w-5 h-5"
+                  className="w-5 h-5 text-gray-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -370,11 +314,62 @@ export default function FeaturedProducts({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   ></path>
                 </svg>
-              </button>
-            )}
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                placeholder="Search products"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    ></path>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Link to all products */}
+            <Link
+              href="/products"
+              className="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors whitespace-nowrap px-3 py-2"
+            >
+              All Products
+              <svg
+                className="ml-2 h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M14 5l7 7m0 0l-7 7m7-7H3"
+                />
+              </svg>
+            </Link>
           </div>
         </motion.div>
 
@@ -461,16 +456,20 @@ export default function FeaturedProducts({
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               No products found
             </h3>
-            {searchQuery ? (
+            {searchQuery || activeTag !== "all" ? (
               <>
                 <p className="text-gray-600 mb-6">
-                  We couldn't find any products matching "{searchQuery}"
-                  {activeCategory !== "all" ? ` in this category` : ""}.
+                  We couldn't find any products matching
+                  {searchQuery ? ` "${searchQuery}"` : ""}
+                  {activeTag !== "all"
+                    ? ` in ${filterTabs.find((t) => t.id === activeTag)?.name}`
+                    : ""}
+                  .
                 </p>
                 <button
                   onClick={() => {
                     setSearchQuery("");
-                    setActiveCategory("all");
+                    setActiveTag("all");
                   }}
                   className="text-purple-600 font-medium hover:text-purple-800"
                 >
@@ -489,11 +488,7 @@ export default function FeaturedProducts({
         {!loading && !error && filteredProducts.length > 0 && (
           <AnimatePresence>
             <motion.div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                  : "space-y-4"
-              }
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               variants={containerVariants}
               initial="hidden"
               animate={inView ? "visible" : "hidden"}
@@ -502,25 +497,14 @@ export default function FeaturedProducts({
                 .slice(0, visibleProducts)
                 .map((product, index) => (
                   <motion.div key={product.id} variants={itemVariants}>
-                    {viewMode === "grid" ? (
-                      <ProductCard
-                        product={product}
-                        categoryName={getCategoryName(product.categoryId)}
-                        addToCart={(product) =>
-                          Promise.resolve(addToCart(product))
-                        }
-                        country={country}
-                      />
-                    ) : (
-                      <ProductCard
-                        product={product}
-                        categoryName={getCategoryName(product.categoryId)}
-                        addToCart={(product) =>
-                          Promise.resolve(addToCart(product))
-                        }
-                        country={country}
-                      />
-                    )}
+                    <ProductCard
+                      product={product}
+                      categoryName={getCategoryName(product.categoryId)}
+                      addToCart={(product) =>
+                        Promise.resolve(addToCart(product))
+                      }
+                      country={country}
+                    />
                   </motion.div>
                 ))}
             </motion.div>
@@ -550,32 +534,6 @@ export default function FeaturedProducts({
                 />
               </svg>
             </button>
-          </div>
-        )}
-
-        {/* View All Link - visible when there are more products than what's displayed */}
-        {!loading && !error && filteredProducts.length > 8 && (
-          <div className="mt-10 text-center">
-            <Link
-              href="/products"
-              className="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors"
-            >
-              View All Products
-              <svg
-                className="ml-2 h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
-              </svg>
-            </Link>
           </div>
         )}
 

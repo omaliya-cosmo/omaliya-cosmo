@@ -65,9 +65,7 @@ export default function Header({ userData, cartCount }: HeaderProps) {
                 />
               </svg>
             </span>
-            <span>
-              Free shipping on orders over $50 • 30-day money-back guarantee
-            </span>
+            <span>Step Into Style with Our Latest Collections</span>
           </div>
         </div>
 
@@ -89,9 +87,6 @@ export default function Header({ userData, cartCount }: HeaderProps) {
           <Link href="/" className="flex items-center group">
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent transition-transform group-hover:scale-105 duration-300">
               OMALIYA
-            </span>
-            <span className="ml-1 text-xs uppercase tracking-wider text-gray-500 hidden sm:inline-block">
-              COSMETICS
             </span>
           </Link>
 
