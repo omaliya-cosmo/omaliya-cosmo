@@ -4,13 +4,37 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCountry } from "@/app/lib/hooks/useCountry";
 import { usePathname } from "next/navigation";
+import { ProductCategory, Product } from "@prisma/client";
 
 interface HeaderProps {
   userData: any;
   cartCount: number;
+  products: Product[];
+  categories: ProductCategory[];
+  bundles: any[];
+  loading: Boolean;
+  error: any;
 }
 
-export default function Header({ userData, cartCount }: HeaderProps) {
+// Define the filter tabs
+const featuredLinks = [
+  { id: "NEW_ARRIVALS", name: "New Arrivals" },
+  { id: "BEST_SELLERS", name: "Best Sellers" },
+  { id: "SPECIAL_DEALS", name: "Special Deals" },
+  { id: "GIFT_SETS", name: "Gift Sets" },
+  { id: "TRENDING_NOW", name: "Trending Now" },
+];
+
+export default function Header({
+  userData,
+  cartCount,
+  products,
+  categories,
+  bundles,
+  loading,
+  error,
+}: HeaderProps) {
+  console.log(categories);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -228,50 +252,37 @@ export default function Header({ userData, cartCount }: HeaderProps) {
                         Categories
                       </h3>
                       <ul className="space-y-2">
-                        <li>
-                          <Link
-                            href="/products/category/skincare"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Skincare
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/category/makeup"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Makeup
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/category/hair-care"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Hair Care
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/category/fragrance"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Fragrance
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/category/bath-body"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Bath & Body
-                          </Link>
-                        </li>
+                        {loading ? (
+                          <p className="text-gray-500 text-sm">
+                            Loading categories...
+                          </p>
+                        ) : error ? (
+                          <p className="text-red-600 text-sm">
+                            Error:{" "}
+                            {error.message || "Failed to load categories"}
+                          </p>
+                        ) : (
+                          categories.map((category) => (
+                            <li key={category.id}>
+                              <Link
+                                href={{
+                                  pathname: "/products",
+                                  query: {
+                                    category: category.name.toLowerCase(),
+                                  },
+                                }}
+                                className="text-gray-700 hover:text-purple-600 text-sm block py-1"
+                                aria-label={`View products in ${category.name} category`}
+                              >
+                                {category.name}
+                              </Link>
+                            </li>
+                          ))
+                        )}
                       </ul>
                       <div className="mt-3">
                         <Link
-                          href="/products/categories"
+                          href="/products"
                           className="text-purple-600 hover:text-purple-800 text-sm font-medium"
                         >
                           View all categories
@@ -285,46 +296,29 @@ export default function Header({ userData, cartCount }: HeaderProps) {
                         Featured
                       </h3>
                       <ul className="space-y-2">
-                        <li>
-                          <Link
-                            href="/products/new-arrivals"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            New Arrivals
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/best-sellers"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Best Sellers
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/deals"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Special Deals
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/gifts"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Gift Sets
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/trending"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Trending Now
-                          </Link>
-                        </li>
+                        {loading ? (
+                          <p className="text-gray-500 text-sm">
+                            Loading featured...
+                          </p>
+                        ) : error ? (
+                          <p className="text-red-600 text-sm">
+                            Error: {error.message || "Failed to load featured"}
+                          </p>
+                        ) : (
+                          featuredLinks.map((feature, index) => (
+                            <li key={index}>
+                              <Link
+                                href={{
+                                  pathname: "/products",
+                                  query: { feature: feature.id },
+                                }}
+                                className="text-gray-700 hover:text-purple-600 text-sm block py-1"
+                              >
+                                {feature.name}
+                              </Link>
+                            </li>
+                          ))
+                        )}
                       </ul>
                     </div>
 
@@ -334,46 +328,26 @@ export default function Header({ userData, cartCount }: HeaderProps) {
                         Collections
                       </h3>
                       <ul className="space-y-2">
-                        <li>
-                          <Link
-                            href="/products/collection/summer-essentials"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Summer Essentials
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/collection/organic"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Organic & Natural
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/collection/k-beauty"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            K-Beauty
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/collection/luxury"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Luxury Beauty
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/products/collection/men"
-                            className="text-gray-700 hover:text-purple-600 text-sm block py-1"
-                          >
-                            Men's Collection
-                          </Link>
-                        </li>
+                        {loading ? (
+                          <p className="text-gray-500 text-sm">
+                            Loading bundles...
+                          </p>
+                        ) : error ? (
+                          <p className="text-red-600 text-sm">
+                            Error: {error.message || "Failed to load bundles"}
+                          </p>
+                        ) : (
+                          bundles.map((bundle, index) => (
+                            <li key={index}>
+                              <Link
+                                href={`/bundles/${bundle.id}`}
+                                className="text-gray-700 hover:text-purple-600 text-sm block py-1"
+                              >
+                                {bundle.bundleName}
+                              </Link>
+                            </li>
+                          ))
+                        )}
                       </ul>
                     </div>
 
@@ -385,84 +359,85 @@ export default function Header({ userData, cartCount }: HeaderProps) {
 
                       <div className="grid grid-cols-2 gap-6">
                         {/* Featured product 1 - Clean */}
-                        <div className="bg-gray-50/50 rounded-lg p-4 transition-all duration-300 hover:shadow-sm">
-                          <div className="aspect-w-1 aspect-h-1 mb-3 relative overflow-hidden rounded-md bg-white">
-                            <div className="h-40 flex items-center justify-center">
-                              {/* Product image placeholder */}
-                              <div className="w-3/4 h-28 bg-gray-100 rounded"></div>
+                        {products.slice(0, 2).map((product, index) => (
+                          <div
+                            key={index} // Use product.id if available, else index
+                            className="bg-gray-50/50 rounded-lg p-4 transition-all duration-300 hover:shadow-sm"
+                          >
+                            <div className="aspect-w-1 aspect-h-1 mb-3 relative overflow-hidden rounded-md bg-white">
+                              <div className="h-40 flex items-center justify-center">
+                                {/* Product image */}
+                                <img
+                                  src={
+                                    product.imageUrls[0] ||
+                                    "/placeholder-image.jpg"
+                                  } // Use product image or fallback
+                                  alt={product.name}
+                                  className="w-3/4 h-28 object-cover rounded"
+                                />
+                              </div>
+                              <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-sm">
+                                {product.discountPriceLKR &&
+                                country === "LK" &&
+                                product.priceLKR > 0
+                                  ? Math.round(
+                                      ((product.priceLKR -
+                                        product.discountPriceLKR) /
+                                        product.priceLKR) *
+                                        100
+                                    )
+                                  : null}
+                                {product.discountPriceLKR &&
+                                country !== "LK" &&
+                                product.priceLKR > 0
+                                  ? Math.round(
+                                      ((product.priceLKR -
+                                        product.discountPriceLKR) /
+                                        product.priceLKR) *
+                                        100
+                                    )
+                                  : null}
+                                % OFF
+                              </span>
                             </div>
-                            <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-sm">
-                              -25%
-                            </span>
+                            <h4 className="text-sm font-medium text-gray-800">
+                              {product.name}
+                            </h4>
+                            <div className="mt-2 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-gray-500 line-through">
+                                  {country === "LK"
+                                    ? "Rs." + product.priceLKR
+                                    : "$" + product.priceUSD}
+                                </p>
+                                <p className="text-sm font-semibold text-purple-600">
+                                  {country === "LK"
+                                    ? "Rs." + product.discountPriceLKR
+                                    : "$" + product.discountPriceUSD}
+                                </p>
+                              </div>
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <span
+                                    key={i}
+                                    className="w-3 h-3 text-amber-400"
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                          <h4 className="text-sm font-medium text-gray-800">
-                            Vitamin C Brightening Serum
-                          </h4>
-                          <div className="mt-2 flex items-center justify-between">
-                            <div>
-                              <p className="text-xs text-gray-500 line-through">
-                                $34.99
-                              </p>
-                              <p className="text-sm font-semibold text-purple-600">
-                                $24.99
-                              </p>
-                            </div>
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <span
-                                  key={i}
-                                  className={`w-3 h-3 ${
-                                    i < 4 ? "text-amber-400" : "text-gray-200"
-                                  }`}
-                                >
-                                  ★
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Featured product 2 - Clean */}
-                        <div className="bg-gray-50/50 rounded-lg p-4 transition-all duration-300 hover:shadow-sm">
-                          <div className="aspect-w-1 aspect-h-1 mb-3 relative overflow-hidden rounded-md bg-white">
-                            <div className="h-40 flex items-center justify-center">
-                              {/* Product image placeholder */}
-                              <div className="w-3/4 h-28 bg-gray-100 rounded"></div>
-                            </div>
-                            <span className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-sm">
-                              New
-                            </span>
-                          </div>
-                          <h4 className="text-sm font-medium text-gray-800">
-                            Hyaluronic Acid Moisturizer
-                          </h4>
-                          <div className="mt-2 flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-purple-600">
-                                $19.99
-                              </p>
-                            </div>
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <span
-                                  key={i}
-                                  className="w-3 h-3 text-amber-400"
-                                >
-                                  ★
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
 
                       {/* View all section - Clean */}
                       <div className="mt-4 text-right">
                         <Link
-                          href="/products/featured"
+                          href="/products"
                           className="text-sm text-purple-600 font-medium hover:text-purple-800 inline-flex items-center"
                         >
-                          View all featured products
+                          View all products
                           <span className="ml-1">→</span>
                         </Link>
                       </div>
@@ -478,9 +453,9 @@ export default function Header({ userData, cartCount }: HeaderProps) {
             {/* Categories link with dropdown - FIXED POSITIONING AS WELL */}
             <div className="relative group">
               <Link
-                href="/categories"
+                href="/products"
                 className={`text-gray-700 hover:text-purple-600 font-medium relative group flex items-center ${
-                  pathname?.startsWith("/categories") ? "text-purple-600" : ""
+                  pathname?.startsWith("/products") ? "text-purple-600" : ""
                 }`}
               >
                 Categories
@@ -499,7 +474,7 @@ export default function Header({ userData, cartCount }: HeaderProps) {
                 </svg>
                 <span
                   className={`absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 transition-all duration-300 ${
-                    pathname?.startsWith("/categories")
+                    pathname?.startsWith("/products")
                       ? "w-full"
                       : "group-hover:w-full"
                   }`}
@@ -509,39 +484,31 @@ export default function Header({ userData, cartCount }: HeaderProps) {
               {/* Categories dropdown - STANDARD POSITIONING */}
               <div className="absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
                 <div className="py-2">
-                  <Link
-                    href="/categories/skincare"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                  >
-                    Skincare
-                  </Link>
-                  <Link
-                    href="/categories/makeup"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                  >
-                    Makeup
-                  </Link>
-                  <Link
-                    href="/categories/hair-care"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                  >
-                    Hair Care
-                  </Link>
-                  <Link
-                    href="/categories/fragrance"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                  >
-                    Fragrance
-                  </Link>
-                  <Link
-                    href="/categories/bath-body"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                  >
-                    Bath & Body
-                  </Link>
+                  {loading ? (
+                    <p className="text-gray-500 text-sm">
+                      Loading categories...
+                    </p>
+                  ) : error ? (
+                    <p className="text-red-600 text-sm">
+                      Error: {error.message || "Failed to load categories"}
+                    </p>
+                  ) : (
+                    categories.map((category, index) => (
+                      <Link
+                        key={index}
+                        href={{
+                          pathname: "/products",
+                          query: { category: category.name.toLowerCase() },
+                        }}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
+                      >
+                        {category.name}
+                      </Link>
+                    ))
+                  )}
                   <div className="border-t border-gray-100 my-1"></div>
                   <Link
-                    href="/categories"
+                    href="/products"
                     className="block px-4 py-2 text-sm text-purple-600 font-medium hover:bg-purple-50"
                   >
                     View All Categories
@@ -734,6 +701,11 @@ export default function Header({ userData, cartCount }: HeaderProps) {
         userData={userData}
         country={country}
         pathname={pathname}
+        loading={loading}
+        error={error}
+        products={products}
+        categories={categories}
+        bundles={bundles}
       />
     </header>
   );
@@ -910,7 +882,17 @@ function AccountMenu({ userData }) {
   );
 }
 
-function MobileMenu({ isOpen, userData, country, pathname }) {
+function MobileMenu({
+  isOpen,
+  userData,
+  country,
+  pathname,
+  loading,
+  error,
+  products,
+  categories,
+  bundles,
+}: any) {
   const [expandedCategory, setExpandedCategory] = useState(null);
 
   return (
@@ -1011,37 +993,44 @@ function MobileMenu({ isOpen, userData, country, pathname }) {
                 }`}
               >
                 <div className="pl-10 pr-3 py-2 space-y-1">
-                  <Link
-                    href="/products/category/skincare"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Skincare
-                  </Link>
-                  <Link
-                    href="/products/category/makeup"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Makeup
-                  </Link>
-                  <Link
-                    href="/products/category/hair-care"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Hair Care
-                  </Link>
+                  {loading ? (
+                    <p className="text-gray-500 text-sm">Loading bundles...</p>
+                  ) : error ? (
+                    <p className="text-red-600 text-sm">
+                      Error: {error.message || "Failed to load bundles"}
+                    </p>
+                  ) : (
+                    bundles.map((bundle, index) => (
+                      <Link
+                        key={index}
+                        href={`/bundles/${bundle.id}`}
+                        className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
+                      >
+                        {bundle.bundleName}
+                      </Link>
+                    ))
+                  )}
                   <div className="border-t border-gray-100 my-2"></div>
-                  <Link
-                    href="/products/new-arrivals"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    New Arrivals
-                  </Link>
-                  <Link
-                    href="/products/best-sellers"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Best Sellers
-                  </Link>
+                  {loading ? (
+                    <p className="text-gray-500 text-sm">Loading featured...</p>
+                  ) : error ? (
+                    <p className="text-red-600 text-sm">
+                      Error: {error.message || "Failed to load featured"}
+                    </p>
+                  ) : (
+                    featuredLinks.map((feature, index) => (
+                      <Link
+                        key={index}
+                        href={{
+                          pathname: "/products",
+                          query: { feature: feature.id },
+                        }}
+                        className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
+                      >
+                        {feature.name}
+                      </Link>
+                    ))
+                  )}
                   <div className="border-t border-gray-100 my-2"></div>
                   <Link
                     href="/products"
@@ -1057,7 +1046,7 @@ function MobileMenu({ isOpen, userData, country, pathname }) {
             <div>
               <button
                 className={`w-full flex items-center justify-between text-left text-gray-700 hover:text-purple-600 font-medium py-2 px-3 rounded-lg ${
-                  pathname?.startsWith("/categories")
+                  pathname?.startsWith("/products")
                     ? "bg-purple-50 text-purple-600"
                     : "hover:bg-gray-50"
                 }`}
@@ -1109,39 +1098,33 @@ function MobileMenu({ isOpen, userData, country, pathname }) {
                 }`}
               >
                 <div className="pl-10 pr-3 py-2 space-y-1">
-                  <Link
-                    href="/categories/skincare"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Skincare
-                  </Link>
-                  <Link
-                    href="/categories/makeup"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Makeup
-                  </Link>
-                  <Link
-                    href="/categories/hair-care"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Hair Care
-                  </Link>
-                  <Link
-                    href="/categories/fragrance"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Fragrance
-                  </Link>
-                  <Link
-                    href="/categories/bath-body"
-                    className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                  >
-                    Bath & Body
-                  </Link>
+                  {loading ? (
+                    <p className="text-gray-500 text-sm">
+                      Loading categories...
+                    </p>
+                  ) : error ? (
+                    <p className="text-red-600 text-sm">
+                      Error: {error.message || "Failed to load categories"}
+                    </p>
+                  ) : (
+                    categories.map((category, index) => (
+                      <Link
+                        key={index}
+                        href={{
+                          pathname: "/products",
+                          query: {
+                            category: category.name.toLowerCase(),
+                          },
+                        }}
+                        className="block py-2 px-3 text-sm text-gray-600 hover:text-purple-600 rounded-lg hover:bg-purple-50"
+                      >
+                        {category.name}
+                      </Link>
+                    ))
+                  )}
                   <div className="border-t border-gray-100 my-2"></div>
                   <Link
-                    href="/categories"
+                    href="/products"
                     className="block py-2 px-3 text-sm font-medium text-purple-600 hover:text-purple-800 rounded-lg hover:bg-purple-50"
                   >
                     View All Categories

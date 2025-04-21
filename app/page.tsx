@@ -15,7 +15,6 @@ import CategoriesSection from "@/components/home/CategoriesSection";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BenefitsBanner from "@/components/home/BenefitsBanner";
 import Testimonials from "@/components/home/Testimonials";
-import Newsletter from "@/components/home/Newsletter";
 import FeaturedBundles from "@/components/home/FeaturedBundles";
 import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
 
@@ -23,12 +22,11 @@ export default function Home() {
   const [userData, setUserData] = useState<any>(null);
   const { country, updateCountry } = useCountry();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [bundleoffers, setBundleoffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cartCount, setCartCount] = useState(0);
-  const [categories, setCategories] = useState([]);
-  const [sort, setSort] = useState("default");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -39,16 +37,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Load saved view mode from localStorage if available
-    const savedViewMode = localStorage.getItem("productViewMode");
-    if (savedViewMode === "grid" || savedViewMode === "list") {
-      setViewMode(savedViewMode);
-    }
-
     // Fetch products data
     axios
-      .get(`/api/products${sort !== "default" ? `?sort=${sort}` : ""}`)
-
+      .get("/api/products")
       .then((res) => {
         setProducts(res.data.products);
         setLoading(false);
@@ -63,14 +54,29 @@ export default function Home() {
       .get("/api/categories")
       .then((res) => {
         setCategories(res.data.categories);
+        setLoading(false);
       })
       .catch((err) => {
         setError(err.message);
+        setLoading(false);
+      });
+
+    // Fetch bundle offers data
+    axios
+      .get("/api/bundleoffers")
+      .then((res) => {
+        console.log("bundle", res.data);
+        setBundleoffers(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
       });
 
     // Fetch actual cart data
     fetchCartData();
-  }, [sort]); // Re-fetch when sort changes
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const fetchCartData = async () => {
     try {
@@ -88,23 +94,12 @@ export default function Home() {
     }
   };
 
-  interface Product {
+  interface CartProduct {
     id: string;
     name: string;
   }
 
-  const addToCart = async (product: Product) => {
-    if (
-      !product ||
-      typeof product.id !== "string" ||
-      typeof product.name !== "string"
-    ) {
-      toast.error("Invalid product details", {
-        position: "bottom-right",
-      });
-      return;
-    }
-
+  const addToCart = async (product: CartProduct) => {
     try {
       await axios.post("/api/cart", {
         productId: product.id,
@@ -129,7 +124,15 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-white">
       <ToastContainer />
 
-      <Header userData={userData} cartCount={cartCount} />
+      <Header
+        userData={userData}
+        cartCount={cartCount}
+        products={products}
+        categories={categories}
+        bundles={bundleoffers}
+        loading={loading}
+        error={error}
+      />
 
       <main className="flex-col ">
         <HeroSection />
