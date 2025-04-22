@@ -3,6 +3,65 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
+const particlesData = [
+  {
+    width: "29.76px",
+    height: "13.57px",
+    top: "32.95%",
+    left: "29.66%",
+    color: "bg-purple-300",
+  },
+  {
+    width: "24.78px",
+    height: "24.73px",
+    top: "88.42%",
+    left: "52.65%",
+    color: "bg-pink-300",
+  },
+  {
+    width: "25.96px",
+    height: "18.52px",
+    top: "51.19%",
+    left: "3.12%",
+    color: "bg-purple-300",
+  },
+  {
+    width: "29.43px",
+    height: "12.18px",
+    top: "32.62%",
+    left: "90.50%",
+    color: "bg-pink-300",
+  },
+  {
+    width: "19.18px",
+    height: "29.13px",
+    top: "31.22%",
+    left: "44.59%",
+    color: "bg-purple-300",
+  },
+  {
+    width: "13.88px",
+    height: "16.73px",
+    top: "3.76%",
+    left: "2.25%",
+    color: "bg-pink-300",
+  },
+  {
+    width: "18.67px",
+    height: "12.27px",
+    top: "7.63%",
+    left: "46.61%",
+    color: "bg-purple-300",
+  },
+  {
+    width: "27.36px",
+    height: "11.76px",
+    top: "97.97%",
+    left: "10.37%",
+    color: "bg-pink-300",
+  },
+];
+
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -10,7 +69,6 @@ export default function HeroSection() {
     setIsVisible(true);
   }, []);
 
-  // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -31,11 +89,11 @@ export default function HeroSection() {
   };
 
   const imageVariant = {
-    hidden: { opacity: 0, scale: 0.8, rotate: 6 },
+    hidden: { opacity: 0, scale: 0.8 },
     visible: {
       opacity: 1,
       scale: 1,
-      rotate: 3,
+      rotate: 0,
       transition: {
         duration: 0.8,
         ease: "easeOut",
@@ -71,30 +129,28 @@ export default function HeroSection() {
         className="absolute bottom-0 left-0 -mb-16 -ml-16 w-96 h-96 bg-pink-200 rounded-full opacity-50 blur-3xl"
       ></motion.div>
 
-      {/* Floating particles */}
+      {/* Floating particles - Using predefined values instead of random */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(8)].map((_, i) => (
+        {particlesData.map((particle, i) => (
           <motion.div
             key={i}
-            className={`absolute rounded-full ${
-              i % 2 === 0 ? "bg-purple-300" : "bg-pink-300"
-            } opacity-20`}
+            className={`absolute rounded-full ${particle.color} opacity-20`}
             style={{
-              width: `${Math.random() * 20 + 10}px`,
-              height: `${Math.random() * 20 + 10}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
+              width: particle.width,
+              height: particle.height,
+              top: particle.top,
+              left: particle.left,
             }}
             animate={{
               y: [0, -30, 0],
-              x: [0, Math.random() * 20 - 10, 0],
+              x: [0, ((i % 3) - 1) * 10, 0],
               scale: [1, 1.2, 1],
             }}
             transition={{
-              duration: Math.random() * 8 + 5,
+              duration: 5 + i,
               repeat: Infinity,
               repeatType: "reverse",
-              delay: Math.random() * 5,
+              delay: i * 0.7,
             }}
           />
         ))}
@@ -297,7 +353,7 @@ export default function HeroSection() {
 
           {/* Hero Image */}
           <motion.div
-            className="md:w-5/12 relative mx-auto -mt-36"
+            className="md:w-5/12 relative mx-auto mt-0 md:-mt-36"
             initial="hidden"
             animate={isVisible ? "visible" : "hidden"}
             variants={staggerChildren}
@@ -305,100 +361,187 @@ export default function HeroSection() {
             <motion.div
               className="relative z-10"
               variants={imageVariant}
-              whileHover={{ rotate: 0, transition: { duration: 0.3 } }}
+              whileHover={{ scale: 1.05, transition: { duration: 0.3 } }}
             >
-              <div className="bg-white p-4 rounded-3xl shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-500 relative overflow-hidden">
-                {/* Gradient border */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 p-1 rounded-3xl">
-                  <div className="w-full h-full bg-white rounded-[22px]"></div>
-                </div>
+              {/* Model image with background removed - with fade-out gradient */}
+              <div className="relative px-4 pb-5 md:pb-10">
+                {/* Image shadow for better blending */}
+                <div className="absolute bottom-0 left-1/2 w-3/4 h-16 bg-black opacity-10 blur-xl rounded-full transform -translate-x-1/2"></div>
 
-                <div className="relative z-10 rounded-2xl overflow-hidden">
-                  <div className="aspect-w-4 aspect-h-5 relative rounded-2xl overflow-hidden">
-                    <Image
-                      src="https://i.etsystatic.com/6240852/r/il/7c5352/5482632448/il_fullxfull.5482632448_h16x.jpg"
-                      alt="Organic skincare products"
-                      width={600}
-                      height={750}
-                      priority
-                      className="object-cover transform transition-transform duration-500 hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-purple-900/50 via-black/20 to-transparent"></div>
-                  </div>
+                {/* Image container with padding and fade-out effect */}
+                <div className="relative">
+                  <Image
+                    src="https://res.cloudinary.com/omaliya/image/upload/w_1600,q_auto,f_auto/v1745341388/Hero2_1_iqfrc5.png"
+                    alt="Fashion model"
+                    width={550}
+                    height={700}
+                    sizes="(max-width: 640px) 280px, (max-width: 768px) 350px, 450px"
+                    priority
+                    className="object-contain w-full h-auto max-w-[280px] sm:max-w-[350px] md:max-w-[450px] mx-auto"
+                  />
 
-                  {/* New product badge */}
-                  <div className="absolute top-4 left-4 py-1.5 px-3 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full text-white text-xs font-bold shadow-lg transform -rotate-6">
-                    NEW ARRIVAL
-                  </div>
-
-                  {/* Featured product tag */}
-                  <motion.div
-                    className="absolute bottom-6 left-0 right-0 mx-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-100"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.8 }}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex-1">
-                        <h3 className="text-sm font-bold text-gray-900">
-                          Miracle Glow Serum
-                        </h3>
-                        <div className="flex items-center mt-1">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <svg
-                                key={i}
-                                className="w-3 h-3 text-yellow-400 fill-current"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                              </svg>
-                            ))}
-                          </div>
-                          <span className="ml-1 text-xs text-gray-500">
-                            (512)
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-purple-600 font-bold">$24.99</div>
-                        <div className="text-xs text-gray-500 line-through">
-                          $34.99
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-xs text-green-600 font-medium flex items-center">
-                        <svg
-                          className="w-3 h-3 mr-1"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        In stock
-                      </span>
-                      <motion.button
-                        className="text-xs font-medium bg-purple-100 text-purple-600 px-3 py-1 rounded-full hover:bg-purple-200 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Quick View
-                      </motion.button>
-                    </div>
-                  </motion.div>
+                  {/* Fade-out gradient overlay at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 h-[15%] bg-gradient-to-t from-[#f9f5ff] to-transparent"></div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Decorative elements */}
+            {/* Animated promotional texts orbiting around the image */}
+
+            {/* 20% OFF - Top right */}
             <motion.div
-              className="absolute -top-6 -right-6 w-32 h-32 bg-yellow-100 rounded-full opacity-70 transform rotate-45 z-0"
+              className="absolute top-5 md:top-10 right-0 md:-right-4 bg-red-500 px-3 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-bold text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.1, 1],
+                x: [0, 15, 0, -15, 0],
+                y: [0, -10, -15, -5, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                repeatType: "loop",
+              }}
+            >
+              20% OFF
+            </motion.div>
+
+            {/* NEW ARRIVAL - Right middle */}
+            <motion.div
+              className="absolute top-1/4 right-0 md:-right-8 bg-purple-600 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-lg text-xs md:text-sm font-bold text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, 20, 10, -5, 0],
+                y: [0, -15, 0, 15, 0],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 0.5,
+              }}
+            >
+              NEW ARRIVAL
+            </motion.div>
+
+            {/* TRENDING - Bottom right */}
+            <motion.div
+              className="absolute bottom-1/3 right-0 md:-right-6 bg-yellow-400 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-medium text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, 15, 0, -15, 0],
+                y: [0, 10, 15, 5, 0],
+              }}
+              transition={{
+                duration: 9,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 1,
+              }}
+            >
+              TRENDING
+            </motion.div>
+
+            {/* MUST-HAVE - Left middle */}
+            <motion.div
+              className="absolute top-1/3 left-0 md:-left-6 bg-gradient-to-r from-pink-500 to-purple-500 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-bold text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, -15, 0, 15, 0],
+                y: [0, -10, 0, 10, 0],
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 1.5,
+              }}
+            >
+              MUST-HAVE
+            </motion.div>
+
+            {/* LIMITED TIME - Bottom left */}
+            <motion.div
+              className="absolute bottom-1/4 left-0 md:-left-8 bg-cyan-600 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-medium text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, -20, -10, 5, 0],
+                y: [0, 10, 20, 10, 0],
+              }}
+              transition={{
+                duration: 12,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 2,
+              }}
+            >
+              LIMITED TIME
+            </motion.div>
+
+            {/* SHOP NOW - Bottom */}
+            <motion.div
+              className="absolute bottom-10 md:bottom-20 left-1/2 transform -translate-x-1/2 bg-white px-3 md:px-5 py-1.5 md:py-2.5 rounded-full shadow-lg text-xs md:text-sm font-bold text-purple-600 z-20 border-2 border-purple-300"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.15, 1],
+                y: [0, -5, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                repeatType: "reverse",
+              }}
+            >
+              SHOP NOW
+            </motion.div>
+
+            {/* HOT OFFER - Top */}
+            <motion.div
+              className="absolute top-12 left-0 md:-left-4 bg-orange-500 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-bold text-white z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, -10, -15, -5, 0],
+                y: [0, -15, -5, -15, 0],
+              }}
+              transition={{
+                duration: 9,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 0.7,
+              }}
+            >
+              HOT OFFER
+            </motion.div>
+
+            {/* DON'T MISS OUT - Far right */}
+            <motion.div
+              className="absolute top-1/2 right-0 md:-right-10 bg-green-600 px-2 md:px-4 py-1 md:py-2 rounded-full shadow-md text-xs md:text-sm font-bold text-white z-20 hidden sm:block"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: [0, 15, 25, 15, 0],
+                y: [0, -5, 0, 5, 0],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: "loop",
+                delay: 2.2,
+              }}
+            >
+              DON&apos;T MISS OUT
+            </motion.div>
+
+            {/* Animated circle decorations */}
+            <motion.div
+              className="absolute -top-5 -right-5 md:-top-10 md:-right-10 w-20 md:w-32 h-20 md:h-32 bg-purple-50 rounded-full opacity-70 transform rotate-45 z-0"
               animate={{
                 scale: [1, 1.1, 1],
                 rotate: [45, 55, 45],
@@ -409,7 +552,7 @@ export default function HeroSection() {
               }}
             ></motion.div>
             <motion.div
-              className="absolute -bottom-8 -left-8 w-40 h-40 bg-purple-100 rounded-full opacity-70 z-0"
+              className="absolute -bottom-4 -left-4 md:-bottom-8 md:-left-8 w-24 md:w-40 h-24 md:h-40 bg-pink-50 rounded-full opacity-70 z-0"
               animate={{
                 scale: [1, 1.15, 1],
                 translateY: [0, -10, 0],
@@ -420,53 +563,29 @@ export default function HeroSection() {
               }}
             ></motion.div>
 
-            {/* Product specs floating elements */}
+            {/* FLASH SALE tag with price - Bottom right */}
             <motion.div
-              className="absolute top-20 -right-4 bg-white px-3 py-2 rounded-lg shadow-md text-xs font-medium text-purple-600 z-20"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.2, duration: 0.6 }}
+              className="absolute bottom-4 md:bottom-10 right-0 bg-white px-3 md:px-4 py-2 md:py-3 rounded-xl shadow-lg text-sm md:text-base font-bold z-20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.05, 1],
+                rotate: [0, -1, 0, 1, 0],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                repeatType: "mirror",
+              }}
             >
-              <div className="flex items-center">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-                Paraben-Free
-              </div>
-            </motion.div>
-            <motion.div
-              className="absolute bottom-40 -left-4 bg-white px-3 py-2 rounded-lg shadow-md text-xs font-medium text-pink-600 z-20"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.4, duration: 0.6 }}
-            >
-              <div className="flex items-center">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                  />
-                </svg>
-                4.9k Loves
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] md:text-xs text-gray-500 line-through">
+                  $49.99
+                </span>
+                <span className="text-purple-600">$29.99</span>
+                <div className="absolute -top-2 -left-2 bg-red-500 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">
+                  FLASH SALE
+                </div>
               </div>
             </motion.div>
           </motion.div>
