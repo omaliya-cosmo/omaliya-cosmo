@@ -33,70 +33,6 @@ export default function ProductDetailPage() {
   const [currency, setCurrency] = useState<"LKR" | "USD">("LKR");
   const [quantity, setQuantity] = useState(1);
 
-  // States for header data
-  const [userData, setUserData] = useState<any>(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [bundleoffers, setBundleoffers] = useState([]);
-  const [headerLoading, setHeaderLoading] = useState(true);
-  const [headerError, setHeaderError] = useState(null);
-
-  // Function to fetch cart count - moved outside useEffect to be reusable
-  const fetchCartCount = async () => {
-    try {
-      const res = await axios.get("/api/cart");
-      const data = res.data;
-      const totalItems =
-        data.items?.reduce(
-          (sum: number, item: any) => sum + item.quantity,
-          0
-        ) || 0;
-
-      setCartCount(totalItems);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    }
-  };
-
-  // Fetch user data and cart count
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const userData = await getCustomerFromToken();
-      setUserData(userData);
-    };
-
-    fetchUserData();
-    fetchCartCount();
-  }, []);
-
-  // Fetch header data (products, categories, bundles)
-  useEffect(() => {
-    const fetchHeaderData = async () => {
-      setHeaderLoading(true);
-      try {
-        // Fetch featured products for header
-        const productsResponse = await axios.get("/api/products");
-        setProducts(productsResponse.data.products);
-
-        // Fetch categories
-        const categoriesResponse = await axios.get("/api/categories");
-        setCategories(categoriesResponse.data.categories);
-
-        // Fetch bundle offers
-        const bundlesResponse = await axios.get("/api/bundleoffers");
-        setBundleoffers(bundlesResponse.data);
-      } catch (err) {
-        console.error("Error fetching header data:", err);
-        setHeaderError(err);
-      } finally {
-        setHeaderLoading(false);
-      }
-    };
-
-    fetchHeaderData();
-  }, []);
-
   useEffect(() => {
     async function fetchProduct() {
       try {
@@ -161,16 +97,6 @@ export default function ProductDetailPage() {
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       {/* Animated background elements */}
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={headerLoading}
-        error={headerError}
-      />
-
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
         <motion.div
@@ -289,7 +215,6 @@ export default function ProductDetailPage() {
                 product={product}
                 quantity={quantity}
                 currency={currency}
-                onAddToCartSuccess={fetchCartCount}
               />
             </div>
           </div>
@@ -308,8 +233,6 @@ export default function ProductDetailPage() {
           currentProductId={product.id}
         />
       </div>
-
-      <Footer />
     </main>
   );
 }

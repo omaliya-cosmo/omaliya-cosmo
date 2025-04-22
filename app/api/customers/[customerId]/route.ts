@@ -9,7 +9,6 @@ export async function GET(
 
   try {
     const { searchParams } = new URL(req.url);
-    const includeAddresses = searchParams.get("addresses") === "true";
     const includeOrders = searchParams.get("orders") === "true";
     const includeReviews = searchParams.get("reviews") === "true";
     const includeAddress = searchParams.get("address") === "true";
@@ -18,7 +17,7 @@ export async function GET(
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
       include: {
-        address: includeAddress || includeAddresses,
+        address: includeAddress,
         orders: includeOrders,
         reviews: includeReviews,
       },

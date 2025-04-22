@@ -11,14 +11,14 @@ import {
   FiMail,
 } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { Product } from "@prisma/client";
+import { BundleOffer, Product } from "@prisma/client";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/app/lib/context/CartContext";
 
-interface AddToCartButtonProps {
-  product: Product;
+interface BundleAddToCartButtonProps {
+  bundle: BundleOffer;
   quantity: number;
   currency: "LKR" | "USD";
 }
@@ -55,8 +55,8 @@ const Toast = ({
   );
 };
 
-const AddToCartButton: React.FC<AddToCartButtonProps> = ({
-  product,
+const BundleAddToCartButton: React.FC<BundleAddToCartButtonProps> = ({
+  bundle,
   quantity,
   currency,
 }) => {
@@ -71,12 +71,11 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     type: "success" | "error";
   } | null>(null);
 
-  // Use our cart context to refresh cart data
   const { refreshCart } = useCart();
 
   // Check if product is in stock and validate quantity
-  const isInStock = product.stock > 0;
-  const isQuantityValid = quantity <= product.stock;
+  const isInStock = bundle.stock > 0;
+  const isQuantityValid = quantity <= bundle.stock;
 
   // Handle adding to cart
   const handleAddToCart = async () => {
@@ -96,9 +95,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     try {
       // Add to cart via API
       await axios.post("/api/cart", {
-        productId: product.id,
+        productId: bundle.id,
         quantity,
-        isBundle: false,
+        isBundle: true,
         replaceQuantity: false,
       });
 
@@ -112,10 +111,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         type: "success",
       });
 
-      // Refresh cart data in the context
+      // Refresh the cart count in the header
+      setTimeout(() => {
+        router.refresh();
+      }, 300);
+
       await refreshCart();
 
-      // Reset "Added to Cart" state after 2 seconds
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -147,13 +149,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     try {
       // First add to cart
       await axios.post("/api/cart", {
-        productId: product.id,
+        productId: bundle.id,
         quantity,
-        isBundle: false,
+        isBundle: true,
         replaceQuantity: true, // Replace existing quantity for buy now
       });
 
-      // Refresh cart data in the context
       await refreshCart();
 
       // Show brief toast message
@@ -207,7 +208,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   const shareViaTwitter = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      `Check out ${product.name}`
+      `Check out ${bundle.bundleName}`
     )}&url=${encodeURIComponent(window.location.href)}`;
     window.open(url, "_blank");
     setShowShareOptions(false);
@@ -215,7 +216,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   const shareViaWhatsApp = () => {
     const url = `https://wa.me/?text=${encodeURIComponent(
-      `Check out ${product.name}: ${window.location.href}`
+      `Check out ${bundle.bundleName}: ${window.location.href}`
     )}`;
     window.open(url, "_blank");
     setShowShareOptions(false);
@@ -223,9 +224,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   const shareViaEmail = () => {
     const url = `mailto:?subject=${encodeURIComponent(
-      `Check out this product: ${product.name}`
+      `Check out this product: ${bundle.bundleName}`
     )}&body=${encodeURIComponent(
-      `I thought you might be interested in this product:\n\n${product.name}\n\n${product.description}\n\n${window.location.href}`
+      `I thought you might be interested in this product:\n\n${bundle.bundleName}\n\n${window.location.href}`
     )}`;
     window.location.href = url;
     setShowShareOptions(false);
@@ -436,12 +437,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       </div>
 
       {/* Stock warning */}
-      {isInStock && product.stock < 5 && (
+      {isInStock && bundle.stock < 5 && (
         <p className="text-sm text-red-600 font-medium flex items-center">
           <svg className="w-4 h-4 mr-1 fill-current" viewBox="0 0 24 24">
             <path d="M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z" />
           </svg>
-          Only {product.stock} left in stock - order soon!
+          Only {bundle.stock} left in stock - order soon!
         </p>
       )}
 
@@ -462,24 +463,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Product tags */}
-      {product.tags && product.tags.length > 0 && (
-        <div className="pt-4">
-          <div className="flex flex-wrap gap-2">
-            {product.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-block bg-gray-100 rounded-full px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default AddToCartButton;
+export default BundleAddToCartButton;

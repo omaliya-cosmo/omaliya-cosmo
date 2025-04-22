@@ -7,11 +7,9 @@ import {
   Pencil,
   Trash2,
   Check,
-  Home,
-  Briefcase,
-  MapPin,
   Copy,
   Loader2,
+  MapPin,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,50 +68,50 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getCustomerFromToken } from "@/app/actions";
 
-// Define address types with icons
-const addressTypes = [
-  { value: "home", label: "Home", icon: Home },
-  { value: "work", label: "Work", icon: Briefcase },
-  { value: "other", label: "Other", icon: MapPin },
-];
-
 // Define the form data type explicitly
 interface AddressFormData {
-  name: string;
-  street: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
-  zipCode: string;
+  postalCode: string;
   country: string;
-  phone: string;
-  isDefault: boolean;
 }
 
 // Validation schema using Zod
 const addressSchema = z.object({
-  name: z.string().min(1, "Address name is required"),
-  street: z.string().min(1, "Street address is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  addressLine1: z.string().min(1, "Street address is required"),
+  addressLine2: z.string().optional(),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State/Province is required"),
-  zipCode: z.string().min(1, "Zip/Postal code is required"),
+  postalCode: z.string().min(1, "Zip/Postal code is required"),
   country: z.string().min(1, "Country is required"),
-  phone: z.string().min(1, "Phone number is required"),
-  isDefault: z.boolean(),
 });
 
 interface Address {
   id: string;
-  name: string;
-  street: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
-  zipCode: string;
+  postalCode: string;
   country: string;
-  phone: string;
-  isDefault: boolean;
 }
 
 const countries = [
+  "Sri Lanka",
   "United States",
   "Canada",
   "United Kingdom",
@@ -140,14 +138,16 @@ const ProfileAddresses: React.FC = () => {
   const addForm = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      name: "",
-      street: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      addressLine1: "",
+      addressLine2: "",
       city: "",
       state: "",
-      zipCode: "",
+      postalCode: "",
       country: "",
-      phone: "",
-      isDefault: false,
     },
   });
 
@@ -155,14 +155,16 @@ const ProfileAddresses: React.FC = () => {
   const editForm = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      name: "",
-      street: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      addressLine1: "",
+      addressLine2: "",
       city: "",
       state: "",
-      zipCode: "",
+      postalCode: "",
       country: "",
-      phone: "",
-      isDefault: false,
     },
   });
 
@@ -174,6 +176,20 @@ const ProfileAddresses: React.FC = () => {
         const customer = await getCustomerFromToken();
 
         if (customer && customer.id) {
+          // Pre-fill add form with customer data
+          addForm.reset({
+            firstName: customer.firstName || "",
+            lastName: customer.lastName || "",
+            email: customer.email || "",
+            phoneNumber: "",
+            addressLine1: "",
+            addressLine2: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "",
+          });
+
           setCustomerId(customer.id);
           // Fetch customer address
           const response = await axios.get(
@@ -186,14 +202,16 @@ const ProfileAddresses: React.FC = () => {
             // Convert address from API to our Address interface
             const customerAddress: Address = {
               id: addressData.id || Date.now().toString(),
-              name: addressData.name || "Home",
-              street: addressData.addressLine1 || "",
+              firstName: addressData.firstName || customer.firstName || "",
+              lastName: addressData.lastName || customer.lastName || "",
+              email: addressData.email || customer.email || "",
+              phoneNumber: addressData.phoneNumber || "",
+              addressLine1: addressData.addressLine1 || "",
+              addressLine2: addressData.addressLine2 || "",
               city: addressData.city || "",
               state: addressData.state || "",
-              zipCode: addressData.postalCode || "",
+              postalCode: addressData.postalCode || "",
               country: addressData.country || "",
-              phone: addressData.phoneNumber || "",
-              isDefault: true,
             };
 
             setAddresses([customerAddress]);
@@ -211,16 +229,38 @@ const ProfileAddresses: React.FC = () => {
 
   // Open add address dialog
   const openAddDialog = () => {
-    addForm.reset({
-      name: "",
-      street: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      country: "",
-      phone: "",
-      isDefault: true,
-    });
+    // Check if we have customer data to pre-fill the form
+    if (customerId) {
+      // Pre-fill the form with the existing customer data
+      const existingCustomerInfo = {
+        firstName: addForm.getValues().firstName || "",
+        lastName: addForm.getValues().lastName || "",
+        email: addForm.getValues().email || "",
+        phoneNumber: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+      };
+
+      addForm.reset(existingCustomerInfo);
+    } else {
+      // Reset to empty if no customer data
+      addForm.reset({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+      });
+    }
     setIsAddDialogOpen(true);
   };
 
@@ -228,21 +268,27 @@ const ProfileAddresses: React.FC = () => {
   const openEditDialog = (address: Address) => {
     setCurrentAddress(address);
     editForm.reset({
-      name: address.name,
-      street: address.street,
+      firstName: address.firstName,
+      lastName: address.lastName,
+      email: address.email,
+      phoneNumber: address.phoneNumber,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2,
       city: address.city,
       state: address.state,
-      zipCode: address.zipCode,
+      postalCode: address.postalCode,
       country: address.country,
-      phone: address.phone,
-      isDefault: true,
     });
     setIsEditDialogOpen(true);
   };
 
   // Copy address to clipboard
   const copyAddressToClipboard = (address: Address) => {
-    const formattedAddress = `${address.name}\n${address.street}\n${address.city}, ${address.state} ${address.zipCode}\n${address.country}\n${address.phone}`;
+    const formattedAddress = `${address.addressLine1}\n${
+      address.addressLine2 || ""
+    }\n${address.city}, ${address.state} ${address.postalCode}\n${
+      address.country
+    }\n${address.phoneNumber}`;
     navigator.clipboard.writeText(formattedAddress).then(() => {
       setIsCopied(address.id);
       toast.success("Address copied to clipboard");
@@ -262,13 +308,16 @@ const ProfileAddresses: React.FC = () => {
     try {
       // Create address data in format that matches API
       const addressData = {
-        name: data.name,
-        addressLine1: data.street,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
         city: data.city,
         state: data.state,
-        postalCode: data.zipCode,
+        postalCode: data.postalCode,
         country: data.country,
-        phoneNumber: data.phone,
       };
 
       // Call API to save address to customer
@@ -278,7 +327,6 @@ const ProfileAddresses: React.FC = () => {
       const newAddress: Address = {
         id: Date.now().toString(),
         ...data,
-        isDefault: true,
       };
 
       setAddresses([newAddress]);
@@ -301,13 +349,16 @@ const ProfileAddresses: React.FC = () => {
     try {
       // Create address data in format that matches API
       const addressData = {
-        name: data.name,
-        addressLine1: data.street,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
         city: data.city,
         state: data.state,
-        postalCode: data.zipCode,
+        postalCode: data.postalCode,
         country: data.country,
-        phoneNumber: data.phone,
       };
 
       // Call API to update address
@@ -317,7 +368,6 @@ const ProfileAddresses: React.FC = () => {
       const updatedAddress = {
         ...currentAddress,
         ...data,
-        isDefault: true,
       };
 
       setAddresses([updatedAddress]);
@@ -357,46 +407,75 @@ const ProfileAddresses: React.FC = () => {
 
     return (
       <div className="space-y-4 py-2">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Home, Office, etc." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Type</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-              >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select address type" />
-                  </SelectTrigger>
+                  <Input placeholder="John" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {addressTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      <div className="flex items-center gap-2">
-                        {React.createElement(type.icon, { className: "h-4 w-4 text-purple-500" })}
-                        <span className="text-pink-500">{type.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="john.doe@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="addressLine1"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Street Address</FormLabel>
+              <FormControl>
+                <Textarea placeholder="123 Main St, Apt #4B" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -404,12 +483,12 @@ const ProfileAddresses: React.FC = () => {
 
         <FormField
           control={form.control}
-          name="street"
+          name="addressLine2"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Street Address</FormLabel>
+              <FormLabel>Address Line 2</FormLabel>
               <FormControl>
-                <Textarea placeholder="123 Main St, Apt #4B" {...field} />
+                <Input placeholder="Suite, Unit, etc." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -449,7 +528,7 @@ const ProfileAddresses: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="zipCode"
+            name="postalCode"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Zip/Postal Code</FormLabel>
@@ -489,20 +568,6 @@ const ProfileAddresses: React.FC = () => {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="+1 (555) 123-4567" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
     );
   };
@@ -537,7 +602,7 @@ const ProfileAddresses: React.FC = () => {
               </DialogHeader>
               <Form {...addForm}>
                 <form onSubmit={addForm.handleSubmit(handleAddAddress)}>
-                  <ScrollArea className="max-h-[60vh]">
+                  <ScrollArea className="max-h-[70vh]">
                     {renderAddressForm("add")}
                   </ScrollArea>
                   <DialogFooter className="pt-4 mt-4">
@@ -591,30 +656,20 @@ const ProfileAddresses: React.FC = () => {
                 >
                   <Card
                     key={address.id}
-                    className={`${
-                      address.isDefault ? "border-primary" : ""
-                    } transition-all hover:shadow-md`}
+                    className={`transition-all hover:shadow-md`}
                   >
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-medium">{address.name}</h3>
-                            {address.isDefault && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
-                                Default
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm">{address.street}</p>
+                          <p className="text-sm">{address.addressLine1}</p>
+                          {address.addressLine2 && (
+                            <p className="text-sm">{address.addressLine2}</p>
+                          )}
                           <p className="text-sm">
-                            {address.city}, {address.state} {address.zipCode}
+                            {address.city}, {address.state} {address.postalCode}
                           </p>
                           <p className="text-sm">{address.country}</p>
-                          <p className="text-sm mt-1">{address.phone}</p>
+                          <p className="text-sm mt-1">{address.phoneNumber}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2 items-center self-end md:self-center">
@@ -722,11 +777,7 @@ const ProfileAddresses: React.FC = () => {
                                   Delete Address
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete{" "}
-                                  <span className="font-semibold">
-                                    {address.name}
-                                  </span>
-                                  ?
+                                  Are you sure you want to delete this address?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

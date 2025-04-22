@@ -29,7 +29,15 @@ import {
 import NewsletterSection from "@/components/home/Newsletter";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BundleAddToCartButton from "@/components/bundle-detail/BundleAddToCartButton";
 import { getCustomerFromToken } from "@/app/actions";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { BundleOffer as PrismaBundleOffer, Product } from "@prisma/client";
+
+interface BundleOffer extends PrismaBundleOffer {
+  products: Product[];
+}
 
 // Types for bundles
 interface BundleProduct {
@@ -56,6 +64,12 @@ interface Bundle {
   longDescription?: string;
   benefits?: string[];
   howToUse?: string;
+  // Additional props needed for BundleAddToCartButton compatibility
+  stock: number;
+  priceLKR: number;
+  priceUSD: number;
+  discountPriceLKR: number | null;
+  discountPriceUSD: number | null;
 }
 
 export default function BundleDetailPage() {
@@ -67,39 +81,15 @@ export default function BundleDetailPage() {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Add state for Header props
-  const [userData, setUserData] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [bundleoffers, setBundleoffers] = useState([]);
 
   useEffect(() => {
     // Fetch header data
     async function fetchHeaderData() {
       try {
-        const res = await axios.get("/api/cart");
-        const data = res.data;
-        const totalItems =
-          data.items?.reduce(
-            (sum: number, item: any) => sum + item.quantity,
-            0
-          ) || 0;
-
-        setCartCount(totalItems);
-
-        const userData = await getCustomerFromToken();
-        setUserData(userData);
-
-        // Fetch products for Header
-        const productsResponse = await axios.get("/api/products");
-        setProducts(productsResponse.data.products);
-
-        // Fetch categories for Header
-        const categoriesResponse = await axios.get("/api/categories");
-        setCategories(categoriesResponse.data.categories);
-
         // Fetch bundle offers for Header
         const bundlesResponse = await axios.get("/api/bundleoffers");
+        console.log("bundlesResponse", bundlesResponse.data);
         setBundleoffers(bundlesResponse.data);
       } catch (err) {
         console.error("Error fetching header data:", err);
@@ -159,6 +149,12 @@ export default function BundleDetailPage() {
             howToUse:
               bundleData.howToUse ||
               "For best results, use each product as directed on its individual packaging.",
+            // BundleAddToCartButton compatibility properties
+            stock: 100, // Assuming bundles are always in stock with a high quantity
+            priceLKR: bundleData.offerPriceLKR,
+            priceUSD: bundleData.offerPriceUSD,
+            discountPriceLKR: bundleData.offerPriceLKR,
+            discountPriceUSD: bundleData.offerPriceUSD,
           };
 
           setBundle(transformedBundle);
@@ -175,33 +171,6 @@ export default function BundleDetailPage() {
 
     fetchBundle();
   }, [bundleId]);
-
-  const addBundleToCart = async () => {
-    if (!bundle) return;
-
-    try {
-      // In a real app, you would have an API endpoint to handle bundle additions
-      await axios.post("/api/cart", {
-        productId: bundleId,
-        quantity: quantity,
-        isBundle: true,
-      });
-
-      // Update cart count in the UI immediately
-      setCartCount((prevCount) => prevCount + quantity);
-
-      toast.success(`Added ${bundle.name} to your cart!`, {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Error adding bundle to cart";
-      toast.error(errorMessage, {
-        position: "bottom-right",
-      });
-    }
-  };
 
   if (loading) {
     return (
@@ -253,15 +222,6 @@ export default function BundleDetailPage() {
 
   return (
     <main className="bg-white">
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
       <ToastContainer />
 
       {/* Hero Section with animated background elements */}
@@ -489,14 +449,14 @@ export default function BundleDetailPage() {
               </ul>
             </div>
 
-            <div className="space-y-6">
+            <div className="mt-8 space-y-4">
               {/* Quantity selector */}
-              <div className="flex items-center">
-                <span className="text-gray-700 mr-4">Quantity:</span>
-                <div className="flex border border-purple-200 rounded-md">
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700">Quantity:</span>
+                <div className="flex border border-gray-300 rounded">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1 border-r border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
+                    className="px-3 py-1 border-r border-gray-300"
                   >
                     -
                   </button>
@@ -505,34 +465,23 @@ export default function BundleDetailPage() {
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-16 text-center py-1 focus:outline-none focus:ring-1 focus:ring-purple-300"
+                    className="w-16 text-center py-1 focus:outline-none"
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-1 border-l border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
+                    className="px-3 py-1 border-l border-gray-300"
                   >
                     +
                   </button>
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-4">
-                <Button
-                  onClick={addBundleToCart}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-2.5 rounded-md font-medium flex-1 sm:flex-none flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform transition-all hover:translate-y-[-2px]"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Add Bundle to Cart
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50 px-4 py-2.5 rounded-md font-medium flex items-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </Button>
-              </div>
+              {/* Add to cart button */}
+              <BundleAddToCartButton
+                bundle={bundle}
+                quantity={quantity}
+                currency="LKR"
+              />
             </div>
           </motion.div>
         </div>
@@ -600,73 +549,86 @@ export default function BundleDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, index) => (
+            {bundleoffers.slice(0, 3).map((bundle: BundleOffer) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
+                key={bundle.id}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
+                transition={{ duration: 0.4 }}
                 whileHover={{ y: -5 }}
-                className="border border-gray-100 rounded-lg overflow-hidden hover:border-purple-200 hover:shadow-xl transition-all duration-300"
+                className="h-full"
               >
-                <div className="aspect-video relative bg-gradient-to-br from-purple-50 to-pink-50">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-12 h-12 text-purple-300" />
-                  </div>
-                  <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-                    Save 15%
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium mb-1 text-gray-900 hover:text-purple-700 transition-colors">
-                    Related Bundle {index + 1}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                    Another great collection for your skincare needs with
-                    complementary products
-                  </p>
+                <Card className="h-full flex flex-col overflow-hidden border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
+                  <div
+                    className="relative overflow-hidden"
+                    style={{ height: "240px" }}
+                  >
+                    {bundle.imageUrl ? (
+                      <div
+                        className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110"
+                        style={{
+                          backgroundImage: `url('${bundle.imageUrl}')`,
+                          backgroundColor: "rgba(0,0,0,0.05)",
+                        }}
+                      />
+                    ) : (
+                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
+                        <Package className="h-16 w-16 text-purple-300" />
+                      </div>
+                    )}
 
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-xs text-gray-500 line-through">
-                        $104.99
-                      </p>
-                      <p className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700">
-                        $89.99
-                      </p>
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
+                        Featured
+                      </Badge>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                    >
-                      View Details
-                    </Button>
-                    <h3 className="font-medium mb-1 text-gray-900">
-                      Related Bundle {index + 1}
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-2">
-                      Another great collection for your needs
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-indigo-600">$89.99</p>
-                      <Button
-                        variant="ghost"
-                        className="text-indigo-600 hover:bg-indigo-50 p-0 h-auto"
-                      >
-                        View Bundle
-                      </Button>
+
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
+                        Save 12%
+                      </Badge>
                     </div>
                   </div>
-                </div>
+                  <CardContent className="p-6 flex-grow">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold mb-3 transition-colors">
+                        <Link
+                          href={`/bundles/${bundle.id}`}
+                          className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                        >
+                          {bundle.bundleName}
+                        </Link>
+                      </h3>
+                      <p className="text-gray-600 text-sm line-clamp-2">
+                        {`Collection of ${bundle.products.length} products at a special price`}
+                      </p>
+                    </div>
+
+                    <Separator className="my-4 bg-gradient-to-r from-transparent via-purple-200 to-transparent h-px" />
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-800">
+                        Includes:
+                      </p>
+                      <ul className="text-sm space-y-2">
+                        {bundle.products.map((product, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-center gap-2 text-gray-700"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
+                            {product.product.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             ))}
           </div>
         </div>
       </div>
-
-      <NewsletterSection />
-      <Footer />
     </main>
   );
 }

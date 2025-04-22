@@ -10,10 +10,12 @@ import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
 import { Product, ProductCategory } from "@prisma/client";
 import { useRouter } from "next/navigation";
+import Header from "@/components/layout/Header";
+import { useCart } from "../lib/context/CartContext";
 
 // Define the cart item structure from the cart API
 interface CartItem {
-  _id: string;
+  productId: string;
   productId: string;
   quantity: number;
   isBundle: boolean;
@@ -21,7 +23,7 @@ interface CartItem {
 
 // Combined structure for display purposes
 interface DisplayCartItem {
-  _id: string;
+  productId: string;
   productId: string;
   quantity: number;
   isBundle: boolean;
@@ -52,10 +54,10 @@ const CartPage = () => {
   const [promoCode, setPromoCode] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
   const [applyingPromo, setApplyingPromo] = useState<boolean>(false);
-  const [cartCount, setCartCount] = useState(0);
+
+  const { refreshCart } = useCart();
 
   const { country } = useCountry();
-  console.log(country);
 
   const subtotal = cartItems.reduce(
     (sum, item) =>
@@ -71,11 +73,8 @@ const CartPage = () => {
   }, []);
 
   // Function to update the cart count
-  const updateCartCount = () => {
-    const count = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    setCartCount(count);
-    // Refresh the UI to update the header
-    router.refresh();
+  const updateCartCount = async () => {
+    await refreshCart();
   };
 
   // Update cart count whenever cart items change
@@ -91,6 +90,7 @@ const CartPage = () => {
         "/api/cart"
       );
       const cartItemsFromApi = cartData.items || [];
+      console.log("Cart data:", cartItemsFromApi);
 
       if (cartItemsFromApi.length === 0) {
         setCartItems([]);
@@ -171,19 +171,23 @@ const CartPage = () => {
     }
   };
 
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
+  const updateQuantity = async (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     try {
-      setUpdatingItem(itemId);
-      const response = await axios.put("/api/cart", {
-        itemId,
+      setUpdatingItem(productId);
+      const response = await axios.post("/api/cart", {
+        productId,
         quantity: newQuantity,
+        isBundle: false, // Set based on item type if needed
+        replaceQuantity: true, // This tells the API to replace the quantity instead of adding to it
       });
 
       // Update local state only if the API call succeeds
       setCartItems((prev) =>
         prev.map((item) =>
-          item._id === itemId ? { ...item, quantity: newQuantity } : item
+          item.productId === productId
+            ? { ...item, quantity: newQuantity }
+            : item
         )
       );
 
@@ -206,15 +210,17 @@ const CartPage = () => {
     }
   };
 
-  const removeItem = async (itemId: string) => {
+  const removeItem = async (productId: string) => {
     try {
-      setRemovingItem(itemId);
+      setRemovingItem(productId);
       const response = await axios.delete("/api/cart", {
-        data: { itemId },
+        data: { productId },
       });
 
       // Update local state only if the API call succeeds
-      setCartItems((prev) => prev.filter((item) => item._id !== itemId));
+      setCartItems((prev) =>
+        prev.filter((item) => item.productId !== productId)
+      );
 
       toast.info(response.data.message || "Item removed from cart", {
         position: "bottom-right",
@@ -321,7 +327,7 @@ const CartPage = () => {
 
               {cartItems.map((item) => (
                 <div
-                  key={item._id}
+                  key={item.productId}
                   className="bg-white border border-gray-100 rounded-xl mb-4 p-4 md:p-6 hover:shadow-lg transition-all duration-200 group relative"
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
@@ -404,15 +410,16 @@ const CartPage = () => {
                       <div className="flex items-center border border-gray-200 rounded-lg shadow-sm">
                         <button
                           className={`w-8 h-8 flex items-center justify-center ${
-                            updatingItem === item._id
+                            updatingItem === item.productId
                               ? "text-gray-400"
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                           } rounded-l-lg transition-colors`}
                           onClick={() =>
-                            updateQuantity(item._id, item.quantity - 1)
+                            updateQuantity(item.productId, item.quantity - 1)
                           }
                           disabled={
-                            updatingItem === item._id || item.quantity <= 1
+                            updatingItem === item.productId ||
+                            item.quantity <= 1
                           }
                         >
                           <svg
@@ -431,7 +438,7 @@ const CartPage = () => {
                           </svg>
                         </button>
                         <span className="w-8 h-8 flex items-center justify-center text-gray-800 font-medium">
-                          {updatingItem === item._id ? (
+                          {updatingItem === item.productId ? (
                             <div className="w-4 h-4 border-2 border-gray-200 border-t-purple-600 rounded-full animate-spin"></div>
                           ) : (
                             item.quantity
@@ -439,14 +446,14 @@ const CartPage = () => {
                         </span>
                         <button
                           className={`w-8 h-8 flex items-center justify-center ${
-                            updatingItem === item._id
+                            updatingItem === item.productId
                               ? "text-gray-400"
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                           } rounded-r-lg transition-colors`}
                           onClick={() =>
-                            updateQuantity(item._id, item.quantity + 1)
+                            updateQuantity(item.productId, item.quantity + 1)
                           }
-                          disabled={updatingItem === item._id}
+                          disabled={updatingItem === item.productId}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -480,14 +487,14 @@ const CartPage = () => {
 
                   <button
                     className={`absolute top-4 right-4 ${
-                      removingItem === item._id
+                      removingItem === item.productId
                         ? "text-gray-400"
                         : "text-gray-400 hover:text-red-500"
                     } transition-colors hidden group-hover:block`}
-                    onClick={() => removeItem(item._id)}
-                    disabled={removingItem === item._id}
+                    onClick={() => removeItem(item.productId)}
+                    disabled={removingItem === item.productId}
                   >
-                    {removingItem === item._id ? (
+                    {removingItem === item.productId ? (
                       <div className="w-5 h-5 border-2 border-gray-200 border-t-red-500 rounded-full animate-spin"></div>
                     ) : (
                       <svg

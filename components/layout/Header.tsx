@@ -455,7 +455,7 @@ export default function Header({
               <Link
                 href="/products"
                 className={`text-gray-700 hover:text-purple-600 font-medium relative group flex items-center ${
-                  pathname?.startsWith("/products") ? "text-purple-600" : ""
+                  pathname?.startsWith("/categories") ? "text-purple-600" : ""
                 }`}
               >
                 Categories
@@ -474,7 +474,7 @@ export default function Header({
                 </svg>
                 <span
                   className={`absolute bottom-0 left-0 w-0 h-0.5 bg-purple-600 transition-all duration-300 ${
-                    pathname?.startsWith("/products")
+                    pathname?.startsWith("/categories")
                       ? "w-full"
                       : "group-hover:w-full"
                   }`}
@@ -783,28 +783,7 @@ function AccountMenu({ userData }) {
                 Your Orders
               </div>
             </Link>
-            <Link
-              href="/wishlist"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors"
-            >
-              <div className="flex items-center">
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                  />
-                </svg>
-                Wishlist
-              </div>
-            </Link>
+
             <div className="border-t border-gray-100 my-1"></div>
             <Link
               href="/api/auth/signout"
@@ -1230,26 +1209,7 @@ function MobileMenu({
                     </svg>
                     Your Orders
                   </Link>
-                  <Link
-                    href="/wishlist"
-                    className="flex items-center text-gray-700 hover:text-purple-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-50"
-                  >
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                    Wishlist
-                  </Link>
+
                   <div className="border-t border-gray-100 my-2"></div>
                   <Link
                     href="/api/auth/signout"

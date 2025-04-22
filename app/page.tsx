@@ -17,24 +17,18 @@ import BenefitsBanner from "@/components/home/BenefitsBanner";
 import Testimonials from "@/components/home/Testimonials";
 import FeaturedBundles from "@/components/home/FeaturedBundles";
 import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
+import { useCart } from "./lib/context/CartContext";
 
 export default function Home() {
-  const [userData, setUserData] = useState<any>(null);
   const { country, updateCountry } = useCountry();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [bundleoffers, setBundleoffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
 
-  useEffect(() => {
-    const fetchAdmin = async () => {
-      const userData = await getCustomerFromToken();
-      setUserData(userData);
-    };
-    fetchAdmin();
-  }, []);
+  // Use our cart context to refresh cart data
+  const { refreshCart } = useCart();
 
   useEffect(() => {
     // Fetch products data
@@ -73,26 +67,7 @@ export default function Home() {
         setError(err.message);
         setLoading(false);
       });
-
-    // Fetch actual cart data
-    fetchCartData();
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  const fetchCartData = async () => {
-    try {
-      const res = await axios.get("/api/cart");
-      const data = res.data;
-      const totalItems =
-        data.items?.reduce(
-          (sum: number, item: any) => sum + item.quantity,
-          0
-        ) || 0;
-
-      setCartCount(totalItems);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    }
-  };
+  }, []);
 
   interface CartProduct {
     id: string;
@@ -106,7 +81,9 @@ export default function Home() {
         quantity: 1,
       });
 
-      setCartCount((prev) => prev + 1);
+      // Refresh cart data in the context
+      await refreshCart();
+
       toast.success(`Added ${product.name} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
@@ -123,16 +100,6 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <ToastContainer />
-
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
 
       <main className="flex-col ">
         <HeroSection />
@@ -168,8 +135,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

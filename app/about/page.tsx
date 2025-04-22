@@ -7,56 +7,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export default function AboutPage() {
-  // Add state for required header props
-  const [userData, setUserData] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [bundleoffers, setBundleOffers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   // Fetch necessary data for header
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch products, categories, and bundle offers
-        const [productsRes, categoriesRes, bundlesRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/categories"),
-          fetch("/api/bundleoffers"),
-        ]);
-
-        if (!productsRes.ok || !categoriesRes.ok || !bundlesRes.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const productsData = await productsRes.json();
-        const categoriesData = await categoriesRes.json();
-        const bundlesData = await bundlesRes.json();
-
-        setProducts(productsData.products);
-        setCategories(categoriesData.categories);
-        setBundleOffers(bundlesData);
-
-        // Get user data and cart count from localStorage or session
-        const storedCartData = localStorage.getItem("cart");
-        const cartData = storedCartData ? JSON.parse(storedCartData) : [];
-        setCartCount(cartData.length);
-
-        // Example for checking user status - replace with your actual authentication logic
-        const userSession = localStorage.getItem("userSession");
-        setUserData(userSession ? JSON.parse(userSession) : null);
-      } catch (err) {
-        setError(err);
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-
     // Simple scroll reveal animation
     const observer = new IntersectionObserver(
       (entries) => {
@@ -80,16 +32,6 @@ export default function AboutPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
-
       {/* Hero Section */}
       <section className="relative py-32 px-4 bg-[url('/images/hero-bg.jpg')] bg-cover bg-center bg-fixed">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 to-pink-600/80 backdrop-filter backdrop-blur-sm"></div>
@@ -799,8 +741,6 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }

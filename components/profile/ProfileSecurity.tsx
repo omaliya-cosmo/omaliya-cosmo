@@ -3,16 +3,7 @@
 import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  Smartphone,
-  LogOut,
-} from "lucide-react";
+import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -37,19 +28,6 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 // Validation schema for password change
 const passwordSchema = z
@@ -79,15 +57,13 @@ const ProfileSecurity: React.FC = () => {
     defaultValues: {
       currentPassword: "",
       newPassword: "",
-      confirmPassword: "",
+      confirmNewPassword: "",
     },
   });
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateForm = (values: PasswordFormData) => {
@@ -120,13 +96,13 @@ const ProfileSecurity: React.FC = () => {
       valid = false;
     }
 
-    if (!values.confirmPassword) {
-      form.setError("confirmPassword", {
+    if (!values.confirmNewPassword) {
+      form.setError("confirmNewPassword", {
         message: "Please confirm your password",
       });
       valid = false;
-    } else if (values.confirmPassword !== values.newPassword) {
-      form.setError("confirmPassword", {
+    } else if (values.confirmNewPassword !== values.newPassword) {
+      form.setError("confirmNewPassword", {
         message: "The passwords do not match",
       });
       valid = false;
@@ -150,7 +126,7 @@ const ProfileSecurity: React.FC = () => {
       form.reset({
         currentPassword: "",
         newPassword: "",
-        confirmPassword: "",
+        confirmNewPassword: "",
       });
     } catch (error) {
       console.error("Failed to change password:", error);
@@ -160,33 +136,31 @@ const ProfileSecurity: React.FC = () => {
     }
   };
 
-  // Toggle 2FA
-  const handleToggle2FA = async () => {
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setTwoFactorEnabled(!twoFactorEnabled);
-      toast.success(
-        twoFactorEnabled
-          ? "Two-factor authentication disabled"
-          : "Two-factor authentication enabled"
-      );
-    } catch (error) {
-      console.error("Failed to toggle 2FA:", error);
-      toast.error("Failed to update two-factor authentication settings.");
-    }
-  };
-
-  // Logout from all devices
-  const handleLogoutAllDevices = async () => {
+  const handlePasswordChange = async (data: PasswordFormData) => {
     setIsSubmitting(true);
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success("Successfully logged out from all devices");
+      // Validate password requirements
+      if (!validateForm(data)) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Simulate API call to change password
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Success message
+      toast.success("Password updated successfully!");
+
+      // Reset form fields
+      form.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
     } catch (error) {
-      console.error("Failed to logout from devices:", error);
-      toast.error("Failed to logout from all devices. Please try again.");
+      console.error("Failed to change password:", error);
+      toast.error("Failed to change password. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -333,143 +307,6 @@ const ProfileSecurity: React.FC = () => {
 
         <Separator />
 
-        {/* Two-factor authentication */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">
-            Two-Factor Authentication
-          </h3>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="two-factor">Two-factor authentication</Label>
-              <p className="text-sm text-muted-foreground">
-                Add an extra layer of security to your account
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="two-factor"
-                checked={twoFactorEnabled}
-                onCheckedChange={handleToggle2FA}
-                className="data-[state=checked]:bg-purple-600"
-              />
-              <span
-                className={`text-sm font-medium ${
-                  twoFactorEnabled ? "text-purple-600" : "text-muted-foreground"
-                }`}
-              >
-                {twoFactorEnabled ? "Enabled" : "Disabled"}
-              </span>
-            </div>
-          </div>
-          {twoFactorEnabled && (
-            <div className="mt-4 p-4 bg-purple-50 text-purple-700 rounded-md flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-purple-500 flex-shrink-0" />
-              <p className="text-sm">
-                Two-factor authentication is enabled on your account. You'll
-                need to enter a code from your authenticator app when signing
-                in.
-              </p>
-            </div>
-          )}
-          {!twoFactorEnabled && (
-            <div className="mt-4 p-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-md flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-              <p className="text-sm">
-                Two-factor authentication is disabled. We recommend enabling
-                this feature to better secure your account.
-              </p>
-            </div>
-          )}
-          {twoFactorEnabled && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
-              >
-                <Smartphone className="h-4 w-4" />
-                Configure Authenticator App
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Active Sessions & Logout */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">
-            Sessions & Login Activity
-          </h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-sm">
-                You're currently logged in on these devices:
-              </p>
-              <div className="border rounded-md">
-                <div className="p-3 border-b flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Current Session</p>
-                    <p className="text-xs text-muted-foreground">
-                      Windows · Chrome · New York, USA
-                    </p>
-                  </div>
-                  <div className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
-                    Active now
-                  </div>
-                </div>
-                <div className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Mobile App</p>
-                    <p className="text-xs text-muted-foreground">
-                      iOS · iPhone 12 · Last active 2 days ago
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 border-rose-200 text-rose-600 hover:bg-rose-50"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout from all devices
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Logout from all devices?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will end all your active sessions. You'll need to login
-                    again on all your devices.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleLogoutAllDevices}
-                    className="bg-rose-600 hover:bg-rose-700 text-white"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Yes, logout everywhere"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-
-        <Separator />
-
         {/* Login Security Section */}
         <div>
           <h3 className="text-lg font-medium mb-4">Security Recommendations</h3>
@@ -486,13 +323,6 @@ const ProfileSecurity: React.FC = () => {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-purple-200 text-purple-700 hover:bg-purple-50"
-            >
-              Security Checkup
-            </Button>
           </div>
         </div>
       </CardContent>

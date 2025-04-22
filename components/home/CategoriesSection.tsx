@@ -311,7 +311,7 @@ export default function CategoriesSection() {
         {/* Mobile view all button */}
         <div className="mt-10 text-center md:hidden">
           <Link
-            href="/categories"
+            href="/products"
             className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 shadow-md hover:shadow-lg transition-all duration-300"
           >
             <span>View All Categories</span>
@@ -386,7 +386,12 @@ function CategoryCard({ category, index, isHovered, onHover, onLeave }: any) {
       whileHover={{ y: -8 }}
     >
       <Link
-        href={`/categories/${category.slug}`}
+        href={{
+          pathname: "/products",
+          query: {
+            category: category.name.toLowerCase(),
+          },
+        }}
         className="group block overflow-hidden rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 h-full bg-white"
         aria-label={`Browse ${category.name} products`}
       >

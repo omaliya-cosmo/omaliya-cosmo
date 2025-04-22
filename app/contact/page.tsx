@@ -19,56 +19,7 @@ export default function ContactPage() {
     null
   );
 
-  // Header component props
-  const [userData, setUserData] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [bundleoffers, setBundleoffers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   useEffect(() => {
-    // Fetch data for header component
-    const fetchData = async () => {
-      try {
-        // Fetch products
-        const productsRes = await axios.get("/api/products");
-        setProducts(productsRes.data.products);
-
-        // Fetch categories
-        const categoriesRes = await axios.get("/api/categories");
-        setCategories(categoriesRes.data.categories);
-
-        // Fetch bundle offers
-        const bundlesRes = await axios.get("/api/bundleoffers");
-        setBundleoffers(bundlesRes.data);
-
-        // Get cart count
-        const cartRes = await axios.get("/api/cart");
-        const totalItems =
-          cartRes.data.items?.reduce(
-            (sum: number, item: any) => sum + item.quantity,
-            0
-          ) || 0;
-        setCartCount(totalItems);
-
-        // Check for user data
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUserData(JSON.parse(storedUser));
-        }
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError(err);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-
     // Simple scroll reveal animation
     const observer = new IntersectionObserver(
       (entries) => {
@@ -119,16 +70,6 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
-
       {/* Hero Section */}
       <section className="relative py-24 px-4 bg-[url('/images/contact-bg.jpg')] bg-cover bg-center bg-fixed">
         {/* Overlay with animated gradient */}
@@ -691,8 +632,6 @@ export default function ContactPage() {
           </p>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }

@@ -159,6 +159,7 @@ model BundleOffer {
   offerPriceLKR   Float        @map("offer_price_lkr") // Offer price in LKR
   offerPriceUSD   Float        @map("offer_price_usd") // Offer price in USD
   endDate         DateTime     @map("end_date") // Offer end date
+  stock           Int
   imageUrl        String?      @map("image_url") // Optional image URL for the bundle
   createdAt       DateTime     @default(now()) @map("created_at") // Timestamp for creation
   orderItems      OrderItem[]  // Relation to order items

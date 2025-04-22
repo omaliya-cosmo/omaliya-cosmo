@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
+import { CartProvider } from "./lib/context/CartContext";
+import Footer from "@/components/layout/Footer";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -26,7 +29,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={poppins.variable}>{children}</body>
+      <body className={poppins.variable}>
+        <CartProvider>
+          <HeaderWrapper />
+          {children}
+          <Footer />
+        </CartProvider>
+      </body>
     </html>
   );
 }

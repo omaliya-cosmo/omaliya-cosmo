@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCart } from "../lib/context/CartContext";
 
 // Types for bundles
 interface Product {
@@ -44,7 +45,6 @@ interface Bundle {
   savings: number;
   savingsPercentage: number;
   image?: string;
-  category: string;
   featured?: boolean;
   tags?: string[];
 }
@@ -80,42 +80,23 @@ interface ApiBundleOffer {
 }
 
 export default function BundlesPage() {
-  const [userData, setUserData] = useState<any>(null);
   const { country } = useCountry();
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [filteredBundles, setFilteredBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("featured");
-  const [categories, setCategories] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [bundleoffers, setBundleoffers] = useState<any[]>([]);
-  const [bundleCategories, setBundleCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchAdmin = async () => {
-      const userData = await getCustomerFromToken();
-      setUserData(userData);
-    };
-    fetchAdmin();
-    fetchCartData();
     fetchBundles();
-    fetchProducts();
-    fetchCategories();
   }, []);
 
+  const { refreshCart } = useCart();
+
   useEffect(() => {
-    // Apply filters and sorting
+    // Apply sorting
     let result = [...bundles];
 
-    // Apply category filter
-    if (categoryFilter !== "all") {
-      result = result.filter((bundle) => bundle.category === categoryFilter);
-    }
-
-    // Apply sorting
     switch (sortOption) {
       case "price-low":
         result.sort((a, b) => a.bundlePrice - b.bundlePrice);
@@ -135,32 +116,13 @@ export default function BundlesPage() {
     }
 
     setFilteredBundles(result);
-  }, [bundles, categoryFilter, sortOption]);
-
-  const fetchCartData = async () => {
-    try {
-      const res = await axios.get("/api/cart");
-      const data = res.data;
-      const totalItems =
-        data.items?.reduce(
-          (sum: number, item: any) => sum + item.quantity,
-          0
-        ) || 0;
-
-      setCartCount(totalItems);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    }
-  };
+  }, [bundles, sortOption]);
 
   const fetchBundles = async () => {
     try {
       // Fetch from actual API
       const response = await axios.get("/api/bundleoffers");
       const apiBundles: ApiBundleOffer[] = response.data;
-
-      // Set the bundleoffers for Header component
-      setBundleoffers(apiBundles);
 
       // Transform API response to match our Bundle interface
       const transformedBundles: Bundle[] = apiBundles.map((bundle) => {
@@ -169,52 +131,6 @@ export default function BundlesPage() {
         const bundlePrice = bundle.offerPriceLKR;
         const savings = originalPrice - bundlePrice;
         const savingsPercentage = Math.round((savings / originalPrice) * 100);
-
-        // Extract a category from products or use a default
-        const productCategories = bundle.products.map((p) =>
-          p.product.name.toLowerCase().includes("skin")
-            ? "skincare"
-            : p.product.name.toLowerCase().includes("hair")
-            ? "hair"
-            : p.product.name.toLowerCase().includes("body")
-            ? "body"
-            : p.product.name.toLowerCase().includes("travel")
-            ? "travel"
-            : "other"
-        );
-
-        const mostCommonCategory =
-          productCategories.length > 0
-            ? productCategories.reduce(
-                (acc, curr) => {
-                  if (acc.count[curr]) {
-                    acc.count[curr]++;
-                  } else {
-                    acc.count[curr] = 1;
-                  }
-                  if (
-                    !acc.maxCount ||
-                    acc.count[curr] > acc.count[acc.maxCount]
-                  ) {
-                    acc.maxCount = curr;
-                  }
-                  return acc;
-                },
-                {
-                  count: {} as Record<
-                    "other" | "skincare" | "hair" | "body" | "travel",
-                    number
-                  >,
-                  maxCount: null as
-                    | "skincare"
-                    | "hair"
-                    | "body"
-                    | "travel"
-                    | "other"
-                    | null,
-                }
-              ).maxCount || "other"
-            : "other";
 
         return {
           id: bundle.id,
@@ -235,7 +151,6 @@ export default function BundlesPage() {
           savings,
           savingsPercentage,
           image: bundle.imageUrl,
-          category: mostCommonCategory,
           featured: false, // Set based on some criteria if available
           // Optionally add tags
           tags: [],
@@ -251,12 +166,6 @@ export default function BundlesPage() {
           .forEach((bundle) => (bundle.featured = true));
       }
 
-      // Extract unique categories
-      const uniqueCategories = Array.from(
-        new Set(transformedBundles.map((bundle) => bundle.category))
-      );
-      setBundleCategories(uniqueCategories);
-
       setBundles(transformedBundles);
       setFilteredBundles(transformedBundles);
       setLoading(false);
@@ -264,25 +173,6 @@ export default function BundlesPage() {
       console.error("Error fetching bundles:", error);
       setError("Failed to load bundle offers. Please try again later.");
       setLoading(false);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      // Fetch products (limit to a few for the header)
-      const productsResponse = await axios.get("/api/products?limit=4");
-      setProducts(productsResponse.data.products);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get("/api/categories");
-      setCategories(response.data.categories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
     }
   };
 
@@ -296,8 +186,9 @@ export default function BundlesPage() {
         isBundle: true,
       });
 
-      setCartCount((prev) => prev + 1);
-      toast.success(`Added ${bundle.name} to your cart!`, {
+      await refreshCart(); // Refresh the cart context
+
+      await toast.success(`Added ${bundle.name} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
       });
@@ -313,17 +204,6 @@ export default function BundlesPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <ToastContainer />
-
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
-
       <main className="flex-grow">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-purple-50 via-white to-pink-50 py-12 md:py-20 overflow-hidden relative">
@@ -399,7 +279,6 @@ export default function BundlesPage() {
               </p>
               <Button
                 onClick={() => {
-                  setCategoryFilter("all");
                   setSortOption("featured");
                 }}
               >
@@ -632,8 +511,6 @@ export default function BundlesPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

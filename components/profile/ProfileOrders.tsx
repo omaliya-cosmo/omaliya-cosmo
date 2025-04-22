@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { format, parseISO, differenceInDays } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Package,
@@ -17,8 +17,8 @@ import {
   RefreshCcw,
   Filter,
   ArrowDownAZ,
-  ShoppingBag
-} from 'lucide-react';
+  ShoppingBag,
+} from "lucide-react";
 
 import {
   Card,
@@ -27,19 +27,19 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,16 +56,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
+} from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface OrderItem {
   id: string;
@@ -80,7 +80,7 @@ interface Order {
   id: string;
   orderNumber: string;
   createdAt: string;
-  status: 'processing' | 'shipped' | 'delivered' | 'canceled';
+  status: "processing" | "shipped" | "delivered" | "canceled";
   total: number;
   currency: string;
   items: OrderItem[];
@@ -116,9 +116,9 @@ interface ProfileOrdersProps {
 export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 5;
@@ -126,326 +126,155 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // In a real app, you would fetch from your API
-        // const response = await fetch('/api/orders');
-        // const data = await response.json();
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        
-        // Using expanded dummy data for demo purposes
-        const dummyData: Order[] = [
-          {
-            id: '1',
-            orderNumber: 'ORD-12345',
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-            status: 'delivered',
-            total: 89.99,
-            currency: 'USD',
-            items: [
-              { 
-                id: '1', 
-                productName: 'Vitamin C Serum', 
-                quantity: 1, 
-                price: 39.99,
-                image: '/products/vitamin-c-serum.jpg',
-                options: {
-                  size: '30ml',
-                  strength: 'Regular'
-                }
+        setIsLoading(true);
+
+        if (!userData || !userData.id) {
+          console.error("No user data available");
+          setIsLoading(false);
+          return;
+        }
+
+        // Use the userData provided through props
+        if (userData.orders && Array.isArray(userData.orders)) {
+          // Map API data to our Order interface
+          const mappedOrders: Order[] = userData.orders.map((order: any) => {
+            // Map order items
+            const items: OrderItem[] = order.items.map((item: any) => ({
+              id: item.id,
+              productName: item.product
+                ? item.product.name
+                : item.bundle
+                ? item.bundle.bundleName
+                : "Unknown Product",
+              quantity: item.quantity,
+              price: item.price,
+              image:
+                item.product?.imageUrls?.[0] ||
+                item.bundle?.imageUrl ||
+                undefined,
+              options: {}, // Add any product options if available in your API
+            }));
+
+            // Map to Order structure
+            return {
+              id: order.id,
+              orderNumber: order.id
+                .substring(order.id.length - 6)
+                .toUpperCase(),
+              createdAt: order.orderDate,
+              status: order.status.toLowerCase() as any,
+              total: order.total,
+              currency: order.currency,
+              items,
+              shippingAddress: order.address
+                ? {
+                    name: `${order.address.firstName} ${order.address.lastName}`,
+                    street: order.address.addressLine1,
+                    city: order.address.city,
+                    state: order.address.state || "",
+                    zipCode: order.address.postalCode,
+                    country: order.address.country,
+                  }
+                : undefined,
+              paymentMethod: {
+                type: order.paymentMethod.toLowerCase().replace("_", " "),
               },
-              { 
-                id: '2', 
-                productName: 'Hyaluronic Acid Moisturizer', 
-                quantity: 2, 
-                price: 24.99,
-                image: '/products/moisturizer.jpg',
-                options: {
-                  size: '50ml'
-                }
-              }
-            ],
-            shippingAddress: {
-              name: 'Jane Doe',
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'United States'
-            },
-            paymentMethod: {
-              type: 'credit_card',
-              last4: '4242'
-            },
-            tracking: {
-              number: '1Z999AA10123456784',
-              carrier: 'UPS',
-              url: 'https://www.ups.com/track?tracknum=1Z999AA10123456784',
-              estimatedDelivery: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-              events: [
-                {
-                  date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                  status: 'Delivered',
-                  location: 'Front door'
-                },
-                {
-                  date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                  status: 'Out for delivery',
-                  location: 'New York, NY'
-                },
-                {
-                  date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-                  status: 'Arrived at carrier facility',
-                  location: 'Distribution Center, NY'
-                }
-              ]
-            }
-          },
-          {
-            id: '2',
-            orderNumber: 'ORD-12346',
-            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-            status: 'shipped',
-            total: 65.50,
-            currency: 'USD',
-            items: [
-              { 
-                id: '3', 
-                productName: 'Retinol Night Cream', 
-                quantity: 1, 
-                price: 65.50,
-                image: '/products/retinol-cream.jpg',
-                options: {
-                  size: '50ml',
-                  type: 'Sensitive Skin'
-                }
-              }
-            ],
-            shippingAddress: {
-              name: 'Jane Doe',
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'United States'
-            },
-            paymentMethod: {
-              type: 'credit_card',
-              last4: '4242'
-            },
-            tracking: {
-              number: '1Z999AA10123456785',
-              carrier: 'FedEx',
-              url: 'https://www.fedex.com/track?tracknum=1Z999AA10123456785',
-              estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-              events: [
-                {
-                  date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                  status: 'In transit',
-                  location: 'Chicago, IL'
-                },
-                {
-                  date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                  status: 'Shipped',
-                  location: 'Warehouse, CA'
-                }
-              ]
-            }
-          },
-          {
-            id: '3',
-            orderNumber: 'ORD-12347',
-            createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-            status: 'canceled',
-            total: 120.00,
-            currency: 'USD',
-            items: [
-              { 
-                id: '4', 
-                productName: 'Complete Skincare Set', 
-                quantity: 1, 
-                price: 120.00,
-                image: '/products/skincare-set.jpg',
-                options: {
-                  type: 'Anti-aging'
-                }
-              }
-            ],
-            shippingAddress: {
-              name: 'Jane Doe',
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'United States'
-            },
-            paymentMethod: {
-              type: 'paypal'
-            }
-          },
-          {
-            id: '4',
-            orderNumber: 'ORD-12348',
-            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-            status: 'processing',
-            total: 75.25,
-            currency: 'USD',
-            items: [
-              { 
-                id: '5', 
-                productName: 'SPF 50 Sunscreen', 
-                quantity: 1, 
-                price: 35.25,
-                image: '/products/sunscreen.jpg',
-                options: {
-                  size: '100ml',
-                  type: 'Water Resistant'
-                }
-              },
-              { 
-                id: '6', 
-                productName: 'Lip Balm', 
-                quantity: 2, 
-                price: 20.00,
-                image: '/products/lip-balm.jpg',
-                options: {
-                  flavor: 'Mint'
-                }
-              }
-            ],
-            shippingAddress: {
-              name: 'Jane Doe',
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'United States'
-            },
-            paymentMethod: {
-              type: 'credit_card',
-              last4: '3782'
-            }
-          },
-          {
-            id: '5',
-            orderNumber: 'ORD-12349',
-            createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days ago
-            status: 'delivered',
-            total: 95.80,
-            currency: 'USD',
-            items: [
-              { 
-                id: '7', 
-                productName: 'Rose Water Toner', 
-                quantity: 1, 
-                price: 29.90,
-                image: '/products/toner.jpg',
-                options: {
-                  size: '200ml'
-                }
-              },
-              { 
-                id: '8', 
-                productName: 'Jade Roller', 
-                quantity: 1, 
-                price: 25.90,
-                image: '/products/jade-roller.jpg'
-              },
-              { 
-                id: '9', 
-                productName: 'Cleansing Oil', 
-                quantity: 1, 
-                price: 40.00,
-                image: '/products/cleansing-oil.jpg',
-                options: {
-                  size: '150ml',
-                  type: 'All Skin Types'
-                }
-              }
-            ],
-            shippingAddress: {
-              name: 'Jane Doe',
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'United States'
-            },
-            paymentMethod: {
-              type: 'credit_card',
-              last4: '4242'
-            }
-          }
-        ];
-        
-        setOrders(dummyData);
+              tracking: order.trackingNumber
+                ? {
+                    number: order.trackingNumber,
+                    carrier: "Shipping Provider", // Add if available in your API
+                    url: `https://track.aftership.com/trackings?tracking_number=${order.trackingNumber}`,
+                  }
+                : undefined,
+            };
+          });
+
+          setOrders(mappedOrders);
+        } else {
+          console.error("No orders found in user data");
+        }
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching orders:', error);
+        console.error("Error fetching orders:", error);
         setIsLoading(false);
       }
     };
 
     fetchOrders();
-  }, []);
+  }, [userData]);
 
   useEffect(() => {
     // Reset pagination when filters change
     setCurrentPage(1);
-    
-    console.log(`Tab changed to ${activeTab}, current orders: ${filteredOrders.length}`);
+
+    console.log(
+      `Tab changed to ${activeTab}, current orders: ${filteredOrders.length}`
+    );
   }, [activeTab, searchQuery, sortOrder]);
 
   // Filter orders based on active tab and search query
   const filteredOrders = useMemo(() => {
-    console.log('Recalculating filtered orders');
-    console.log({activeTab, searchQuery, sortOrder, ordersLength: orders.length});
-    
+    console.log("Recalculating filtered orders");
+    console.log({
+      activeTab,
+      searchQuery,
+      sortOrder,
+      ordersLength: orders.length,
+    });
+
     let result = [...orders];
-    
+
     // Filter by status tab
-    if (activeTab !== 'all') {
-      result = result.filter(order => order.status === activeTab);
+    if (activeTab !== "all") {
+      result = result.filter((order) => order.status === activeTab);
     }
-    
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(order => 
-        order.orderNumber.toLowerCase().includes(query) ||
-        order.items.some(item => item.productName.toLowerCase().includes(query))
+      result = result.filter(
+        (order) =>
+          order.orderNumber.toLowerCase().includes(query) ||
+          order.items.some((item) =>
+            item.productName.toLowerCase().includes(query)
+          )
       );
     }
-    
+
     // Sort orders
     result = result.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
-      
-      if (sortOrder === 'newest') {
+
+      if (sortOrder === "newest") {
         return dateB - dateA;
-      } else if (sortOrder === 'oldest') {
+      } else if (sortOrder === "oldest") {
         return dateA - dateB;
-      } else if (sortOrder === 'highest') {
+      } else if (sortOrder === "highest") {
         return b.total - a.total;
-      } else if (sortOrder === 'lowest') {
+      } else if (sortOrder === "lowest") {
         return a.total - b.total;
       }
       return 0;
     });
-    
-    console.log('Filtered orders result:', result.length);
+
+    console.log("Filtered orders result:", result.length);
     return result;
   }, [orders, activeTab, searchQuery, sortOrder]);
 
   // Pagination
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const currentOrders = filteredOrders.slice(
+    indexOfFirstOrder,
+    indexOfLastOrder
+  );
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
 
   useEffect(() => {
-    console.log(`After filter calculations - Current orders count: ${currentOrders.length}`);
+    console.log(
+      `After filter calculations - Current orders count: ${currentOrders.length}`
+    );
   }, [currentOrders.length]);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -455,50 +284,50 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
     const date = parseISO(dateString);
     const now = new Date();
     const diffDays = differenceInDays(now, date);
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
-    return format(date, 'MMM d, yyyy');
+    return format(date, "MMM d, yyyy");
   };
 
   // Get status details
   const getStatusDetails = (status: string) => {
     switch (status) {
-      case 'processing':
-        return { 
+      case "processing":
+        return {
           icon: <Clock className="h-4 w-4" />,
-          label: 'Processing',
-          color: 'bg-blue-50 text-blue-700 border-blue-200',
-          description: 'Your order is being processed'
+          label: "Processing",
+          color: "bg-blue-50 text-blue-700 border-blue-200",
+          description: "Your order is being processed",
         };
-      case 'shipped':
-        return { 
+      case "shipped":
+        return {
           icon: <Truck className="h-4 w-4" />,
-          label: 'Shipped',
-          color: 'bg-amber-50 text-amber-700 border-amber-200',
-          description: 'Your order is on the way'
+          label: "Shipped",
+          color: "bg-amber-50 text-amber-700 border-amber-200",
+          description: "Your order is on the way",
         };
-      case 'delivered':
-        return { 
+      case "delivered":
+        return {
           icon: <CheckCircle className="h-4 w-4" />,
-          label: 'Delivered',
-          color: 'bg-green-50 text-green-700 border-green-200',
-          description: 'Your order has been delivered'
+          label: "Delivered",
+          color: "bg-green-50 text-green-700 border-green-200",
+          description: "Your order has been delivered",
         };
-      case 'canceled':
-        return { 
+      case "canceled":
+        return {
           icon: <XCircle className="h-4 w-4" />,
-          label: 'Canceled',
-          color: 'bg-red-50 text-red-700 border-red-200',
-          description: 'Your order was canceled'
+          label: "Canceled",
+          color: "bg-red-50 text-red-700 border-red-200",
+          description: "Your order was canceled",
         };
       default:
-        return { 
+        return {
           icon: <Package className="h-4 w-4" />,
-          label: 'Unknown',
-          color: 'bg-gray-50 text-gray-700 border-gray-200',
-          description: ''
+          label: "Unknown",
+          color: "bg-gray-50 text-gray-700 border-gray-200",
+          description: "",
         };
     }
   };
@@ -506,37 +335,50 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   // Calculate progress for order status
   const calculateStatusProgress = (status: string) => {
     switch (status) {
-      case 'processing': return 25;
-      case 'shipped': return 75;
-      case 'delivered': return 100;
-      case 'canceled': return 100;
-      default: return 0;
+      case "processing":
+        return 25;
+      case "shipped":
+        return 75;
+      case "delivered":
+        return 100;
+      case "canceled":
+        return 100;
+      default:
+        return 0;
     }
   };
 
   // Get order status timeline steps
   const getOrderTimeline = (order: Order) => {
     const steps = [
-      { status: 'processing', label: 'Processing', completed: true },
-      { status: 'shipped', label: 'Shipped', completed: ['shipped', 'delivered'].includes(order.status) },
-      { status: 'delivered', label: 'Delivered', completed: order.status === 'delivered' }
+      { status: "processing", label: "Processing", completed: true },
+      {
+        status: "shipped",
+        label: "Shipped",
+        completed: ["shipped", "delivered"].includes(order.status),
+      },
+      {
+        status: "delivered",
+        label: "Delivered",
+        completed: order.status === "delivered",
+      },
     ];
-    
+
     // Handle canceled orders differently
-    if (order.status === 'canceled') {
+    if (order.status === "canceled") {
       return [
-        { status: 'processing', label: 'Processing', completed: true },
-        { status: 'canceled', label: 'Canceled', completed: true }
+        { status: "processing", label: "Processing", completed: true },
+        { status: "canceled", label: "Canceled", completed: true },
       ];
     }
-    
+
     return steps;
   };
 
   // Find selected order details
   const selectedOrder = useMemo(() => {
     if (!selectedOrderId) return null;
-    return orders.find(order => order.id === selectedOrderId) || null;
+    return orders.find((order) => order.id === selectedOrderId) || null;
   }, [selectedOrderId, orders]);
 
   // View details of an order
@@ -561,7 +403,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
     searchQuery,
     filteredOrdersLength: filteredOrders.length,
     currentOrdersLength: currentOrders.length,
-    currentPage
+    currentPage,
   });
 
   return (
@@ -571,12 +413,12 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
           <CardTitle>Your Orders</CardTitle>
           <CardDescription>View and track your recent orders</CardDescription>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search orders..." 
+            <Input
+              placeholder="Search orders..."
               className="pl-9 w-full sm:w-[200px]"
               value={searchQuery}
               onChange={(e) => {
@@ -585,7 +427,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
               }}
             />
           </div>
-          
+
           <Select
             value={sortOrder}
             onValueChange={(value) => {
@@ -607,38 +449,62 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
       </CardHeader>
       <Separator />
       <CardContent className="pt-6">
-        <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => {
-          setActiveTab(value);
-          setCurrentPage(1); // Reset to first page on tab change
-        }}>
+        <Tabs
+          defaultValue="all"
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value);
+            setCurrentPage(1); // Reset to first page on tab change
+          }}
+        >
           <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="mb-6 inline-flex min-w-full sm:w-auto">
-              <TabsTrigger value="all" className="flex items-center gap-1 sm:gap-2 py-2">
+              <TabsTrigger
+                value="all"
+                className="flex items-center gap-1 sm:gap-2 py-2"
+              >
                 <Package className="h-3.5 w-3.5" />
-                <span className="whitespace-nowrap text-xs sm:text-sm">All</span>
+                <span className="whitespace-nowrap text-xs sm:text-sm">
+                  All
+                </span>
                 <span className="ml-1 rounded-full bg-muted px-1.5 sm:px-2 py-0.5 text-xs font-medium">
                   {orders.length}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="processing" className="flex items-center gap-1 sm:gap-2 py-2">
+              <TabsTrigger
+                value="processing"
+                className="flex items-center gap-1 sm:gap-2 py-2"
+              >
                 <Clock className="h-3.5 w-3.5" />
-                <span className="whitespace-nowrap text-xs sm:text-sm">Processing</span>
+                <span className="whitespace-nowrap text-xs sm:text-sm">
+                  Processing
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="shipped" className="flex items-center gap-1 sm:gap-2 py-2">
+              <TabsTrigger
+                value="shipped"
+                className="flex items-center gap-1 sm:gap-2 py-2"
+              >
                 <Truck className="h-3.5 w-3.5" />
-                <span className="whitespace-nowrap text-xs sm:text-sm">Shipped</span>
+                <span className="whitespace-nowrap text-xs sm:text-sm">
+                  Shipped
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="delivered" className="flex items-center gap-1 sm:gap-2 py-2">
+              <TabsTrigger
+                value="delivered"
+                className="flex items-center gap-1 sm:gap-2 py-2"
+              >
                 <CheckCircle className="h-3.5 w-3.5" />
-                <span className="whitespace-nowrap text-xs sm:text-sm">Delivered</span>
+                <span className="whitespace-nowrap text-xs sm:text-sm">
+                  Delivered
+                </span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent 
-            value={activeTab} 
+          <TabsContent
+            value={activeTab}
             className="mt-0"
-            key={`${activeTab}-${searchQuery}-${sortOrder}-${currentPage}`} 
+            key={`${activeTab}-${searchQuery}-${sortOrder}-${currentPage}`}
           >
             {isLoading ? (
               <div className="space-y-6">
@@ -685,7 +551,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 <div className="space-y-6">
                   {currentOrders.map((order) => {
                     const statusDetails = getStatusDetails(order.status);
-                    
+
                     return (
                       <motion.div
                         key={order.id}
@@ -694,25 +560,43 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Card className={`border ${order.status === 'canceled' ? 'border-red-200' : order.status === 'delivered' ? 'border-green-200' : ''}`}>
+                        <Card
+                          className={`border ${
+                            order.status === "canceled"
+                              ? "border-red-200"
+                              : order.status === "delivered"
+                              ? "border-green-200"
+                              : ""
+                          }`}
+                        >
                           <CardHeader className="p-4 bg-muted/30">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                               <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="font-medium">Order #{order.orderNumber}</h3>
-                                  <Badge variant="outline" className={`flex items-center gap-1 ${statusDetails.color}`}>
+                                  <h3 className="font-medium">
+                                    Order #{order.orderNumber}
+                                  </h3>
+                                  <Badge
+                                    variant="outline"
+                                    className={`flex items-center gap-1 ${statusDetails.color}`}
+                                  >
                                     {statusDetails.icon}
                                     {statusDetails.label}
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  <span>{formatRelativeDate(order.createdAt)}</span>
+                                  <span>
+                                    {formatRelativeDate(order.createdAt)}
+                                  </span>
                                   <span className="mx-1.5">•</span>
-                                  <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                                  <span>
+                                    {order.items.length} item
+                                    {order.items.length !== 1 ? "s" : ""}
+                                  </span>
                                 </p>
                               </div>
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 className="flex items-center gap-1"
                                 onClick={() => viewOrderDetails(order.id)}
@@ -721,16 +605,21 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                                 <ChevronRight className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-                            
+
                             {/* Order progress for non-canceled orders */}
-                            {order.status !== 'canceled' && (
+                            {order.status !== "canceled" && (
                               <div className="mt-2">
-                                <Progress value={calculateStatusProgress(order.status)} className="h-1.5" />
+                                <Progress
+                                  value={calculateStatusProgress(order.status)}
+                                  className="h-1.5"
+                                />
                                 <div className="flex justify-between mt-1.5 text-xs text-muted-foreground">
                                   {getOrderTimeline(order).map((step, idx) => (
-                                    <div 
-                                      key={idx} 
-                                      className={`flex items-center ${step.completed ? 'text-primary' : ''}`}
+                                    <div
+                                      key={idx}
+                                      className={`flex items-center ${
+                                        step.completed ? "text-primary" : ""
+                                      }`}
                                     >
                                       {step.completed ? (
                                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -744,18 +633,21 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                               </div>
                             )}
                           </CardHeader>
-                          
+
                           <CardContent className="px-4 py-3">
                             <div className="space-y-3">
                               {order.items.slice(0, 2).map((item) => (
-                                <div key={item.id} className="flex items-center gap-3">
+                                <div
+                                  key={item.id}
+                                  className="flex items-center gap-3"
+                                >
                                   <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
                                     {item.image ? (
-                                      <div 
-                                        className="h-full w-full bg-cover bg-center" 
-                                        style={{ 
+                                      <div
+                                        className="h-full w-full bg-cover bg-center"
+                                        style={{
                                           backgroundImage: `url('/placeholder.png')`,
-                                          backgroundColor: 'rgba(0,0,0,0.05)'
+                                          backgroundColor: "rgba(0,0,0,0.05)",
                                         }}
                                         title={item.productName}
                                       />
@@ -765,39 +657,58 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                                   </div>
                                   <div className="flex-1">
                                     <div className="flex justify-between">
-                                      <p className="font-medium line-clamp-1">{item.productName}</p>
-                                      <p className="font-medium">${item.price.toFixed(2)}</p>
+                                      <p className="font-medium line-clamp-1">
+                                        {item.productName}
+                                      </p>
+                                      <p className="font-medium">
+                                        ${item.price.toFixed(2)}
+                                      </p>
                                     </div>
                                     <div className="flex justify-between">
                                       <div className="text-sm text-muted-foreground">
                                         Qty: {item.quantity}
-                                        {item.options && Object.keys(item.options).length > 0 && (
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                              <TooltipTrigger asChild>
-                                                <span className="ml-2 underline underline-offset-2 cursor-help">Options</span>
-                                              </TooltipTrigger>
-                                              <TooltipContent>
-                                                <div className="text-xs">
-                                                  {Object.entries(item.options).map(([key, value]) => (
-                                                    <div key={key} className="flex">
-                                                      <span className="font-medium mr-1">{key}:</span> {value}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              </TooltipContent>
-                                            </Tooltip>
-                                          </TooltipProvider>
-                                        )}
+                                        {item.options &&
+                                          Object.keys(item.options).length >
+                                            0 && (
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span className="ml-2 underline underline-offset-2 cursor-help">
+                                                    Options
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  <div className="text-xs">
+                                                    {Object.entries(
+                                                      item.options
+                                                    ).map(([key, value]) => (
+                                                      <div
+                                                        key={key}
+                                                        className="flex"
+                                                      >
+                                                        <span className="font-medium mr-1">
+                                                          {key}:
+                                                        </span>{" "}
+                                                        {value}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          )}
                                       </div>
                                       <p className="text-sm text-muted-foreground">
-                                        ${(item.price * item.quantity).toFixed(2)}
+                                        $
+                                        {(item.price * item.quantity).toFixed(
+                                          2
+                                        )}
                                       </p>
                                     </div>
                                   </div>
                                 </div>
                               ))}
-                              
+
                               {order.items.length > 2 && (
                                 <p className="text-sm text-muted-foreground pt-1">
                                   + {order.items.length - 2} more item(s)
@@ -805,66 +716,95 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                               )}
                             </div>
                           </CardContent>
-                          
+
                           <CardFooter className="p-4 bg-muted/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div>
-                              <p className="text-sm text-muted-foreground">Order Total:</p>
-                              <p className="text-lg font-semibold">${order.total.toFixed(2)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Order Total:
+                              </p>
+                              <p className="text-lg font-semibold">
+                                ${order.total.toFixed(2)}
+                              </p>
                             </div>
-                            
+
                             <div className="flex flex-wrap gap-2 self-end sm:self-center">
-                              {order.status === 'delivered' && (
-                                <Button 
-                                  variant="outline" 
+                              {order.status === "delivered" && (
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                                   onClick={() => reorderItems(order.id)}
                                 >
                                   <RefreshCcw className="h-3.5 w-3.5" />
-                                  <span className="whitespace-nowrap">Buy Again</span>
+                                  <span className="whitespace-nowrap">
+                                    Buy Again
+                                  </span>
                                 </Button>
                               )}
-                              
-                              {(order.status === 'shipped' || order.status === 'delivered') && order.tracking?.url && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-                                  onClick={() => window.open(order.tracking?.url, '_blank')}
-                                >
-                                  <Truck className="h-3.5 w-3.5" />
-                                  <span className="whitespace-nowrap">Track</span>
-                                  <span className="hidden sm:inline">Shipment</span>
-                                </Button>
-                              )}
-                              
+
+                              {(order.status === "shipped" ||
+                                order.status === "delivered") &&
+                                order.tracking?.url && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+                                    onClick={() =>
+                                      window.open(order.tracking?.url, "_blank")
+                                    }
+                                  >
+                                    <Truck className="h-3.5 w-3.5" />
+                                    <span className="whitespace-nowrap">
+                                      Track
+                                    </span>
+                                    <span className="hidden sm:inline">
+                                      Shipment
+                                    </span>
+                                  </Button>
+                                )}
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="sm" className="h-8 sm:h-9 px-2 sm:px-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 sm:h-9 px-2 sm:px-3"
+                                  >
                                     <Filter className="h-3.5 w-3.5" />
-                                    <span className="sr-only">More options</span>
+                                    <span className="sr-only">
+                                      More options
+                                    </span>
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="flex items-center gap-2"
-                                    onClick={() => window.open(`/invoice/${order.id}`, '_blank')}
+                                    onClick={() =>
+                                      window.open(
+                                        `/invoice/${order.id}`,
+                                        "_blank"
+                                      )
+                                    }
                                   >
                                     <Download className="h-3.5 w-3.5" />
                                     Download Invoice
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="flex items-center gap-2"
-                                    onClick={() => window.location.href = `/orders/${order.id}`}
+                                    onClick={() =>
+                                      (window.location.href = `/orders/${order.id}`)
+                                    }
                                   >
                                     <ChevronRight className="h-3.5 w-3.5" />
                                     Order Details
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="flex items-center gap-2"
-                                    onClick={() => window.location.href = "/contact"}
+                                    onClick={() =>
+                                      (window.location.href = "/contact")
+                                    }
                                   >
                                     <XCircle className="h-3.5 w-3.5" />
                                     Report Issue
@@ -878,7 +818,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                     );
                   })}
                 </div>
-                
+
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-8">
@@ -891,33 +831,37 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                       >
                         Previous
                       </Button>
-                      
+
                       {Array.from({ length: totalPages }, (_, idx) => idx + 1)
-                        .filter(page => (
-                          page === 1 || 
-                          page === totalPages || 
-                          Math.abs(page - currentPage) <= 1
-                        ))
+                        .filter(
+                          (page) =>
+                            page === 1 ||
+                            page === totalPages ||
+                            Math.abs(page - currentPage) <= 1
+                        )
                         .map((page, idx, arr) => (
                           <React.Fragment key={page}>
                             {idx > 0 && arr[idx - 1] !== page - 1 && (
                               <span className="text-muted-foreground">...</span>
                             )}
                             <Button
-                              variant={currentPage === page ? 'default' : 'outline'}
+                              variant={
+                                currentPage === page ? "default" : "outline"
+                              }
                               size="sm"
                               onClick={() => paginate(page)}
                             >
                               {page}
                             </Button>
                           </React.Fragment>
-                        ))
-                      }
-                      
+                        ))}
+
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                        onClick={() =>
+                          paginate(Math.min(totalPages, currentPage + 1))
+                        }
                         disabled={currentPage === totalPages}
                       >
                         Next
@@ -933,13 +877,16 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 </div>
                 <h3 className="text-xl font-medium mb-2">No orders found</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-sm">
-                  {searchQuery ? 
-                    `We couldn't find any orders matching "${searchQuery}". Try a different search or clear your filter.` : 
-                    `You haven't placed any ${activeTab !== 'all' ? getStatusDetails(activeTab).label.toLowerCase() : ''} orders yet.`
-                  }
+                  {searchQuery
+                    ? `We couldn't find any orders matching "${searchQuery}". Try a different search or clear your filter.`
+                    : `You haven't placed any ${
+                        activeTab !== "all"
+                          ? getStatusDetails(activeTab).label.toLowerCase()
+                          : ""
+                      } orders yet.`}
                 </p>
                 {searchQuery ? (
-                  <Button variant="outline" onClick={() => setSearchQuery('')}>
+                  <Button variant="outline" onClick={() => setSearchQuery("")}>
                     Clear Search
                   </Button>
                 ) : (
@@ -957,108 +904,151 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
       </CardContent>
 
       {/* Order Details Modal */}
-      <Dialog open={!!selectedOrderId} onOpenChange={(open) => !open && closeOrderDetails()}>
+      <Dialog
+        open={!!selectedOrderId}
+        onOpenChange={(open) => !open && closeOrderDetails()}
+      >
         <DialogContent className="sm:max-w-4xl">
           {selectedOrder && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   Order #{selectedOrder.orderNumber}
-                  <Badge variant="outline" className={`ml-2 ${getStatusDetails(selectedOrder.status).color}`}>
+                  <Badge
+                    variant="outline"
+                    className={`ml-2 ${
+                      getStatusDetails(selectedOrder.status).color
+                    }`}
+                  >
                     {getStatusDetails(selectedOrder.status).icon}
-                    <span className="ml-1">{getStatusDetails(selectedOrder.status).label}</span>
+                    <span className="ml-1">
+                      {getStatusDetails(selectedOrder.status).label}
+                    </span>
                   </Badge>
                 </DialogTitle>
                 <DialogDescription>
-                  Placed on {format(new Date(selectedOrder.createdAt), 'MMMM d, yyyy')} • 
-                  {selectedOrder.items.length} item{selectedOrder.items.length !== 1 ? 's' : ''}
+                  Placed on{" "}
+                  {format(new Date(selectedOrder.createdAt), "MMMM d, yyyy")} •
+                  {selectedOrder.items.length} item
+                  {selectedOrder.items.length !== 1 ? "s" : ""}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <ScrollArea className="max-h-[70vh]">
                 <div className="space-y-6 p-1">
                   {/* Order timeline */}
-                  {selectedOrder.status !== 'canceled' && selectedOrder.tracking?.events && (
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <Truck className="h-4 w-4" /> 
-                        Shipping Status
-                      </h4>
-                      <div className="space-y-4 mt-4">
-                        {selectedOrder.tracking.events.map((event, idx) => (
-                          <div key={idx} className="flex gap-4">
-                            <div className="relative">
-                              <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                                idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                              }`}>
-                                {idx === 0 ? (
-                                  <CheckCircle className="h-4 w-4" />
-                                ) : (
-                                  <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                  {selectedOrder.status !== "canceled" &&
+                    selectedOrder.tracking?.events && (
+                      <div className="border rounded-lg p-4">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <Truck className="h-4 w-4" />
+                          Shipping Status
+                        </h4>
+                        <div className="space-y-4 mt-4">
+                          {selectedOrder.tracking.events.map((event, idx) => (
+                            <div key={idx} className="flex gap-4">
+                              <div className="relative">
+                                <div
+                                  className={`h-6 w-6 rounded-full flex items-center justify-center ${
+                                    idx === 0
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted"
+                                  }`}
+                                >
+                                  {idx === 0 ? (
+                                    <CheckCircle className="h-4 w-4" />
+                                  ) : (
+                                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                                  )}
+                                </div>
+                                {idx <
+                                  selectedOrder.tracking!.events!.length -
+                                    1 && (
+                                  <div className="absolute top-6 bottom-0 left-1/2 w-0.5 -translate-x-1/2 bg-muted h-full" />
                                 )}
                               </div>
-                              {idx < selectedOrder.tracking!.events!.length - 1 && (
-                                <div className="absolute top-6 bottom-0 left-1/2 w-0.5 -translate-x-1/2 bg-muted h-full" />
+                              <div className="pb-6">
+                                <p className="font-medium">{event.status}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {event.location}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {format(
+                                    new Date(event.date),
+                                    "MMM d, yyyy, h:mm a"
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {selectedOrder.tracking.carrier &&
+                          selectedOrder.tracking.number && (
+                            <div className="mt-2 pt-3 border-t">
+                              <p className="text-sm">
+                                <span className="text-muted-foreground">
+                                  Tracking Number:
+                                </span>{" "}
+                                <span className="font-medium">
+                                  {selectedOrder.tracking.number}
+                                </span>{" "}
+                                ({selectedOrder.tracking.carrier})
+                              </p>
+                              {selectedOrder.tracking.estimatedDelivery && (
+                                <p className="text-sm mt-1">
+                                  <span className="text-muted-foreground">
+                                    Estimated Delivery:
+                                  </span>{" "}
+                                  <span className="font-medium">
+                                    {format(
+                                      new Date(
+                                        selectedOrder.tracking.estimatedDelivery
+                                      ),
+                                      "MMMM d, yyyy"
+                                    )}
+                                  </span>
+                                </p>
+                              )}
+                              {selectedOrder.tracking.url && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="px-0 py-1"
+                                  onClick={() =>
+                                    window.open(
+                                      selectedOrder.tracking?.url,
+                                      "_blank"
+                                    )
+                                  }
+                                >
+                                  Track with {selectedOrder.tracking.carrier}
+                                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                                </Button>
                               )}
                             </div>
-                            <div className="pb-6">
-                              <p className="font-medium">{event.status}</p>
-                              <p className="text-sm text-muted-foreground">{event.location}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {format(new Date(event.date), 'MMM d, yyyy, h:mm a')}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          )}
                       </div>
+                    )}
 
-                      {selectedOrder.tracking.carrier && selectedOrder.tracking.number && (
-                        <div className="mt-2 pt-3 border-t">
-                          <p className="text-sm">
-                            <span className="text-muted-foreground">Tracking Number:</span>{' '}
-                            <span className="font-medium">{selectedOrder.tracking.number}</span>{' '}
-                            ({selectedOrder.tracking.carrier})
-                          </p>
-                          {selectedOrder.tracking.estimatedDelivery && (
-                            <p className="text-sm mt-1">
-                              <span className="text-muted-foreground">Estimated Delivery:</span>{' '}
-                              <span className="font-medium">
-                                {format(new Date(selectedOrder.tracking.estimatedDelivery), 'MMMM d, yyyy')}
-                              </span>
-                            </p>
-                          )}
-                          {selectedOrder.tracking.url && (
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="px-0 py-1"
-                              onClick={() => window.open(selectedOrder.tracking?.url, '_blank')}
-                            >
-                              Track with {selectedOrder.tracking.carrier}
-                              <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
                   <div className="grid gap-6 md:grid-cols-2">
                     {/* Order Items */}
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-muted/40 px-4 py-2 border-b">
-                        <h3 className="font-medium">Items ({selectedOrder.items.length})</h3>
+                        <h3 className="font-medium">
+                          Items ({selectedOrder.items.length})
+                        </h3>
                       </div>
                       <div className="p-4 space-y-4">
                         {selectedOrder.items.map((item) => (
                           <div key={item.id} className="flex gap-3">
                             <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
                               {item.image ? (
-                                <div 
-                                  className="h-full w-full bg-cover bg-center" 
-                                  style={{ 
+                                <div
+                                  className="h-full w-full bg-cover bg-center"
+                                  style={{
                                     backgroundImage: `url('/placeholder.png')`,
-                                    backgroundColor: 'rgba(0,0,0,0.05)'
+                                    backgroundColor: "rgba(0,0,0,0.05)",
                                   }}
                                   title={item.productName}
                                 />
@@ -1068,22 +1058,35 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                             </div>
                             <div className="flex-1">
                               <div className="flex justify-between">
-                                <p className="font-medium">{item.productName}</p>
-                                <p className="font-medium">${item.price.toFixed(2)}</p>
+                                <p className="font-medium">
+                                  {item.productName}
+                                </p>
+                                <p className="font-medium">
+                                  ${item.price.toFixed(2)}
+                                </p>
                               </div>
                               <p className="text-sm text-muted-foreground">
                                 Qty: {item.quantity}
                               </p>
-                              {item.options && Object.entries(item.options).length > 0 && (
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  {Object.entries(item.options).map(([key, value], idx) => (
-                                    <span key={key}>
-                                      {key}: <span className="font-medium">{value}</span>
-                                      {idx < Object.entries(item.options!).length - 1 && ", "}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              {item.options &&
+                                Object.entries(item.options).length > 0 && (
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {Object.entries(item.options).map(
+                                      ([key, value], idx) => (
+                                        <span key={key}>
+                                          {key}:{" "}
+                                          <span className="font-medium">
+                                            {value}
+                                          </span>
+                                          {idx <
+                                            Object.entries(item.options!)
+                                              .length -
+                                              1 && ", "}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           </div>
                         ))}
@@ -1091,7 +1094,9 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                       <div className="bg-muted/40 p-4 border-t">
                         <div className="flex justify-between mb-1">
                           <p className="text-sm">Subtotal</p>
-                          <p className="font-medium">${selectedOrder.total.toFixed(2)}</p>
+                          <p className="font-medium">
+                            ${selectedOrder.total.toFixed(2)}
+                          </p>
                         </div>
                         <div className="flex justify-between mb-1">
                           <p className="text-sm">Shipping</p>
@@ -1099,11 +1104,13 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                         </div>
                         <div className="flex justify-between pt-2 border-t mt-2">
                           <p className="font-medium">Total</p>
-                          <p className="font-medium">${selectedOrder.total.toFixed(2)}</p>
+                          <p className="font-medium">
+                            ${selectedOrder.total.toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Order Details & Shipping */}
                     <div className="space-y-4">
                       {/* Payment Info */}
@@ -1113,28 +1120,38 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                         </div>
                         <div className="p-4">
                           <p className="mb-1 text-sm">
-                            <span className="text-muted-foreground">Method:</span>{' '}
+                            <span className="text-muted-foreground">
+                              Method:
+                            </span>{" "}
                             <span className="font-medium capitalize">
-                              {selectedOrder.paymentMethod?.type.replace('_', ' ')}
+                              {selectedOrder.paymentMethod?.type.replace(
+                                "_",
+                                " "
+                              )}
                             </span>
                           </p>
                           {selectedOrder.paymentMethod?.last4 && (
                             <p className="mb-1 text-sm">
-                              <span className="text-muted-foreground">Card:</span>{' '}
+                              <span className="text-muted-foreground">
+                                Card:
+                              </span>{" "}
                               <span className="font-medium">
                                 •••• {selectedOrder.paymentMethod.last4}
                               </span>
                             </p>
                           )}
                           <p className="text-sm">
-                            <span className="text-muted-foreground">Date:</span>{' '}
+                            <span className="text-muted-foreground">Date:</span>{" "}
                             <span className="font-medium">
-                              {format(new Date(selectedOrder.createdAt), 'MMMM d, yyyy')}
+                              {format(
+                                new Date(selectedOrder.createdAt),
+                                "MMMM d, yyyy"
+                              )}
                             </span>
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Shipping Address */}
                       <div className="border rounded-lg overflow-hidden">
                         <div className="bg-muted/40 px-4 py-2 border-b">
@@ -1143,34 +1160,49 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                         <div className="p-4">
                           {selectedOrder.shippingAddress ? (
                             <>
-                              <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
-                              <p className="text-sm">{selectedOrder.shippingAddress.street}</p>
-                              <p className="text-sm">
-                                {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}
+                              <p className="font-medium">
+                                {selectedOrder.shippingAddress.name}
                               </p>
-                              <p className="text-sm">{selectedOrder.shippingAddress.country}</p>
+                              <p className="text-sm">
+                                {selectedOrder.shippingAddress.street}
+                              </p>
+                              <p className="text-sm">
+                                {selectedOrder.shippingAddress.city},{" "}
+                                {selectedOrder.shippingAddress.state}{" "}
+                                {selectedOrder.shippingAddress.zipCode}
+                              </p>
+                              <p className="text-sm">
+                                {selectedOrder.shippingAddress.country}
+                              </p>
                             </>
                           ) : (
-                            <p className="text-muted-foreground">No shipping address provided</p>
+                            <p className="text-muted-foreground">
+                              No shipping address provided
+                            </p>
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Additional Actions */}
                       <div className="flex flex-wrap gap-2 pt-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="flex items-center gap-1.5"
-                          onClick={() => window.open(`/invoice/${selectedOrder.id}`, '_blank')}
+                          onClick={() =>
+                            window.open(
+                              `/invoice/${selectedOrder.id}`,
+                              "_blank"
+                            )
+                          }
                         >
                           <Download className="h-4 w-4" />
                           Download Invoice
                         </Button>
-                        
-                        {selectedOrder.status === 'delivered' && (
-                          <Button 
-                            variant="outline" 
+
+                        {selectedOrder.status === "delivered" && (
+                          <Button
+                            variant="outline"
                             size="sm"
                             className="flex items-center gap-1.5"
                             onClick={() => reorderItems(selectedOrder.id)}
@@ -1179,12 +1211,14 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                             Reorder
                           </Button>
                         )}
-                        
-                        <Button 
-                          variant="outline" 
+
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="flex items-center gap-1.5"
-                          onClick={() => window.location.href = "/help/orders"}
+                          onClick={() =>
+                            (window.location.href = "/help/orders")
+                          }
                         >
                           <XCircle className="h-4 w-4" />
                           Report Issue
@@ -1195,10 +1229,14 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 </div>
               </ScrollArea>
               <DialogFooter>
-                <Button variant="outline" onClick={closeOrderDetails}>Close</Button>
+                <Button variant="outline" onClick={closeOrderDetails}>
+                  Close
+                </Button>
                 {selectedOrder.tracking?.url && (
-                  <Button 
-                    onClick={() => window.open(selectedOrder.tracking?.url, '_blank')}
+                  <Button
+                    onClick={() =>
+                      window.open(selectedOrder.tracking?.url, "_blank")
+                    }
                     className="gap-2"
                   >
                     <Truck className="h-4 w-4" />

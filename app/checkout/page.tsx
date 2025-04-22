@@ -669,7 +669,7 @@ export default function CheckoutPage() {
                           value={formData.country}
                           onChange={handleInputChange}
                           required
-                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                          className="w-f  ull p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
                         >
                           {Object.keys(shippingRates).map((country) => (
                             <option key={country} value={country}>

@@ -18,6 +18,7 @@ import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
+import { useCart } from "../lib/context/CartContext";
 
 // Define ProductTag enum
 enum ProductTag {
@@ -72,17 +73,15 @@ export default function ProductsPage() {
     search: "",
     tags: searchParams.get("feature") ? [searchParams.get("feature")!] : [],
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [country, setCountry] = useState("LKR"); // Default country currency
   const pageSize = 12;
 
   // New state variables for header props
-  const [userData, setUserData] = useState<any>(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [bundleoffers, setBundleoffers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+
+  const { refreshCart } = useCart();
 
   // Handle category change from tabs
   const handleCategoryChange = (category: string) => {
@@ -92,27 +91,6 @@ export default function ProductsPage() {
     }));
     setCurrentPage(1);
   };
-
-  // New effect to load user data and cart count
-  useEffect(() => {
-    const fetchCartData = async () => {
-      try {
-        const res = await axios.get("/api/cart");
-        const data = res.data;
-        const totalItems =
-          data.items?.reduce(
-            (sum: number, item: any) => sum + item.quantity,
-            0
-          ) || 0;
-
-        setCartCount(totalItems);
-      } catch (error) {
-        console.error("Error fetching cart:", error);
-      }
-    };
-
-    fetchCartData();
-  }, []);
 
   useEffect(() => {
     // Fetch all products from the API
@@ -126,14 +104,6 @@ export default function ProductsPage() {
         );
         setProducts(productsResponse.data.products);
         setFilteredProducts(productsResponse.data.products); // Initialize with all products
-
-        // Fetch categories for the header
-        const categoriesResponse = await axios.get("/api/categories");
-        setCategories(categoriesResponse.data.categories || []);
-
-        // Fetch bundle offers for the header
-        const bundleoffersResponse = await axios.get("/api/bundleoffers");
-        setBundleoffers(bundleoffersResponse.data || []);
 
         setLoading(false);
       } catch (err) {
@@ -303,7 +273,8 @@ export default function ProductsPage() {
         quantity: 1,
       });
 
-      setCartCount((prev) => prev + 1);
+      await refreshCart(); // Refresh cart data after adding product
+
       toast.success(`Added ${product.name} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
@@ -341,17 +312,6 @@ export default function ProductsPage() {
 
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
-      {/* Animated background particles */}
-      <Header
-        userData={userData}
-        cartCount={cartCount}
-        products={products}
-        categories={categories}
-        bundles={bundleoffers}
-        loading={loading}
-        error={error}
-      />
-
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large blurred background gradients */}
         <motion.div
