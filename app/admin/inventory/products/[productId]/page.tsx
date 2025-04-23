@@ -13,14 +13,21 @@ import {
   FiCheckCircle,
   FiPackage,
   FiX,
+  FiTrash2,
 } from "react-icons/fi";
 import axios from "axios";
 import { Product, ProductTag } from "@prisma/client";
 import { ProductCategory } from "@/types";
+import { Button } from "@/components/ui/button";
 
-// Import Tiptap
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+// Import React Quill New instead of TipTap
+import dynamic from "next/dynamic";
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+  loading: () => <p>Loading editor...</p>,
+});
+// Need to import styles
+import "react-quill-new/dist/quill.snow.css";
 
 // Update the schema
 const productSchema = z.object({
@@ -43,10 +50,10 @@ const productSchema = z.object({
   tags: z.array(z.nativeEnum(ProductTag)).optional(),
 });
 
-const EditProduct = ({ params }: { params: { productsId: string } }) => {
+const EditProduct = ({ params }: { params: { productId: string } }) => {
   const router = useRouter();
   const [formData, setProduct] = useState<
-    Omit<Product, "id" | "createdAt" | "updatedAt">
+    Partial<Omit<Product, "createdAt" | "updatedAt">>
   >({
     name: "",
     description: "",
@@ -64,46 +71,73 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
   const [error, setError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]); // State to hold categories data
+  const [loaded, setLoaded] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Configure Tiptap editor for full description
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: formData.fullDescription || "",
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      setProduct((prev) => ({ ...prev, fullDescription: html }));
-    },
-  });
+  // Quill editor modules and formats configuration
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ color: [] }, { background: [] }],
+      ["link"],
+      ["clean"],
+    ],
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "color",
+    "background",
+    "link",
+  ];
+
+  // Handle Quill editor change
+  const handleEditorChange = (content: string) => {
+    setProduct((prev) => ({ ...prev, fullDescription: content }));
+  };
 
   useEffect(() => {
-    // Fetch product data
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`/api/products/${params.productsId}`);
-        setProduct(response.data);
+        // Fetch product data
+        const productRes = await axios.get(`/api/products/${params.productId}`);
 
-        // Update Tiptap editor content when product data is loaded
-        if (editor && response.data.fullDescription) {
-          editor.commands.setContent(response.data.fullDescription);
+        // Cleanup the image URLs if needed
+        const product = productRes.data;
+        if (!Array.isArray(product.imageUrls)) {
+          product.imageUrls = [];
         }
-      } catch (err: any) {
-        setError(err.message);
+
+        // Set the product state
+        setProduct(product);
+        setLoaded(true);
+      } catch (error) {
+        console.error("Failed to load product", error);
+        setError("Failed to load product. Please try again later.");
       }
     };
 
     // Fetch categories data
     const fetchCategories = async () => {
       try {
-        const response = await axios.get("/api/categories");
-        setCategories(response.data.categories);
-      } catch (err: any) {
-        setError(err.message);
+        const categoriesRes = await axios.get("/api/categories");
+        setCategories(categoriesRes.data.categories);
+      } catch (error) {
+        console.error("Failed to load categories", error);
+        setError("Failed to load categories. Please try again later.");
       }
     };
 
     fetchProduct();
     fetchCategories();
-  }, [params.productsId, editor]);
+  }, [params.productId]);
 
   const handleChange = (e: any, fieldName?: string) => {
     if (fieldName) {
@@ -133,16 +167,31 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
     setError("");
 
     try {
-      console.log("Form Data Before Validation:", formData); // Debugging
       productSchema.parse(formData); // Validate formData
 
-      await axios.put(`/api/products/${params.productsId}`, formData);
-      router.push("/admin/products");
+      await axios.put(`/api/products/${params.productId}`, formData);
+      router.push("/admin/inventory/products");
     } catch (err: any) {
       console.error("Validation Error:", err);
       setError(err.errors ? err.errors[0].message : "An error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await axios.delete(`/api/products/${params.productId}`);
+      router.push("/admin/inventory/products");
+    } catch (error) {
+      console.error("Failed to delete product", error);
+      setError("Failed to delete product. Please try again later.");
+    } finally {
+      setLoading(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -169,7 +218,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
 
       setProduct((prev) => ({
         ...prev,
-        imageUrls: [...prev.imageUrls, ...uploadedUrls], // Append new URLs to the existing array
+        imageUrls: [...(prev?.imageUrls || []), ...uploadedUrls], // Append new URLs to the existing array
       }));
       setUploadSuccess(true);
     } catch (error) {
@@ -187,7 +236,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
           <div>
             <div className="flex items-center text-sm text-gray-500 mb-2">
               <button
-                onClick={() => router.push("/admin/products")}
+                onClick={() => router.push("/admin/inventory/products")}
                 className="hover:text-blue-600 flex items-center"
               >
                 <FiArrowLeft className="mr-1" />
@@ -197,11 +246,13 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
               <span>Edit Product</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-800">Edit Product</h1>
-            <p className="text-gray-600 mt-1">Update product information</p>
+            <p className="text-gray-600 mt-1">
+              Update the details of this product
+            </p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
             <button
-              onClick={() => router.push("/admin/products")}
+              onClick={() => router.push("/admin/inventory/products")}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm"
             >
               Cancel
@@ -234,14 +285,24 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
       )}
       {/* Product Form */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-            <FiPackage className="mr-2 text-blue-500" />
-            Edit Product Information
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Update the product details below
-          </p>
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+              <FiPackage className="mr-2 text-blue-500" />
+              Product Information
+            </h2>
+            <p className="text-gray-600 text-sm">
+              All fields marked with * are required
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            className="flex items-center bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-md"
+          >
+            <FiTrash2 className="mr-2" />
+            Delete Product
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
@@ -250,7 +311,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-blue-50 p-4 rounded-md mb-6">
                 <p className="text-sm text-blue-700">
-                  Complete the form with accurate product information to ensure
+                  Update the form with accurate product information to ensure
                   customers get the details they need.
                 </p>
               </div>
@@ -267,7 +328,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                   type="text"
                   id="name"
                   name="name"
-                  value={formData.name}
+                  value={formData.name || ""}
                   onChange={handleChange}
                   placeholder="Enter product name"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -289,7 +350,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                 <textarea
                   id="description"
                   name="description"
-                  value={formData.description}
+                  value={formData.description || ""}
                   onChange={(e) => handleChange(e)}
                   rows={3}
                   placeholder="Enter a brief description of the product"
@@ -310,11 +371,18 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                   <FiInfo className="mr-2 text-gray-500" />
                   Full Description <span className="text-red-500 ml-1">*</span>
                 </label>
-                <div className="border border-gray-300 rounded-md min-h-[200px]">
-                  <EditorContent
-                    editor={editor}
-                    className="prose max-w-none p-4"
-                  />
+                <div className="border border-gray-300 rounded-md">
+                  {/* Replace TipTap with React Quill New */}
+                  {loaded && typeof window !== "undefined" && (
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.fullDescription || ""}
+                      onChange={handleEditorChange}
+                      modules={modules}
+                      formats={formats}
+                      placeholder="Enter detailed product description..."
+                    />
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
                   Provide detailed information about the product features,
@@ -336,7 +404,8 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                       key={tag}
                       onClick={() => {
                         setProduct((prev) => {
-                          const currentTags = (prev.tags as ProductTag[]) || [];
+                          const currentTags =
+                            (prev?.tags as ProductTag[]) || [];
                           return {
                             ...prev,
                             tags: currentTags.includes(tag)
@@ -377,7 +446,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                       type="number"
                       id="priceLKR"
                       name="priceLKR"
-                      value={formData.priceLKR}
+                      value={formData.priceLKR || 0}
                       onChange={handleChange}
                       step="0.01"
                       min="0"
@@ -404,7 +473,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                       type="number"
                       id="priceUSD"
                       name="priceUSD"
-                      value={formData.priceUSD}
+                      value={formData.priceUSD || 0}
                       onChange={handleChange}
                       step="0.01"
                       min="0"
@@ -482,7 +551,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                     type="number"
                     id="stock"
                     name="stock"
-                    value={formData.stock}
+                    value={formData.stock || 0}
                     onChange={handleChange}
                     min="0"
                     placeholder="Enter stock quantity"
@@ -503,7 +572,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                   <select
                     id="category"
                     name="categoryId" // Match the key in formData
-                    value={formData.categoryId}
+                    value={formData.categoryId || ""}
                     onChange={(e) => handleChange(e)} // Update categoryId in formData
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
@@ -562,7 +631,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
                             onClick={() => {
                               setProduct((prev) => ({
                                 ...prev,
-                                imageUrls: prev.imageUrls.filter(
+                                imageUrls: prev?.imageUrls?.filter(
                                   (_, i) => i !== index
                                 ),
                               }));
@@ -602,7 +671,7 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => router.push("/admin/products")}
+                onClick={() => router.push("/admin/inventory/products")}
                 className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3"
               >
                 Cancel
@@ -647,6 +716,64 @@ const EditProduct = ({ params }: { params: { productsId: string } }) => {
           </div>
         </form>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteDialog && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <FiTrash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delete Product
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete this product? This
+                        action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteDialog(false)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

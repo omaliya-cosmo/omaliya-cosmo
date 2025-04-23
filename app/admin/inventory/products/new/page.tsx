@@ -18,9 +18,14 @@ import axios from "axios";
 import { Product, ProductTag } from "@prisma/client";
 import { ProductCategory } from "@/types";
 
-// Import Tiptap
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+// Import React Quill New instead of TipTap
+import dynamic from "next/dynamic";
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+  loading: () => <p>Loading editor...</p>,
+});
+// Need to import styles
+import "react-quill-new/dist/quill.snow.css";
 
 // Update the schema
 const productSchema = z.object({
@@ -65,15 +70,34 @@ const AddProduct = () => {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]); // State to hold categories data
 
-  // Configure Tiptap editor for full description
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: formData.fullDescription || "",
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      setProduct((prev) => ({ ...prev, fullDescription: html }));
-    },
-  });
+  // Quill editor modules and formats configuration
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ color: [] }, { background: [] }],
+      ["link"],
+      ["clean"],
+    ],
+  };
+
+  const formats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "list",
+    "color",
+    "background",
+    "link",
+  ];
+
+  // Handle Quill editor change
+  const handleEditorChange = (content: string) => {
+    setProduct((prev) => ({ ...prev, fullDescription: content }));
+  };
 
   useEffect(() => {
     // Fetch categories data
@@ -296,11 +320,18 @@ const AddProduct = () => {
                   <FiInfo className="mr-2 text-gray-500" />
                   Full Description <span className="text-red-500 ml-1">*</span>
                 </label>
-                <div className="border border-gray-300 rounded-md min-h-[200px]">
-                  <EditorContent
-                    editor={editor}
-                    className="prose max-w-none p-4"
-                  />
+                <div className="border border-gray-300 rounded-md">
+                  {/* Replace TipTap with React Quill New */}
+                  {typeof window !== "undefined" && (
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.fullDescription || ""}
+                      onChange={handleEditorChange}
+                      modules={modules}
+                      formats={formats}
+                      placeholder="Enter detailed product description..."
+                    />
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
                   Provide detailed information about the product features,
