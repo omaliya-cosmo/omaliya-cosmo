@@ -445,24 +445,6 @@ const BundleAddToCartButton: React.FC<BundleAddToCartButtonProps> = ({
           Only {bundle.stock} left in stock - order soon!
         </p>
       )}
-
-      {/* Extra product information */}
-      <div className="border-t border-gray-200 pt-4 mt-4">
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>Secure checkout</span>
-          </div>
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>Free shipping on orders over Rs 5,000</span>
-          </div>
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>30-day money-back guarantee</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

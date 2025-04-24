@@ -14,25 +14,16 @@ import {
   FiChevronDown,
   FiAlertCircle,
 } from "react-icons/fi";
-import { Review } from "@prisma/client";
+import { Review, Customer } from "@prisma/client";
+import { getCustomerFromToken } from "@/app/actions";
 
-interface ExtendedReview extends Review {
-  customer?: {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    avatar?: string;
-  };
-  isVerifiedPurchase?: boolean;
-  helpfulCount?: number;
-  replyText?: string;
-  replyAuthor?: string;
-  replyDate?: string;
-  images?: string[];
-}
+// Define type with included relations based on the schema
+type ReviewWithCustomer = Review & {
+  customer: Customer;
+};
 
 interface ProductReviewsProps {
-  reviews: ExtendedReview[];
+  reviews: ReviewWithCustomer[];
   productId: string;
 }
 
@@ -41,7 +32,6 @@ const SORT_OPTIONS = [
   { value: "oldest", label: "Oldest first" },
   { value: "highest", label: "Highest rating" },
   { value: "lowest", label: "Lowest rating" },
-  { value: "helpful", label: "Most helpful" },
 ];
 
 const FILTER_OPTIONS = [
@@ -51,8 +41,6 @@ const FILTER_OPTIONS = [
   { value: "3", label: "3 stars" },
   { value: "2", label: "2 stars" },
   { value: "1", label: "1 star" },
-  { value: "verified", label: "Verified purchases" },
-  { value: "images", label: "With images" },
 ];
 
 const ProductReviews: React.FC<ProductReviewsProps> = ({
@@ -69,9 +57,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
-  const [reviews, setReviews] = useState<ExtendedReview[]>(initialReviews);
+  const [reviews, setReviews] = useState<ReviewWithCustomer[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
+
+  // Initialize reviews on component mount and when initialReviews changes
+  useEffect(() => {
+    if (initialReviews && Array.isArray(initialReviews)) {
+      setReviews(initialReviews);
+    }
+  }, []);
 
   // Calculate average rating
   const averageRating =
@@ -91,24 +86,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
 
   // Handle filtering and sorting
   useEffect(() => {
+    if (!initialReviews || !Array.isArray(initialReviews)) return;
+
     let filteredReviews = [...initialReviews];
 
     // Apply filters
     if (filterOption !== "all") {
-      if (filterOption === "verified") {
-        filteredReviews = filteredReviews.filter(
-          (review) => review.isVerifiedPurchase
-        );
-      } else if (filterOption === "images") {
-        filteredReviews = filteredReviews.filter(
-          (review) => review.images && review.images.length > 0
-        );
-      } else {
-        const ratingFilter = parseInt(filterOption);
-        filteredReviews = filteredReviews.filter(
-          (review) => review.rating === ratingFilter
-        );
-      }
+      const ratingFilter = parseInt(filterOption);
+      filteredReviews = filteredReviews.filter(
+        (review) => review.rating === ratingFilter
+      );
     }
 
     // Apply search
@@ -136,11 +123,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
       case "lowest":
         filteredReviews.sort((a, b) => a.rating - b.rating);
         break;
-      case "helpful":
-        filteredReviews.sort(
-          (a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0)
-        );
-        break;
       default:
         break;
     }
@@ -151,47 +133,65 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // In a real implementation, this would send the review to your API
     setIsSubmitting(true);
 
     try {
-      // Mock API call
-      console.log("Submitting review:", {
-        productId,
-        rating: reviewRating,
-        text: reviewText,
+      const customer = await getCustomerFromToken();
+
+      if (!customer) {
+        throw new Error("You must be logged in to submit a review");
+      }
+
+      const response = await fetch(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: customer.id,
+          rating: reviewRating,
+          review: reviewText,
+        }),
       });
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error("Failed to submit review");
+      }
 
-      // Reset form
+      const newReview = await response.json();
+
+      // Make sure the new review has the expected format
+      if (newReview && newReview.id) {
+        // If the API doesn't return the customer info with the review,
+        // we need to add it manually
+        if (!newReview.customer && customer) {
+          newReview.customer = customer;
+        }
+
+        // Add the new review to the reviews array and update the state
+        setReviews((prevReviews) => [newReview, ...prevReviews]);
+      }
+
       setReviewText("");
       setReviewRating(5);
       setShowReviewForm(false);
 
-      // In a real app, you would refresh the reviews or add the new one to the list
+      // Show success message
       alert("Thank you for your review!");
     } catch (error) {
       console.error("Error submitting review:", error);
-      alert("Failed to submit review. Please try again.");
+      alert(
+        `Failed to submit review: ${
+          error instanceof Error ? error.message : "Please try again"
+        }`
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Format date to readable string
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   // Time ago format
-  const timeAgo = (dateString: string) => {
+  const timeAgo = (dateString: Date | string) => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -228,27 +228,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
     return "Just now";
   };
 
-  // Handle voting on review helpfulness (mock implementation)
-  const handleHelpfulVote = (reviewId: string, helpful: boolean) => {
-    // In a real app, you would send this to your API
-    console.log(
-      `Marked review ${reviewId} as ${helpful ? "helpful" : "not helpful"}`
-    );
-
-    // For demo purposes, just update the UI optimistically
-    setReviews(
-      reviews.map((review) => {
-        if (review.id === reviewId) {
-          return {
-            ...review,
-            helpfulCount: (review.helpfulCount || 0) + (helpful ? 1 : -1),
-          };
-        }
-        return review;
-      })
-    );
-  };
-
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -264,8 +243,10 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
   };
 
   // Display reviews (either all or limited number)
-  const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 5);
-  const hasMoreReviews = reviews.length > 5;
+  const displayedReviews = showAllReviews
+    ? reviews
+    : (reviews || []).slice(0, 5);
+  const hasMoreReviews = (reviews || []).length > 5;
 
   return (
     <motion.div
@@ -280,7 +261,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
         variants={itemVariants}
       >
         <FiMessageSquare className="mr-2" />
-        Customer Reviews ({reviews.length})
+        Customer Reviews ({reviews ? reviews.length : 0})
       </motion.h2>
 
       {/* Review summary */}
@@ -672,9 +653,15 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
             animate="visible"
           >
             {displayedReviews.map((review) => {
+              // Safety check for review.customer
+              if (!review || !review.customer) {
+                console.error("Invalid review data:", review);
+                return null;
+              }
+
               const customerInitials = `${
-                review.customer?.firstName?.charAt(0) || ""
-              }${review.customer?.lastName?.charAt(0) || ""}`;
+                review.customer.firstName?.charAt(0) || ""
+              }${review.customer.lastName?.charAt(0) || ""}`;
               const isExpanded = activeReviewId === review.id;
 
               return (
@@ -690,37 +677,19 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
                   <div className="p-6">
                     <div className="flex items-start">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 mr-4 flex-shrink-0">
-                        {review.customer?.avatar ? (
-                          <img
-                            src={review.customer.avatar}
-                            alt="Reviewer"
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 font-medium text-lg">
-                            {customerInitials}
-                          </div>
-                        )}
+                        <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 font-medium text-lg">
+                          {customerInitials}
+                        </div>
                       </div>
 
                       <div className="flex-1">
                         <div className="flex flex-wrap justify-between items-start gap-2">
                           <div>
                             <h4 className="font-medium text-gray-900 flex items-center">
-                              {review.customer
-                                ? `${review.customer.firstName || ""} ${
-                                    review.customer.lastName || ""
-                                  }`.trim() || "Anonymous User"
-                                : "Anonymous User"}
-                              {review.isVerifiedPurchase && (
-                                <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full flex items-center">
-                                  <FiCheck className="mr-1" size={10} />
-                                  Verified Purchase
-                                </span>
-                              )}
+                              {`${review.customer.firstName} ${review.customer.lastName}`.trim()}
                             </h4>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {timeAgo(review.date.toString())}
+                              {timeAgo(review.date)}
                             </p>
                           </div>
 
@@ -738,13 +707,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
                             ))}
                           </div>
                         </div>
-
-                        {/* Review title (if available) */}
-                        {review.title && (
-                          <h5 className="font-medium text-gray-900 mt-3 mb-1">
-                            {review.title}
-                          </h5>
-                        )}
 
                         {/* Review content */}
                         <div
@@ -772,77 +734,8 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
                             {isExpanded ? "Show less" : "Read more"}
                           </button>
                         )}
-
-                        {/* Review images */}
-                        {review.images && review.images.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {review.images.map((image, index) => (
-                              <div
-                                key={index}
-                                className="w-16 h-16 rounded overflow-hidden border border-gray-200"
-                              >
-                                <img
-                                  src={image}
-                                  alt={`Review image ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Helpful voting */}
-                        <div className="mt-4 flex items-center text-sm">
-                          <span className="text-gray-500 mr-3">
-                            Was this review helpful?
-                          </span>
-                          <button
-                            onClick={() => handleHelpfulVote(review.id, true)}
-                            className="mr-2 px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 flex items-center"
-                          >
-                            <FiThumbsUp size={14} className="mr-1" /> Yes
-                          </button>
-                          <button
-                            onClick={() => handleHelpfulVote(review.id, false)}
-                            className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 flex items-center"
-                          >
-                            <FiThumbsDown size={14} className="mr-1" /> No
-                          </button>
-
-                          {(review.helpfulCount || 0) > 0 && (
-                            <span className="ml-3 text-xs text-gray-500">
-                              {review.helpfulCount}{" "}
-                              {review.helpfulCount === 1 ? "person" : "people"}{" "}
-                              found this helpful
-                            </span>
-                          )}
-                        </div>
                       </div>
                     </div>
-
-                    {/* Store reply (if exists) */}
-                    {review.replyText && (
-                      <div className="mt-4 ml-16 bg-gray-50 p-4 rounded-md border border-gray-200">
-                        <div className="flex items-center mb-2">
-                          <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white mr-2">
-                            <FiMessageSquare size={14} />
-                          </div>
-                          <div>
-                            <h5 className="font-medium text-gray-900">
-                              {review.replyAuthor || "Store Team"}
-                            </h5>
-                            <p className="text-xs text-gray-500">
-                              {review.replyDate
-                                ? timeAgo(review.replyDate)
-                                : ""}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-700">
-                          {review.replyText}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </motion.div>
               );

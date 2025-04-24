@@ -445,24 +445,6 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         </p>
       )}
 
-      {/* Extra product information */}
-      <div className="border-t border-gray-200 pt-4 mt-4">
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>Secure checkout</span>
-          </div>
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>Free shipping on orders over Rs 5,000</span>
-          </div>
-          <div className="flex items-center">
-            <FiCheck className="text-green-500 mr-2" />
-            <span>30-day money-back guarantee</span>
-          </div>
-        </div>
-      </div>
-
       {/* Product tags */}
       {product.tags && product.tags.length > 0 && (
         <div className="pt-4">
@@ -470,9 +452,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
             {product.tags.map((tag, index) => (
               <span
                 key={index}
-                className="inline-block bg-gray-100 rounded-full px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                className="inline-block bg-gradient-to-r from-purple-100 to-indigo-100 text-indigo-800 rounded-full px-3 py-1 text-sm font-semibold shadow-sm hover:scale-105 hover:shadow-md transition-transform duration-200 ease-in-out"
               >
-                #{tag}
+                # {tag}
               </span>
             ))}
           </div>

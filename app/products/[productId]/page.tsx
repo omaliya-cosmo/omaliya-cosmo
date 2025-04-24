@@ -13,16 +13,21 @@ import NewsletterSection from "@/components/home/Newsletter";
 import {
   Product as PrismaProduct,
   ProductCategory,
-  Review,
+  Review as PrismaReview,
+  Customer,
 } from "@prisma/client";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import { getCustomerFromToken } from "@/app/actions";
 import Footer from "@/components/layout/Footer";
 
+interface Review extends PrismaReview {
+  customer: Customer;
+}
+
 interface Product extends PrismaProduct {
-  category?: ProductCategory;
-  reviews?: Review[];
+  category: ProductCategory;
+  reviews: Review[];
 }
 
 export default function ProductDetailPage() {
@@ -37,7 +42,10 @@ export default function ProductDetailPage() {
     async function fetchProduct() {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/products/${productId}`);
+        const response = await axios.get(
+          `/api/products/${productId}?category=true&reviews=true`
+        );
+        console.log(response.data);
         setProduct(response.data);
       } catch (err) {
         console.error("Error fetching product:", err);
@@ -221,11 +229,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Product details and reviews */}
-        <ProductDetails
-          product={product}
-          reviews={product.reviews || []}
-          productId={product.id}
-        />
+        <ProductDetails product={product} />
 
         {/* Related products */}
         <RelatedProducts

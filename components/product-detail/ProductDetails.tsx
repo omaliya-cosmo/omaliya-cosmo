@@ -13,20 +13,28 @@ import {
   FiThumbsUp,
   FiRefreshCw,
 } from "react-icons/fi";
-import { Product } from "@prisma/client";
+import {
+  Customer,
+  Product as PrismaProduct,
+  ProductCategory,
+  Review as PrismaReview,
+} from "@prisma/client";
 import ProductReviews from "@/components/product-detail/ProductReviews";
+
+interface Review extends PrismaReview {
+  customer: Customer;
+}
+
+interface Product extends PrismaProduct {
+  category: ProductCategory;
+  reviews: Review[];
+}
 
 interface ProductDetailsProps {
   product: Product;
-  reviews?: any[];
-  productId?: string;
 }
 
-const ProductDetails: React.FC<ProductDetailsProps> = ({
-  product,
-  reviews = [],
-  productId = "",
-}) => {
+const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
   const [activeTab, setActiveTab] = useState("description");
   const [isSticky, setIsSticky] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -69,22 +77,22 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       {
         question: "How often should I use this product?",
         answer:
-          "For best results, use daily as part of your morning and evening routine. Apply a small amount to clean, dry skin and gently massage in circular motions until fully absorbed. If you have sensitive skin, you may want to start with once daily application and gradually increase to twice daily.",
+          "Usage frequency depends on the product type. Refer to the usage instructions provided with the item. For general use, follow daily or as needed to achieve optimal results.",
       },
       {
-        question: "Is this product suitable for sensitive skin?",
+        question: "Is this product suitable for all users?",
         answer:
-          "Yes, our product is formulated for all skin types, including sensitive skin. We use gentle, non-irritating ingredients and avoid common allergens. However, if you have specific allergies or skin conditions, please check the ingredient list. We always recommend doing a patch test before applying to your face if you have particularly reactive skin.",
+          "Yes, this product is designed to be suitable for a wide range of users. However, we recommend reviewing the specifications and compatibility details to ensure it meets your individual needs.",
       },
       {
-        question: "How long will one bottle/package last?",
+        question: "How long will one unit last?",
         answer:
-          "With regular use, one package typically lasts 1-2 months depending on usage frequency. For best results, we recommend using a small amount (about the size of a pea) for each application. This ensures you get the maximum benefit while making the product last longer.",
+          "The lifespan of the product depends on usage frequency and conditions. On average, one unit is expected to last 1–2 months with regular use.",
       },
       {
-        question: "Is this product tested on animals?",
+        question: "Is this product ethically made?",
         answer:
-          "No, we're proud to be 100% cruelty-free. We never test on animals and only use ethically sourced ingredients. All our products are certified by Leaping Bunny and PETA as cruelty-free. We're committed to ethical practices throughout our supply chain.",
+          "Yes, we are committed to ethical practices. This product is made following responsible sourcing, manufacturing, and environmental standards. No animal testing is involved.",
       },
     ];
   };
@@ -192,170 +200,17 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                     className="ml-2 text-xs text-amber-700 underline cursor-pointer"
                     onClick={() => setActiveTab("reviews")}
                   >
-                    ({reviews.length} reviews)
+                    ({product.reviews.length || 0} reviews)
                   </span>
                 </div>
               </div>
 
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl mb-8 shadow-sm border border-indigo-100">
-                <div className="flex items-start">
-                  <span className="text-indigo-400 text-4xl font-serif mr-3">
-                    "
-                  </span>
-                  <p className="text-indigo-900 italic font-medium">
-                    {product.description ||
-                      "Experience luxury skincare that transforms your daily routine into a moment of self-care."}
-                  </p>
-                  <span className="text-indigo-400 text-4xl font-serif ml-3 self-end">
-                    "
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-gray-700">
-                <p className="mb-6 text-lg leading-relaxed">
-                  Experience the ultimate in skincare with our premium
-                  formulation. Designed to nourish and revitalize your skin,
-                  this product combines the power of natural ingredients with
-                  cutting-edge skincare technology.
-                </p>
-
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <motion.div
-                    className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:border-indigo-200"
-                    whileHover={{ y: -5 }}
-                  >
-                    <h4 className="font-bold text-gray-900 flex items-center text-lg mb-4">
-                      <span className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 mr-3">
-                        1
-                      </span>
-                      Key Benefits
-                    </h4>
-                    <ul className="mt-4 space-y-3">
-                      <li className="flex items-start">
-                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-0.5">
-                          <FiCheck className="h-3.5 w-3.5 text-green-600" />
-                        </span>
-                        <span>Natural and organic ingredients</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-0.5">
-                          <FiCheck className="h-3.5 w-3.5 text-green-600" />
-                        </span>
-                        <span>Paraben-free formula</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-0.5">
-                          <FiCheck className="h-3.5 w-3.5 text-green-600" />
-                        </span>
-                        <span>Suitable for all skin types</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-0.5">
-                          <FiCheck className="h-3.5 w-3.5 text-green-600" />
-                        </span>
-                        <span>Dermatologically tested</span>
-                      </li>
-                    </ul>
-                  </motion.div>
-
-                  <motion.div
-                    className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:border-indigo-200"
-                    whileHover={{ y: -5 }}
-                  >
-                    <h4 className="font-bold text-gray-900 flex items-center text-lg mb-4">
-                      <span className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 mr-3">
-                        2
-                      </span>
-                      How to Use
-                    </h4>
-                    <div className="mt-4 space-y-4">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3 mt-0.5">
-                          <span className="text-indigo-600 text-xs font-bold">
-                            1
-                          </span>
-                        </div>
-                        <p>Cleanse your face with warm water</p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3 mt-0.5">
-                          <span className="text-indigo-600 text-xs font-bold">
-                            2
-                          </span>
-                        </div>
-                        <p>Apply a small amount to your fingertips</p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3 mt-0.5">
-                          <span className="text-indigo-600 text-xs font-bold">
-                            3
-                          </span>
-                        </div>
-                        <p>Gently massage into skin using circular motions</p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center mr-3 mt-0.5">
-                          <span className="text-indigo-600 text-xs font-bold">
-                            4
-                          </span>
-                        </div>
-                        <p>Use morning and evening for best results</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-
-                <div className="mt-12 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
-                  <h4 className="font-bold text-gray-900 mb-4 flex items-center">
-                    <FiThumbsUp className="mr-2 text-indigo-600" />
-                    Why Our Customers Love This Product
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white bg-opacity-60 backdrop-blur-sm p-4 rounded-lg">
-                      <div className="flex text-amber-400 mb-2">
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                      </div>
-                      <p className="text-gray-700 text-sm italic">
-                        "Transformed my skin in just a week. Will definitely
-                        repurchase!"
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">- Sarah T.</p>
-                    </div>
-                    <div className="bg-white bg-opacity-60 backdrop-blur-sm p-4 rounded-lg">
-                      <div className="flex text-amber-400 mb-2">
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar />
-                      </div>
-                      <p className="text-gray-700 text-sm italic">
-                        "Gentle on my sensitive skin and smells amazing. Love
-                        it!"
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">- Michael P.</p>
-                    </div>
-                    <div className="bg-white bg-opacity-60 backdrop-blur-sm p-4 rounded-lg">
-                      <div className="flex text-amber-400 mb-2">
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                        <FiStar className="fill-amber-400" />
-                      </div>
-                      <p className="text-gray-700 text-sm italic">
-                        "The best skincare product I've ever used. Worth every
-                        penny!"
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">- Emma L.</p>
-                    </div>
-                  </div>
-                </div>
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: product.fullDescription || product.description,
+                  }}
+                />
               </div>
             </motion.div>
           )}
@@ -378,7 +233,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               </div>
 
               {/* Embed the ProductReviews component inside the Reviews tab */}
-              <ProductReviews reviews={reviews} productId={productId} />
+              <ProductReviews
+                reviews={product.reviews}
+                productId={product.id}
+              />
             </motion.div>
           )}
 

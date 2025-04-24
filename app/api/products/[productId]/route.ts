@@ -14,7 +14,13 @@ export async function GET(
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
-        reviews: includeReviews,
+        reviews: includeReviews
+          ? {
+              include: {
+                customer: true, // Include customer data in each review
+              },
+            }
+          : false,
         category: includeCategory,
       },
     });
@@ -63,6 +69,32 @@ export async function PUT(
     console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Failed to update product" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { productId: string } }
+) {
+  try {
+    const { productId } = params;
+    const body = await request.json();
+
+    // Use the body data directly for the update
+    const updateData = { ...body };
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: updateData,
+    });
+
+    return NextResponse.json(updatedProduct, { status: 200 });
+  } catch (error) {
+    console.error("Error patching product:", error);
+    return NextResponse.json(
+      { error: "Failed to patch product" },
       { status: 500 }
     );
   }

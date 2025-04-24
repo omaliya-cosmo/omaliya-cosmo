@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Cookies from "js-cookie";
 import { FiGlobe, FiTag, FiFlag, FiAlertCircle } from "react-icons/fi";
 
 interface ProductPricingProps {
@@ -11,8 +10,6 @@ interface ProductPricingProps {
   discountPriceUSD?: number | null;
   currency: "LKR" | "USD";
   onCurrencyChange: (currency: "LKR" | "USD") => void;
-  weight?: number;
-  weightUnit?: string;
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({
@@ -22,32 +19,18 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
   discountPriceUSD,
   currency,
   onCurrencyChange,
-  weight = 100,
-  weightUnit = "g",
 }) => {
   // Local state for tracking loading state
   const [isLoading, setIsLoading] = useState(true);
   const [isPriceAnimating, setIsPriceAnimating] = useState(false);
 
-  // Load currency preference from cookie on component mount
+  // Only handle loading animation
   useEffect(() => {
-    // Get the saved currency from cookies
-    const savedCurrency = Cookies.get("preferred-currency");
-
-    // If there's a valid saved currency, use it
-    if (savedCurrency && (savedCurrency === "LKR" || savedCurrency === "USD")) {
-      onCurrencyChange(savedCurrency);
-    } else {
-      // If no cookie is set, set the default to LKR and save it
-      Cookies.set("preferred-currency", "LKR", { expires: 365 });
-      onCurrencyChange("LKR");
-    }
-
     // Small delay to show loading animation
     setTimeout(() => {
       setIsLoading(false);
     }, 300);
-  }, [onCurrencyChange]);
+  }, []);
 
   const formatCurrency = (price: number, currencyCode: string) => {
     if (currencyCode === "LKR") {
@@ -80,14 +63,13 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
       )
     : 0;
 
-  // Calculate price per unit
+  // Get formatted price
   const getPricePerUnit = () => {
     const effectivePrice = hasDiscount
       ? currentDiscountPrice || 0
       : currentPrice;
-    const pricePerUnit = effectivePrice / weight;
 
-    return formatCurrency(pricePerUnit * 1000, currency) + ` per kg`;
+    return formatCurrency(effectivePrice, currency) + ` per unit`;
   };
 
   // Flag emoji and currency name helpers
