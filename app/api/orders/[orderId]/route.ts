@@ -1,46 +1,50 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { NextRequest } from "next/server";
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = params;
+    const orderId = params.orderId;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: "Order ID is required" },
+        { status: 400 }
+      );
+    }
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         customer: true,
+        address: true,
         items: {
           include: {
             product: true,
+            bundle: true,
           },
         },
       },
     });
 
     if (!order) {
-      return new Response(JSON.stringify({ error: "Order not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return new Response(JSON.stringify(order), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(order);
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Failed to fetch order" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error fetching order:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch order details" },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { orderId: string } }
 ) {
   try {
@@ -48,11 +52,10 @@ export async function PUT(
     const body = await request.json();
 
     if (!Object.keys(body).length) {
-      return new Response(
-        JSON.stringify({ error: "No fields provided for update" }),
+      return NextResponse.json(
+        { error: "No fields provided for update" },
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
         }
       );
     }
@@ -62,20 +65,18 @@ export async function PUT(
       data: body, // Dynamically update fields based on the request body
     });
 
-    return new Response(JSON.stringify(updatedOrder), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(updatedOrder);
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Failed to update order" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error updating order:", error);
+    return NextResponse.json(
+      { error: "Failed to update order" },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { orderId: string } }
 ) {
   try {
@@ -89,17 +90,15 @@ export async function DELETE(
       where: { id: orderId },
     });
 
-    return new Response(
-      JSON.stringify({ message: "Order deleted successfully" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+    return NextResponse.json(
+      { message: "Order deleted successfully" },
+      { status: 200 }
     );
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Failed to delete order" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error deleting order:", error);
+    return NextResponse.json(
+      { error: "Failed to delete order" },
+      { status: 500 }
+    );
   }
 }

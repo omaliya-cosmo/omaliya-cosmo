@@ -9,15 +9,19 @@ import {
   Order as PrismaOrder,
   Product,
   OrderItem as PrismaOrderItem,
+  Address,
+  BundleOffer,
 } from "@prisma/client";
 
 interface OrderItem extends PrismaOrderItem {
   product: Product;
+  bundle: BundleOffer;
 }
 
 interface Order extends PrismaOrder {
-  customer: Customer;
+  customer?: Customer;
   items: OrderItem[];
+  address: Address;
 }
 
 const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
@@ -37,8 +41,6 @@ const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
       .get(`/api/orders?status=${status}`)
       .then((res) => {
         setOrders(res.data.orders);
-        console.log("status", status);
-        console.log("orders", res.data.orders);
         setLoading(false);
       })
       .catch((err) => {
@@ -171,7 +173,7 @@ const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                     Customer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Phone
+                    Phone/Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Total
@@ -201,15 +203,19 @@ const OrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {order.items.map((item) => (
                         <div key={item.id}>
-                          {item.product.name} x {item.quantity}
+                          {item.isBundle && item.bundle
+                            ? `Bundle: ${item.bundle.bundleName} x ${item.quantity}`
+                            : item.product
+                            ? `${item.product.name} x ${item.quantity}`
+                            : "Unknown Item"}
                         </div>
                       ))}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.customer.firstName}
+                    <td className="px-6 py-4 whitespace-nowrap capitalize">
+                      {order.address.firstName} {order.address.lastName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {order.customer.phoneNumber}
+                      {order.address.phoneNumber || order.address.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       Rs {order.total.toFixed(2)}

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   Search,
   Package,
@@ -12,12 +13,11 @@ import {
   XCircle,
   Clock,
   ChevronRight,
-  Calendar,
   Download,
   RefreshCcw,
   Filter,
-  ArrowDownAZ,
   ShoppingBag,
+  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -47,7 +47,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -57,176 +56,123 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface OrderItem {
+// Using types based on the provided schema
+type OrderStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "CANCELED"
+  | "DELIVERED";
+type PaymentMethod = "CASH_ON_DELIVERY" | "PAY_HERE" | "KOKO";
+type Currency = "LKR" | "USD";
+
+// Required type definitions based on the schema
+type Customer = {
   id: string;
-  productName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  registeredAt: Date;
+  address?: Address;
+  orders: Order[];
+};
+
+type Address = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  email?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country: string;
+};
+
+type Order = {
+  id: string;
+  customerId?: string;
+  orderDate: Date;
+  deliveredAt?: Date;
+  subtotal: number;
+  discountAmount: number;
+  shipping: number;
+  total: number;
+  currency: Currency;
+  status: OrderStatus;
+  notes?: string;
+  items: OrderItem[];
+  trackingNumber?: string;
+  paymentMethod: PaymentMethod;
+  addressId: string;
+  address: Address;
+};
+
+type OrderItem = {
+  id: string;
+  orderId: string;
+  productId?: string;
+  product?: Product;
+  bundleId?: string;
+  bundle?: BundleOffer;
   quantity: number;
   price: number;
-  image?: string;
-  options?: { [key: string]: string };
-}
+  isBundle: boolean;
+};
 
-interface Order {
+type Product = {
   id: string;
-  orderNumber: string;
-  createdAt: string;
-  status: "processing" | "shipped" | "delivered" | "canceled";
-  total: number;
-  currency: string;
-  items: OrderItem[];
-  shippingAddress?: {
-    name: string;
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  paymentMethod?: {
-    type: string;
-    last4?: string;
-  };
-  tracking?: {
-    number?: string;
-    url?: string;
-    carrier?: string;
-    estimatedDelivery?: string;
-    events?: Array<{
-      date: string;
-      status: string;
-      location: string;
-    }>;
-  };
-}
+  name: string;
+  imageUrls?: string[];
+};
+
+type BundleOffer = {
+  id: string;
+  bundleName: string;
+  originalPriceLKR: number;
+  originalPriceUSD: number;
+  offerPriceLKR: number;
+  offerPriceUSD: number;
+  endDate: Date;
+  stock: number;
+  imageUrl?: string;
+};
 
 interface ProfileOrdersProps {
-  userData?: any;
+  customer: Customer;
 }
 
-export default function ProfileOrders({ userData }: ProfileOrdersProps) {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function ProfileOrders({ customer }: ProfileOrdersProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 5;
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true);
-
-        if (!userData || !userData.id) {
-          console.error("No user data available");
-          setIsLoading(false);
-          return;
-        }
-
-        // Use the userData provided through props
-        if (userData.orders && Array.isArray(userData.orders)) {
-          // Map API data to our Order interface
-          const mappedOrders: Order[] = userData.orders.map((order: any) => {
-            // Map order items
-            const items: OrderItem[] = order.items.map((item: any) => ({
-              id: item.id,
-              productName: item.product
-                ? item.product.name
-                : item.bundle
-                ? item.bundle.bundleName
-                : "Unknown Product",
-              quantity: item.quantity,
-              price: item.price,
-              image:
-                item.product?.imageUrls?.[0] ||
-                item.bundle?.imageUrl ||
-                undefined,
-              options: {}, // Add any product options if available in your API
-            }));
-
-            // Map to Order structure
-            return {
-              id: order.id,
-              orderNumber: order.id
-                .substring(order.id.length - 6)
-                .toUpperCase(),
-              createdAt: order.orderDate,
-              status: order.status.toLowerCase() as any,
-              total: order.total,
-              currency: order.currency,
-              items,
-              shippingAddress: order.address
-                ? {
-                    name: `${order.address.firstName} ${order.address.lastName}`,
-                    street: order.address.addressLine1,
-                    city: order.address.city,
-                    state: order.address.state || "",
-                    zipCode: order.address.postalCode,
-                    country: order.address.country,
-                  }
-                : undefined,
-              paymentMethod: {
-                type: order.paymentMethod.toLowerCase().replace("_", " "),
-              },
-              tracking: order.trackingNumber
-                ? {
-                    number: order.trackingNumber,
-                    carrier: "Shipping Provider", // Add if available in your API
-                    url: `https://track.aftership.com/trackings?tracking_number=${order.trackingNumber}`,
-                  }
-                : undefined,
-            };
-          });
-
-          setOrders(mappedOrders);
-        } else {
-          console.error("No orders found in user data");
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [userData]);
-
-  useEffect(() => {
-    // Reset pagination when filters change
-    setCurrentPage(1);
-
-    console.log(
-      `Tab changed to ${activeTab}, current orders: ${filteredOrders.length}`
-    );
-  }, [activeTab, searchQuery, sortOrder]);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
+    null
+  );
 
   // Filter orders based on active tab and search query
   const filteredOrders = useMemo(() => {
-    console.log("Recalculating filtered orders");
-    console.log({
-      activeTab,
-      searchQuery,
-      sortOrder,
-      ordersLength: orders.length,
-    });
+    if (!customer?.orders) {
+      return [];
+    }
 
-    let result = [...orders];
+    let result = [...customer.orders];
 
     // Filter by status tab
     if (activeTab !== "all") {
-      result = result.filter((order) => order.status === activeTab);
+      result = result.filter(
+        (order) => order.status.toLowerCase() === activeTab.toLowerCase()
+      );
     }
 
     // Filter by search query
@@ -234,17 +180,19 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (order) =>
-          order.orderNumber.toLowerCase().includes(query) ||
-          order.items.some((item) =>
-            item.productName.toLowerCase().includes(query)
-          )
+          order.id.toLowerCase().includes(query) ||
+          order.items.some((item) => {
+            const productName =
+              item.product?.name || item.bundle?.bundleName || "";
+            return productName.toLowerCase().includes(query);
+          })
       );
     }
 
     // Sort orders
     result = result.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      const dateA = new Date(a.orderDate).getTime();
+      const dateB = new Date(b.orderDate).getTime();
 
       if (sortOrder === "newest") {
         return dateB - dateA;
@@ -258,9 +206,8 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
       return 0;
     });
 
-    console.log("Filtered orders result:", result.length);
     return result;
-  }, [orders, activeTab, searchQuery, sortOrder]);
+  }, [customer?.orders, activeTab, searchQuery, sortOrder]);
 
   // Pagination
   const indexOfLastOrder = currentPage * ordersPerPage;
@@ -271,17 +218,10 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   );
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
 
-  useEffect(() => {
-    console.log(
-      `After filter calculations - Current orders count: ${currentOrders.length}`
-    );
-  }, [currentOrders.length]);
-
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   // Format date in relative terms
-  const formatRelativeDate = (dateString: string) => {
-    const date = parseISO(dateString);
+  const formatRelativeDate = (date: Date) => {
     const now = new Date();
     const diffDays = differenceInDays(now, date);
 
@@ -292,8 +232,22 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   };
 
   // Get status details
-  const getStatusDetails = (status: string) => {
-    switch (status) {
+  const getStatusDetails = (status: OrderStatus) => {
+    const statusLower = status.toLowerCase() as
+      | "processing"
+      | "shipped"
+      | "delivered"
+      | "canceled"
+      | "pending";
+
+    switch (statusLower) {
+      case "pending":
+        return {
+          icon: <Clock className="h-4 w-4" />,
+          label: "Pending",
+          color: "bg-yellow-50 text-yellow-700 border-yellow-200",
+          description: "Your order is pending",
+        };
       case "processing":
         return {
           icon: <Clock className="h-4 w-4" />,
@@ -333,8 +287,11 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
   };
 
   // Calculate progress for order status
-  const calculateStatusProgress = (status: string) => {
-    switch (status) {
+  const calculateStatusProgress = (status: OrderStatus) => {
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case "pending":
+        return 10;
       case "processing":
         return 25;
       case "shipped":
@@ -350,24 +307,31 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
 
   // Get order status timeline steps
   const getOrderTimeline = (order: Order) => {
+    const statusLower = order.status.toLowerCase();
+
     const steps = [
-      { status: "processing", label: "Processing", completed: true },
+      { status: "pending", label: "Pending", completed: true },
+      {
+        status: "processing",
+        label: "Processing",
+        completed: ["processing", "shipped", "delivered"].includes(statusLower),
+      },
       {
         status: "shipped",
         label: "Shipped",
-        completed: ["shipped", "delivered"].includes(order.status),
+        completed: ["shipped", "delivered"].includes(statusLower),
       },
       {
         status: "delivered",
         label: "Delivered",
-        completed: order.status === "delivered",
+        completed: statusLower === "delivered",
       },
     ];
 
     // Handle canceled orders differently
-    if (order.status === "canceled") {
+    if (statusLower === "canceled") {
       return [
-        { status: "processing", label: "Processing", completed: true },
+        { status: "pending", label: "Pending", completed: true },
         { status: "canceled", label: "Canceled", completed: true },
       ];
     }
@@ -377,9 +341,11 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
 
   // Find selected order details
   const selectedOrder = useMemo(() => {
-    if (!selectedOrderId) return null;
-    return orders.find((order) => order.id === selectedOrderId) || null;
-  }, [selectedOrderId, orders]);
+    if (!selectedOrderId || !customer?.orders) return null;
+    return (
+      customer.orders.find((order) => order.id === selectedOrderId) || null
+    );
+  }, [selectedOrderId, customer?.orders]);
 
   // View details of an order
   const viewOrderDetails = (orderId: string) => {
@@ -398,13 +364,54 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
     alert("Items added to cart! Redirecting to checkout...");
   };
 
-  console.log({
-    activeTab,
-    searchQuery,
-    filteredOrdersLength: filteredOrders.length,
-    currentOrdersLength: currentOrders.length,
-    currentPage,
-  });
+  // Cancel an order
+  const cancelOrder = async (orderId: string) => {
+    if (
+      window.confirm(
+        "Are you sure you want to cancel this order? This action cannot be undone."
+      )
+    ) {
+      try {
+        setCancellingOrderId(orderId);
+        await axios.put(`/api/orders/${orderId}`, {
+          status: "CANCELED",
+        });
+
+        // Update the order status in the UI
+        if (customer?.orders) {
+          const updatedOrders = customer.orders.map((order) =>
+            order.id === orderId
+              ? { ...order, status: "CANCELED" as OrderStatus }
+              : order
+          );
+
+          // Update customer orders in the parent component
+          // This is a simplified approach - in a real app you'd use a proper state management system
+          customer.orders = updatedOrders;
+
+          // If the canceled order is the currently selected one, update it
+          if (selectedOrderId === orderId) {
+            setSelectedOrderId(null);
+            setTimeout(() => setSelectedOrderId(orderId), 10); // Re-open with updated state
+          }
+        }
+
+        alert("Order has been cancelled successfully");
+      } catch (error) {
+        console.error("Error cancelling order:", error);
+        alert(
+          "Failed to cancel order. Please try again or contact customer support."
+        );
+      } finally {
+        setCancellingOrderId(null);
+      }
+    }
+  };
+
+  // Get order number from order id
+  const getOrderNumber = (orderId: string) => {
+    return orderId.substring(orderId.length - 6).toUpperCase();
+  };
 
   return (
     <Card>
@@ -468,7 +475,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                   All
                 </span>
                 <span className="ml-1 rounded-full bg-muted px-1.5 sm:px-2 py-0.5 text-xs font-medium">
-                  {orders.length}
+                  {customer?.orders?.length || 0}
                 </span>
               </TabsTrigger>
               <TabsTrigger
@@ -551,6 +558,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 <div className="space-y-6">
                   {currentOrders.map((order) => {
                     const statusDetails = getStatusDetails(order.status);
+                    const orderNumber = getOrderNumber(order.id);
 
                     return (
                       <motion.div
@@ -562,9 +570,9 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                       >
                         <Card
                           className={`border ${
-                            order.status === "canceled"
+                            order.status === "CANCELED"
                               ? "border-red-200"
-                              : order.status === "delivered"
+                              : order.status === "DELIVERED"
                               ? "border-green-200"
                               : ""
                           }`}
@@ -574,7 +582,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                               <div>
                                 <div className="flex items-center gap-2 mb-1">
                                   <h3 className="font-medium">
-                                    Order #{order.orderNumber}
+                                    Order #{orderNumber}
                                   </h3>
                                   <Badge
                                     variant="outline"
@@ -586,7 +594,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                   <span>
-                                    {formatRelativeDate(order.createdAt)}
+                                    {formatRelativeDate(order.orderDate)}
                                   </span>
                                   <span className="mx-1.5">•</span>
                                   <span>
@@ -607,7 +615,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                             </div>
 
                             {/* Order progress for non-canceled orders */}
-                            {order.status !== "canceled" && (
+                            {order.status !== "CANCELED" && (
                               <div className="mt-2">
                                 <Progress
                                   value={calculateStatusProgress(order.status)}
@@ -636,78 +644,58 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
 
                           <CardContent className="px-4 py-3">
                             <div className="space-y-3">
-                              {order.items.slice(0, 2).map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="flex items-center gap-3"
-                                >
-                                  <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                    {item.image ? (
-                                      <div
-                                        className="h-full w-full bg-cover bg-center"
-                                        style={{
-                                          backgroundImage: `url('/placeholder.png')`,
-                                          backgroundColor: "rgba(0,0,0,0.05)",
-                                        }}
-                                        title={item.productName}
-                                      />
-                                    ) : (
-                                      <Package className="h-6 w-6 text-muted-foreground/60" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex justify-between">
-                                      <p className="font-medium line-clamp-1">
-                                        {item.productName}
-                                      </p>
-                                      <p className="font-medium">
-                                        ${item.price.toFixed(2)}
-                                      </p>
+                              {order.items.slice(0, 2).map((item) => {
+                                const productName = item.isBundle
+                                  ? item.bundle?.bundleName || "Bundle"
+                                  : item.product?.name || "Product";
+                                const imageUrl = item.isBundle
+                                  ? item.bundle?.imageUrl
+                                  : item.product?.imageUrls?.[0];
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center gap-3"
+                                  >
+                                    <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                      {imageUrl ? (
+                                        <div
+                                          className="h-full w-full bg-cover bg-center"
+                                          style={{
+                                            backgroundImage: `url('${imageUrl}')`,
+                                            backgroundColor: "rgba(0,0,0,0.05)",
+                                          }}
+                                          title={productName}
+                                        />
+                                      ) : (
+                                        <Package className="h-6 w-6 text-muted-foreground/60" />
+                                      )}
                                     </div>
-                                    <div className="flex justify-between">
-                                      <div className="text-sm text-muted-foreground">
-                                        Qty: {item.quantity}
-                                        {item.options &&
-                                          Object.keys(item.options).length >
-                                            0 && (
-                                            <TooltipProvider>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <span className="ml-2 underline underline-offset-2 cursor-help">
-                                                    Options
-                                                  </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  <div className="text-xs">
-                                                    {Object.entries(
-                                                      item.options
-                                                    ).map(([key, value]) => (
-                                                      <div
-                                                        key={key}
-                                                        className="flex"
-                                                      >
-                                                        <span className="font-medium mr-1">
-                                                          {key}:
-                                                        </span>{" "}
-                                                        {value}
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            </TooltipProvider>
-                                          )}
+                                    <div className="flex-1">
+                                      <div className="flex justify-between">
+                                        <p className="font-medium line-clamp-1">
+                                          {productName}
+                                        </p>
+                                        <p className="font-medium">
+                                          {order.currency}{" "}
+                                          {item.price.toFixed(2)}
+                                        </p>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">
-                                        $
-                                        {(item.price * item.quantity).toFixed(
-                                          2
-                                        )}
-                                      </p>
+                                      <div className="flex justify-between">
+                                        <div className="text-sm text-muted-foreground">
+                                          Qty: {item.quantity}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                          {order.currency}{" "}
+                                          {(item.price * item.quantity).toFixed(
+                                            2
+                                          )}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
 
                               {order.items.length > 2 && (
                                 <p className="text-sm text-muted-foreground pt-1">
@@ -723,12 +711,35 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                                 Order Total:
                               </p>
                               <p className="text-lg font-semibold">
-                                ${order.total.toFixed(2)}
+                                {order.currency} {order.total.toFixed(2)}
                               </p>
                             </div>
 
                             <div className="flex flex-wrap gap-2 self-end sm:self-center">
-                              {order.status === "delivered" && (
+                              {order.status === "PENDING" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3 border-red-300 text-red-600 hover:bg-red-50"
+                                  onClick={() => cancelOrder(order.id)}
+                                  disabled={cancellingOrderId === order.id}
+                                >
+                                  {cancellingOrderId === order.id ? (
+                                    <span className="animate-pulse">
+                                      Cancelling...
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      <span className="whitespace-nowrap">
+                                        Cancel Order
+                                      </span>
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+
+                              {order.status === "DELIVERED" && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -742,15 +753,18 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                                 </Button>
                               )}
 
-                              {(order.status === "shipped" ||
-                                order.status === "delivered") &&
-                                order.tracking?.url && (
+                              {(order.status === "SHIPPED" ||
+                                order.status === "DELIVERED") &&
+                                order.trackingNumber && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     className="gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                                     onClick={() =>
-                                      window.open(order.tracking?.url, "_blank")
+                                      window.open(
+                                        `https://track.aftership.com/trackings?tracking_number=${order.trackingNumber}`,
+                                        "_blank"
+                                      )
                                     }
                                   >
                                     <Truck className="h-3.5 w-3.5" />
@@ -881,7 +895,9 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                     ? `We couldn't find any orders matching "${searchQuery}". Try a different search or clear your filter.`
                     : `You haven't placed any ${
                         activeTab !== "all"
-                          ? getStatusDetails(activeTab).label.toLowerCase()
+                          ? getStatusDetails(
+                              activeTab.toUpperCase() as OrderStatus
+                            ).label.toLowerCase()
                           : ""
                       } orders yet.`}
                 </p>
@@ -913,7 +929,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  Order #{selectedOrder.orderNumber}
+                  Order #{getOrderNumber(selectedOrder.id)}
                   <Badge
                     variant="outline"
                     className={`ml-2 ${
@@ -928,7 +944,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 </DialogTitle>
                 <DialogDescription>
                   Placed on{" "}
-                  {format(new Date(selectedOrder.createdAt), "MMMM d, yyyy")} •
+                  {format(new Date(selectedOrder.orderDate), "MMMM d, yyyy")} •
                   {selectedOrder.items.length} item
                   {selectedOrder.items.length !== 1 ? "s" : ""}
                 </DialogDescription>
@@ -937,97 +953,50 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
               <ScrollArea className="max-h-[70vh]">
                 <div className="space-y-6 p-1">
                   {/* Order timeline */}
-                  {selectedOrder.status !== "canceled" &&
-                    selectedOrder.tracking?.events && (
+                  {selectedOrder.status !== "CANCELED" &&
+                    selectedOrder.trackingNumber && (
                       <div className="border rounded-lg p-4">
                         <h4 className="font-medium mb-2 flex items-center gap-2">
                           <Truck className="h-4 w-4" />
-                          Shipping Status
+                          Tracking Information
                         </h4>
-                        <div className="space-y-4 mt-4">
-                          {selectedOrder.tracking.events.map((event, idx) => (
-                            <div key={idx} className="flex gap-4">
-                              <div className="relative">
-                                <div
-                                  className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                                    idx === 0
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-muted"
-                                  }`}
-                                >
-                                  {idx === 0 ? (
-                                    <CheckCircle className="h-4 w-4" />
-                                  ) : (
-                                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                                  )}
-                                </div>
-                                {idx <
-                                  selectedOrder.tracking!.events!.length -
-                                    1 && (
-                                  <div className="absolute top-6 bottom-0 left-1/2 w-0.5 -translate-x-1/2 bg-muted h-full" />
-                                )}
-                              </div>
-                              <div className="pb-6">
-                                <p className="font-medium">{event.status}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {event.location}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {format(
-                                    new Date(event.date),
-                                    "MMM d, yyyy, h:mm a"
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">
+                            Tracking Number:
+                          </span>{" "}
+                          <span className="font-medium">
+                            {selectedOrder.trackingNumber}
+                          </span>
+                        </p>
 
-                        {selectedOrder.tracking.carrier &&
-                          selectedOrder.tracking.number && (
-                            <div className="mt-2 pt-3 border-t">
-                              <p className="text-sm">
-                                <span className="text-muted-foreground">
-                                  Tracking Number:
-                                </span>{" "}
-                                <span className="font-medium">
-                                  {selectedOrder.tracking.number}
-                                </span>{" "}
-                                ({selectedOrder.tracking.carrier})
-                              </p>
-                              {selectedOrder.tracking.estimatedDelivery && (
-                                <p className="text-sm mt-1">
-                                  <span className="text-muted-foreground">
-                                    Estimated Delivery:
-                                  </span>{" "}
-                                  <span className="font-medium">
-                                    {format(
-                                      new Date(
-                                        selectedOrder.tracking.estimatedDelivery
-                                      ),
-                                      "MMMM d, yyyy"
-                                    )}
-                                  </span>
-                                </p>
+                        {selectedOrder.deliveredAt && (
+                          <p className="text-sm mt-1">
+                            <span className="text-muted-foreground">
+                              Delivered on:
+                            </span>{" "}
+                            <span className="font-medium">
+                              {format(
+                                selectedOrder.deliveredAt,
+                                "MMMM d, yyyy"
                               )}
-                              {selectedOrder.tracking.url && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="px-0 py-1"
-                                  onClick={() =>
-                                    window.open(
-                                      selectedOrder.tracking?.url,
-                                      "_blank"
-                                    )
-                                  }
-                                >
-                                  Track with {selectedOrder.tracking.carrier}
-                                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                            </span>
+                          </p>
+                        )}
+
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="px-0 py-1 mt-2"
+                          onClick={() =>
+                            window.open(
+                              `https://track.aftership.com/trackings?tracking_number=${selectedOrder.trackingNumber}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          Track your package
+                          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
                       </div>
                     )}
 
@@ -1040,72 +1009,75 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                         </h3>
                       </div>
                       <div className="p-4 space-y-4">
-                        {selectedOrder.items.map((item) => (
-                          <div key={item.id} className="flex gap-3">
-                            <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                              {item.image ? (
-                                <div
-                                  className="h-full w-full bg-cover bg-center"
-                                  style={{
-                                    backgroundImage: `url('/placeholder.png')`,
-                                    backgroundColor: "rgba(0,0,0,0.05)",
-                                  }}
-                                  title={item.productName}
-                                />
-                              ) : (
-                                <Package className="h-6 w-6 text-muted-foreground/60" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between">
-                                <p className="font-medium">
-                                  {item.productName}
-                                </p>
-                                <p className="font-medium">
-                                  ${item.price.toFixed(2)}
+                        {selectedOrder.items.map((item) => {
+                          const productName = item.isBundle
+                            ? item.bundle?.bundleName || "Bundle"
+                            : item.product?.name || "Product";
+                          const imageUrl = item.isBundle
+                            ? item.bundle?.imageUrl
+                            : item.product?.imageUrls?.[0];
+
+                          return (
+                            <div key={item.id} className="flex gap-3">
+                              <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                {imageUrl ? (
+                                  <div
+                                    className="h-full w-full bg-cover bg-center"
+                                    style={{
+                                      backgroundImage: `url('${imageUrl}')`,
+                                      backgroundColor: "rgba(0,0,0,0.05)",
+                                    }}
+                                    title={productName}
+                                  />
+                                ) : (
+                                  <Package className="h-6 w-6 text-muted-foreground/60" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between">
+                                  <p className="font-medium">{productName}</p>
+                                  <p className="font-medium">
+                                    {selectedOrder.currency}{" "}
+                                    {item.price.toFixed(2)}
+                                  </p>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Qty: {item.quantity}
                                 </p>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                Qty: {item.quantity}
-                              </p>
-                              {item.options &&
-                                Object.entries(item.options).length > 0 && (
-                                  <div className="mt-1 text-xs text-muted-foreground">
-                                    {Object.entries(item.options).map(
-                                      ([key, value], idx) => (
-                                        <span key={key}>
-                                          {key}:{" "}
-                                          <span className="font-medium">
-                                            {value}
-                                          </span>
-                                          {idx <
-                                            Object.entries(item.options!)
-                                              .length -
-                                              1 && ", "}
-                                        </span>
-                                      )
-                                    )}
-                                  </div>
-                                )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="bg-muted/40 p-4 border-t">
                         <div className="flex justify-between mb-1">
                           <p className="text-sm">Subtotal</p>
                           <p className="font-medium">
-                            ${selectedOrder.total.toFixed(2)}
+                            {selectedOrder.currency}{" "}
+                            {selectedOrder.subtotal.toFixed(2)}
                           </p>
                         </div>
+                        {selectedOrder.discountAmount > 0 && (
+                          <div className="flex justify-between mb-1">
+                            <p className="text-sm">Discount</p>
+                            <p className="font-medium text-green-600">
+                              -{selectedOrder.currency}{" "}
+                              {selectedOrder.discountAmount.toFixed(2)}
+                            </p>
+                          </div>
+                        )}
                         <div className="flex justify-between mb-1">
                           <p className="text-sm">Shipping</p>
-                          <p className="font-medium">Free</p>
+                          <p className="font-medium">
+                            {selectedOrder.currency}{" "}
+                            {selectedOrder.shipping.toFixed(2)}
+                          </p>
                         </div>
                         <div className="flex justify-between pt-2 border-t mt-2">
                           <p className="font-medium">Total</p>
                           <p className="font-medium">
-                            ${selectedOrder.total.toFixed(2)}
+                            {selectedOrder.currency}{" "}
+                            {selectedOrder.total.toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -1124,27 +1096,16 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                               Method:
                             </span>{" "}
                             <span className="font-medium capitalize">
-                              {selectedOrder.paymentMethod?.type.replace(
-                                "_",
-                                " "
-                              )}
+                              {selectedOrder.paymentMethod
+                                ?.replace("_", " ")
+                                .toLowerCase()}
                             </span>
                           </p>
-                          {selectedOrder.paymentMethod?.last4 && (
-                            <p className="mb-1 text-sm">
-                              <span className="text-muted-foreground">
-                                Card:
-                              </span>{" "}
-                              <span className="font-medium">
-                                •••• {selectedOrder.paymentMethod.last4}
-                              </span>
-                            </p>
-                          )}
                           <p className="text-sm">
                             <span className="text-muted-foreground">Date:</span>{" "}
                             <span className="font-medium">
                               {format(
-                                new Date(selectedOrder.createdAt),
+                                new Date(selectedOrder.orderDate),
                                 "MMMM d, yyyy"
                               )}
                             </span>
@@ -1158,26 +1119,31 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                           <h3 className="font-medium">Shipping Address</h3>
                         </div>
                         <div className="p-4">
-                          {selectedOrder.shippingAddress ? (
-                            <>
-                              <p className="font-medium">
-                                {selectedOrder.shippingAddress.name}
-                              </p>
-                              <p className="text-sm">
-                                {selectedOrder.shippingAddress.street}
-                              </p>
-                              <p className="text-sm">
-                                {selectedOrder.shippingAddress.city},{" "}
-                                {selectedOrder.shippingAddress.state}{" "}
-                                {selectedOrder.shippingAddress.zipCode}
-                              </p>
-                              <p className="text-sm">
-                                {selectedOrder.shippingAddress.country}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-muted-foreground">
-                              No shipping address provided
+                          <p className="font-medium">
+                            {selectedOrder.address.firstName}{" "}
+                            {selectedOrder.address.lastName}
+                          </p>
+                          <p className="text-sm">
+                            {selectedOrder.address.addressLine1}
+                          </p>
+                          {selectedOrder.address.addressLine2 && (
+                            <p className="text-sm">
+                              {selectedOrder.address.addressLine2}
+                            </p>
+                          )}
+                          <p className="text-sm">
+                            {selectedOrder.address.city}
+                            {selectedOrder.address.state
+                              ? `, ${selectedOrder.address.state}`
+                              : ""}{" "}
+                            {selectedOrder.address.postalCode}
+                          </p>
+                          <p className="text-sm">
+                            {selectedOrder.address.country}
+                          </p>
+                          {selectedOrder.address.phoneNumber && (
+                            <p className="text-sm mt-1">
+                              Phone: {selectedOrder.address.phoneNumber}
                             </p>
                           )}
                         </div>
@@ -1185,6 +1151,21 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
 
                       {/* Additional Actions */}
                       <div className="flex flex-wrap gap-2 pt-2">
+                        {selectedOrder.status === "PENDING" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => cancelOrder(selectedOrder.id)}
+                            disabled={cancellingOrderId === selectedOrder.id}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            {cancellingOrderId === selectedOrder.id
+                              ? "Cancelling..."
+                              : "Cancel Order"}
+                          </Button>
+                        )}
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -1200,7 +1181,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                           Download Invoice
                         </Button>
 
-                        {selectedOrder.status === "delivered" && (
+                        {selectedOrder.status === "DELIVERED" && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1216,9 +1197,7 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-1.5"
-                          onClick={() =>
-                            (window.location.href = "/help/orders")
-                          }
+                          onClick={() => (window.location.href = "/contact")}
                         >
                           <XCircle className="h-4 w-4" />
                           Report Issue
@@ -1232,17 +1211,22 @@ export default function ProfileOrders({ userData }: ProfileOrdersProps) {
                 <Button variant="outline" onClick={closeOrderDetails}>
                   Close
                 </Button>
-                {selectedOrder.tracking?.url && (
-                  <Button
-                    onClick={() =>
-                      window.open(selectedOrder.tracking?.url, "_blank")
-                    }
-                    className="gap-2"
-                  >
-                    <Truck className="h-4 w-4" />
-                    Track Order
-                  </Button>
-                )}
+
+                {selectedOrder.trackingNumber &&
+                  selectedOrder.status !== "CANCELED" && (
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          `https://track.aftership.com/trackings?tracking_number=${selectedOrder.trackingNumber}`,
+                          "_blank"
+                        )
+                      }
+                      className="gap-2"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Track Order
+                    </Button>
+                  )}
               </DialogFooter>
             </>
           )}

@@ -1,38 +1,46 @@
 import { prisma } from "@/app/lib/prisma";
-import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { bundleIds } = await request.json();
+    const { bundleIds } = await req.json();
 
-    if (!bundleIds || !Array.isArray(bundleIds)) {
-      return NextResponse.json(
-        { error: "Invalid bundle IDs provided" },
-        { status: 400 }
+    if (!Array.isArray(bundleIds) || bundleIds.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Invalid bundleIds array" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
+    // Fetch bundles from the database
     const bundles = await prisma.bundleOffer.findMany({
-      where: {
-        id: {
-          in: bundleIds,
-        },
-      },
+      where: { id: { in: bundleIds } },
       include: {
         products: {
           include: {
-            product: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                imageUrls: true,
+              },
+            },
           },
         },
       },
     });
 
-    return NextResponse.json(bundles);
+    return new Response(JSON.stringify(bundles), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error fetching bundles:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch bundles" },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

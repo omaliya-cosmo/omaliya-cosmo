@@ -12,15 +12,30 @@ export async function GET(request: NextRequest) {
         status: status ? (status.toUpperCase() as OrderStatus) : undefined,
       },
       include: {
-        customer: true,
+        customer: {
+          include: {
+            orders: {
+              include: {
+                items: {
+                  include: {
+                    product: true,
+                    bundle: true,
+                  },
+                },
+                address: true,
+              },
+            },
+          },
+        },
         items: {
           include: {
             product: true,
+            bundle: true,
           },
         },
+        address: true,
       },
     });
-    console.log(orders);
 
     return new Response(JSON.stringify({ orders }), {
       status: 200,

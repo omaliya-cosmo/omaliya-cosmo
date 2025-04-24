@@ -8,15 +8,19 @@ import {
   OrderItem as PrismaOrderItem,
   Order as PrismaOrder,
   Product,
+  BundleOffer,
+  Address,
 } from "@prisma/client";
 
 interface OrderItem extends PrismaOrderItem {
-  product: Product;
+  product?: Product;
+  bundle?: BundleOffer;
 }
 
 interface Order extends PrismaOrder {
   customer: Customer;
   items: OrderItem[];
+  address: Address;
 }
 
 const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
@@ -128,15 +132,14 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             </p>
             <p>
               <span className="font-medium">Phone:</span>{" "}
-              {order.customer.phoneNumber}
+              {order.address.phoneNumber}
             </p>
             <p>
               <span className="font-medium">Address:</span>{" "}
-              {order.customer.addressLine1},{" "}
-              {order.customer.addressLine2 &&
-                `${order.customer.addressLine2}, `}
-              {order.customer.city}, {order.customer.state},{" "}
-              {order.customer.postalCode}, {order.customer.country}
+              {order.address.addressLine1},{" "}
+              {order.address.addressLine2 && `${order.address.addressLine2}, `}
+              {order.address.city}, {order.address.state},{" "}
+              {order.address.postalCode}, {order.address.country}
             </p>
           </div>
         </section>
@@ -265,19 +268,31 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
                 {order.items.map((item) => (
                   <tr key={item.id}>
                     <td className="px-6 py-4 flex items-center space-x-3">
-                      <img
-                        src={item.product.imageUrls[0]}
-                        alt={item.product.name}
-                        className="w-10 h-10 rounded"
-                      />
-                      <div>
-                        <div className="font-medium text-gray-800">
-                          {item.product.name}
+                      {item.product && (
+                        <>
+                          <img
+                            src={item.product.imageUrls[0]}
+                            alt={item.product.name}
+                            className="w-10 h-10 rounded"
+                          />
+                          <div>
+                            <div className="font-medium text-gray-800">
+                              {item.product.name}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {item.product.description}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      {item.bundle && (
+                        <div>
+                          <div className="font-medium text-gray-800">
+                            {item.bundle.bundleName}
+                          </div>
+                          <div className="text-gray-500 text-xs">Bundle</div>
                         </div>
-                        <div className="text-gray-500 text-xs">
-                          {item.product.description}
-                        </div>
-                      </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">{item.quantity}</td>
                     <td className="px-6 py-4">

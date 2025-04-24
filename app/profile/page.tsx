@@ -30,17 +30,29 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import {
-  Address,
-  Order,
-  Review,
-  Customer as PrismaCustomer,
-  Product,
-  ProductCategory,
-} from "@prisma/client";
+import { Review, ProductCategory } from "@prisma/client";
 import { getCustomerFromToken } from "../actions";
 import Header from "@/components/layout/Header";
 import { useCart } from "../lib/context/CartContext";
+import {
+  Order as PrismaOrder,
+  OrderItem as PrismaOrderItem,
+  Customer as PrismaCustomer,
+  Address,
+  Product,
+  BundleOffer,
+  OrderStatus,
+} from "@prisma/client";
+
+interface OrderItem extends PrismaOrderItem {
+  product: Product;
+  bundle: BundleOffer;
+}
+
+interface Order extends PrismaOrder {
+  items: OrderItem[];
+  address: Address;
+}
 
 interface Customer extends PrismaCustomer {
   reviews: Review[];
@@ -73,6 +85,7 @@ export default function ProfilePage() {
           `/api/customers/${userData.id}?orders=true&reviews=true&address=true`
         );
         const data = await response.json();
+        console.log("order response", data);
         setUserData(data);
 
         setLoading(false);
@@ -278,7 +291,14 @@ export default function ProfilePage() {
               </TabsContent>
 
               <TabsContent value="orders" className="p-0 m-0">
-                <ProfileOrders />
+                {userData ? (
+                  <ProfileOrders customer={userData} />
+                ) : (
+                  <div className="p-6 text-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    <p>Loading order information...</p>
+                  </div>
+                )}
               </TabsContent>
             </div>
           </Tabs>

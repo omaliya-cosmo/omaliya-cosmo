@@ -13,15 +13,19 @@ import {
   Customer,
   OrderItem as PrismaOrderItem,
   Product,
+  BundleOffer,
+  Address,
 } from "@prisma/client";
 
 interface OrderItem extends PrismaOrderItem {
-  product: Product;
+  product?: Product;
+  bundle?: BundleOffer;
 }
 
 interface Order extends PrismaOrder {
   customer?: Customer;
-  items?: OrderItem[];
+  address: Address;
+  items: OrderItem[];
 }
 
 const OrderConfirmationPage = () => {
@@ -187,32 +191,52 @@ const OrderConfirmationPage = () => {
               <div className="space-y-4">
                 {orderDetails?.items?.map((item: OrderItem) => (
                   <div
-                    key={item.productId}
+                    key={item.id}
                     className="flex items-center border border-gray-200 rounded-lg p-4"
                   >
                     <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                      <Image
-                        src={
-                          item.product.imageUrls[0] ||
-                          "/images/product-placeholder.jpg"
-                        }
-                        alt={item.product.name}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
+                      {item.isBundle ? (
+                        <Image
+                          src={
+                            item.bundle?.imageUrl ||
+                            "/images/bundle-placeholder.jpg"
+                          }
+                          alt={item.bundle?.bundleName || "Bundle"}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={
+                            item.product?.imageUrls[0] ||
+                            "/images/product-placeholder.jpg"
+                          }
+                          alt={item.product?.name || "Product"}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="ml-4 flex-1">
                       <h3 className="text-sm font-medium text-gray-800">
-                        {item.product.name}
+                        {item.isBundle
+                          ? item.bundle?.bundleName
+                          : item.product?.name}
                       </h3>
                       <p className="text-xs text-gray-500">
                         Quantity: {item.quantity}
                       </p>
+                      {item.isBundle && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          Bundle Offer
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-800">
-                        {country === "LK"
+                        {orderDetails.currency === "LKR"
                           ? `Rs ${(item.price * item.quantity).toFixed(2)}`
                           : `$${(item.price * item.quantity).toFixed(2)}`}
                       </p>
@@ -268,21 +292,32 @@ const OrderConfirmationPage = () => {
 
               <div className="bg-gray-50 rounded-lg p-6">
                 <p className="font-medium text-gray-800">
-                  {orderDetails?.customer
-                    ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}`
-                    : "Guest User"}
+                  {orderDetails?.address?.firstName}{" "}
+                  {orderDetails?.address?.lastName}
                 </p>
                 <p className="text-gray-600">
-                  {orderDetails?.customer?.addressLine1}
+                  {orderDetails?.address?.addressLine1}
+                </p>
+                {orderDetails?.address?.addressLine2 && (
+                  <p className="text-gray-600">
+                    {orderDetails?.address?.addressLine2}
+                  </p>
+                )}
+                <p className="text-gray-600">
+                  {orderDetails?.address?.city}
+                  {orderDetails?.address?.state
+                    ? `, ${orderDetails.address.state}`
+                    : ""}{" "}
+                  {orderDetails?.address?.postalCode}
                 </p>
                 <p className="text-gray-600">
-                  {orderDetails?.customer?.city},{" "}
-                  {orderDetails?.customer?.state},{" "}
-                  {orderDetails?.customer?.postalCode}
+                  {orderDetails?.address?.country}
                 </p>
-                <p className="text-gray-600">
-                  {orderDetails?.customer?.country}
-                </p>
+                {orderDetails?.address?.phoneNumber && (
+                  <p className="text-gray-600 mt-2">
+                    Phone: {orderDetails?.address?.phoneNumber}
+                  </p>
+                )}
               </div>
             </div>
 

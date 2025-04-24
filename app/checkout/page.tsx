@@ -18,6 +18,12 @@ import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
 import { z } from "zod";
 
+// Define the structure for promo code cookie data
+interface PromoCodeData {
+  code: string;
+  discount: number; // This is the discount percentage (e.g. 10 means 10%)
+}
+
 const checkoutSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
@@ -95,6 +101,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const { country, updateCountry } = useCountry();
   const [shippingCost, setShippingCost] = useState<number>(0);
+  const [promoCode, setPromoCode] = useState<string>("");
 
   const [formData, setFormData] = useState<{
     firstName: string;
@@ -172,10 +179,11 @@ export default function CheckoutPage() {
     const shippingRate = shippingRates[countryKey];
     setShippingCost(country === "LK" ? shippingRate.LKR : shippingRate.USD);
 
-    // Update total with new shipping cost
+    // Update total with new shipping cost and correctly calculated discount
+    const discountAmount = (subtotal * discount) / 100; // Calculate discount amount as percentage of subtotal
     setTotal(
       subtotal -
-        discount +
+        discountAmount +
         (country === "LK" ? shippingRate.LKR : shippingRate.USD)
     );
   }, [country, formData.country, subtotal, discount]);
@@ -199,15 +207,15 @@ export default function CheckoutPage() {
         .filter((item) => !item.isBundle && item.productId)
         .map((item) => item.productId);
       const bundleIds = cartItemsFromApi
-        .filter((item) => item.isBundle && item.bundleId)
-        .map((item) => item.bundleId);
+        .filter((item) => item.isBundle && item.productId)
+        .map((item) => item.productId);
 
       const [productsData, bundlesData] = await Promise.all([
         productIds.length > 0
           ? axios.post<Product[]>("/api/products/batch", { productIds })
           : Promise.resolve({ data: [] }),
         bundleIds.length > 0
-          ? axios.post<BundleOffer[]>("/api/bundles/batch", { bundleIds })
+          ? axios.post<BundleOffer[]>("/api/bundleoffers/batch", { bundleIds })
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -215,21 +223,22 @@ export default function CheckoutPage() {
       const mergedItems: OrderItem[] = cartItemsFromApi.map((cartItem) => {
         if (cartItem.isBundle) {
           const bundle = bundlesData.data.find(
-            (b) => b.id === cartItem.bundleId
+            (b) => b.id === cartItem.productId
           );
           return {
             ...cartItem,
+            bundleId: cartItem.productId, // Properly set bundleId for bundles
             bundle: bundle || {
-              id: cartItem.bundleId || "unknown-id",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              imageUrl: null,
+              id: cartItem.productId || "unknown-id",
               bundleName: "Unknown Bundle",
               originalPriceLKR: 0,
               originalPriceUSD: 0,
               offerPriceLKR: 0,
               offerPriceUSD: 0,
               endDate: new Date(),
+              stock: 0,
+              imageUrl: null,
+              createdAt: new Date(),
             },
           };
         } else {
@@ -242,6 +251,7 @@ export default function CheckoutPage() {
               id: cartItem.productId || "unknown-id",
               name: "Unknown Product",
               description: "No description available",
+              fullDescription: "No detailed description available",
               imageUrls: [],
               categoryId: "unknown-category",
               priceLKR: 0,
@@ -251,6 +261,7 @@ export default function CheckoutPage() {
               stock: 0,
               createdAt: new Date(),
               updatedAt: new Date(),
+              tags: [],
             },
           };
         }
@@ -265,19 +276,26 @@ export default function CheckoutPage() {
             ? item.bundle?.offerPriceLKR || 0
             : item.bundle?.offerPriceUSD || 0
           : country === "LK"
-          ? item.product?.priceLKR || 0
-          : item.product?.priceUSD || 0;
+          ? item.product?.discountPriceLKR || item.product?.priceLKR || 0
+          : item.product?.discountPriceUSD || item.product?.priceUSD || 0;
 
         return sum + price * item.quantity;
       }, 0);
 
-      const promoCodeDiscount = parseFloat(
-        Cookies.get("promoCodeDiscount") || "0"
-      );
+      const promoCodeCookie = Cookies.get("promoCodeDiscount");
+      const promoCodeData: PromoCodeData | null = promoCodeCookie
+        ? JSON.parse(promoCodeCookie)
+        : null;
 
-      setDiscount(promoCodeDiscount);
+      setPromoCode(promoCodeData?.code || "");
+      setDiscount(promoCodeData?.discount || 0); // This is the percentage discount
       setSubtotal(calculatedSubtotal);
-      setTotal(calculatedSubtotal - promoCodeDiscount + shippingCost);
+
+      // Calculate discount amount and total
+      const discountAmount = promoCodeData
+        ? (calculatedSubtotal * promoCodeData.discount) / 100
+        : 0;
+      setTotal(calculatedSubtotal - discountAmount + shippingCost);
 
       setLoading(false);
     } catch (err: any) {
@@ -331,23 +349,26 @@ export default function CheckoutPage() {
           setDefault: true, // Add this option for logged-in users
         },
         items: cartItems.map((item) => ({
+          // For bundles, use bundleId; for products, use productId
           productId: item.isBundle ? undefined : item.productId,
-          bundleId: item.isBundle ? item.bundleId : undefined,
+          bundleId: item.isBundle ? item.productId : undefined, // In cart, bundleId is stored in productId field
           quantity: item.quantity,
-          isBundle: item.isBundle || false,
+          isBundle: item.isBundle,
         })),
         paymentMethod: validatedData.data.paymentMethod,
         currency: country === "LK" ? "LKR" : "USD",
         subtotal: subtotal,
-        discountAmount: discount,
-        shippingCost: shippingCost,
+        shipping: shippingCost, // Renamed to match the API schema
+        discountAmount: (subtotal * discount) / 100, // Calculate discount amount based on percentage
         total: total,
-        notes: validatedData.data.notes,
+        notes: validatedData.data.notes || "",
       };
 
+      console.log("Sending order data:", orderData);
       const response = await axios.post("/api/checkout", orderData);
 
       if (response.data.success) {
+        // Clear cart cookie
         document.cookie =
           "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setCartItems([]);
@@ -778,8 +799,8 @@ export default function CheckoutPage() {
                       <span>
                         -{" "}
                         {country === "LK"
-                          ? `Rs ${discount.toFixed(2)}`
-                          : `$ ${discount.toFixed(2)}`}
+                          ? `Rs ${((subtotal * discount) / 100).toFixed(2)}`
+                          : `$ ${((subtotal * discount) / 100).toFixed(2)}`}
                       </span>
                     </div>
                   )}
@@ -888,53 +909,6 @@ export default function CheckoutPage() {
                     </svg>
                   </label>
                 </div>
-
-                <button
-                  onClick={() => {
-                    const form = document.querySelector("form");
-                    if (form) form.requestSubmit();
-                  }}
-                  disabled={
-                    loading || cartItems.length === 0 || processingOrder
-                  }
-                  className={`w-full mt-6 py-3 px-4 rounded-md font-medium text-white ${
-                    loading || cartItems.length === 0 || processingOrder
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-purple-600 hover:bg-purple-700 transition-colors"
-                  }`}
-                >
-                  {processingOrder ? (
-                    <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    `Place Order (${
-                      country === "LK"
-                        ? `Rs ${total.toFixed(2)}`
-                        : `$ ${total.toFixed(2)}`
-                    })`
-                  )}
-                </button>
               </div>
             </div>
           </div>

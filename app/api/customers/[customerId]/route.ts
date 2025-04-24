@@ -18,7 +18,19 @@ export async function GET(
       where: { id: customerId },
       include: {
         address: includeAddress,
-        orders: includeOrders,
+        orders: includeOrders
+          ? {
+              include: {
+                address: true,
+                items: {
+                  include: {
+                    product: true,
+                    bundle: true,
+                  },
+                },
+              },
+            }
+          : includeOrders,
         reviews: includeReviews,
       },
     });

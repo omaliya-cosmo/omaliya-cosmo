@@ -16,14 +16,13 @@ import { useCart } from "../lib/context/CartContext";
 // Define the cart item structure from the cart API
 interface CartItem {
   productId: string;
-  productId: string;
   quantity: number;
   isBundle: boolean;
+  details?: any; // This will contain product or bundle details from the enhanced API
 }
 
 // Combined structure for display purposes
 interface DisplayCartItem {
-  productId: string;
   productId: string;
   quantity: number;
   isBundle: boolean;
@@ -43,6 +42,12 @@ interface DisplayCartItem {
   bundleProducts?: Product[];
 }
 
+// Define the structure for promo code cookie data
+interface PromoCodeData {
+  code: string;
+  discount: number;
+}
+
 const CartPage = () => {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
@@ -53,6 +58,8 @@ const CartPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [total, setTotal] = useState<number>(0);
   const [applyingPromo, setApplyingPromo] = useState<boolean>(false);
 
   const { refreshCart } = useCart();
@@ -65,11 +72,16 @@ const CartPage = () => {
     0
   );
 
-  const discountAmount = (subtotal * discount) / 100;
-  const total = subtotal - discountAmount;
+  // Calculate discount amount and total when subtotal or discount changes
+  useEffect(() => {
+    const calculatedDiscountAmount = (subtotal * discount) / 100;
+    setDiscountAmount(calculatedDiscountAmount);
+    setTotal(subtotal - calculatedDiscountAmount);
+  }, [subtotal, discount]);
 
   useEffect(() => {
     fetchCartData();
+    loadPromoCodeFromCookies();
   }, []);
 
   // Function to update the cart count
@@ -85,10 +97,8 @@ const CartPage = () => {
   const fetchCartData = async () => {
     try {
       setLoading(true);
-      // Fetch cart items (products and bundles)
-      const { data: cartData } = await axios.get<{ items: CartItem[] }>(
-        "/api/cart"
-      );
+      // Fetch cart items (products and bundles) from our enhanced cart API
+      const { data: cartData } = await axios.get("/api/cart");
       const cartItemsFromApi = cartData.items || [];
       console.log("Cart data:", cartItemsFromApi);
 
@@ -98,71 +108,84 @@ const CartPage = () => {
         return;
       }
 
-      // Separate product IDs and bundle IDs
-      const productItems = cartItemsFromApi.filter((item) => !item.isBundle);
-      const bundleItems = cartItemsFromApi.filter((item) => item.isBundle);
-
-      const productIds = productItems.map((item) => item.productId);
-      const bundleIds = bundleItems.map((item) => item.productId);
-
-      // Create an array to store all fetched items
-      const mergedItems: DisplayCartItem[] = [];
-
-      // Fetch product details if there are any product items
-      if (productIds.length > 0) {
-        const { data: productsData } = await axios.post<Product[]>(
-          "/api/products/batch?category=true",
-          { productIds }
-        );
-
-        // Merge product cart items with product details
-        productItems.forEach((cartItem) => {
-          const product = productsData.find((p) => p.id === cartItem.productId);
-          if (product) {
-            mergedItems.push({
-              ...cartItem,
-              ...product,
-            });
-          }
-        });
-      }
-
-      // Fetch bundle details if there are any bundle items
-      if (bundleIds.length > 0) {
-        const { data: bundlesData } = await axios.post(
-          "/api/bundleoffers/batch",
-          { bundleIds }
-        );
-
-        // Merge bundle cart items with bundle details
-        bundleItems.forEach((cartItem) => {
-          const bundle = bundlesData.find(
-            (b: any) => b.id === cartItem.productId
-          );
-          if (bundle) {
-            mergedItems.push({
-              ...cartItem,
-              name: bundle.bundleName,
+      // Map the enhanced cart items to display format
+      const displayItems: DisplayCartItem[] = cartItemsFromApi.map(
+        (item: CartItem) => {
+          if (item.isBundle) {
+            const bundleDetails = item.details || {};
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              isBundle: true,
+              name: bundleDetails.bundleName || "Bundle",
               description: `Bundle with ${
-                bundle.products?.length || 0
+                bundleDetails.products?.length || 0
               } products`,
-              imageUrls: bundle.imageUrl ? [bundle.imageUrl] : [],
-              priceLKR: bundle.offerPriceLKR,
-              priceUSD: bundle.offerPriceUSD,
+              imageUrls: bundleDetails.imageUrl ? [bundleDetails.imageUrl] : [],
+              priceLKR: bundleDetails.offerPriceLKR || 0,
+              priceUSD: bundleDetails.offerPriceUSD || 0,
               discountPriceLKR: null,
               discountPriceUSD: null,
-              originalPriceLKR: bundle.originalPriceLKR,
-              originalPriceUSD: bundle.originalPriceUSD,
-              offerPriceLKR: bundle.offerPriceLKR,
-              offerPriceUSD: bundle.offerPriceUSD,
-              bundleProducts: bundle.products?.map((p: any) => p.product) || [],
-              isBundle: true, // Ensure bundle flag is set
-            });
+              originalPriceLKR: bundleDetails.originalPriceLKR || 0,
+              originalPriceUSD: bundleDetails.originalPriceUSD || 0,
+              offerPriceLKR: bundleDetails.offerPriceLKR || 0,
+              offerPriceUSD: bundleDetails.offerPriceUSD || 0,
+              bundleProducts:
+                bundleDetails.products?.map((p: any) => p.product) || [],
+            };
+          } else {
+            // Regular product
+            const productDetails = item.details || {};
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              isBundle: false,
+              name: productDetails.name || "Product",
+              description: productDetails.description || "",
+              imageUrls: productDetails.imageUrls || [],
+              priceLKR: productDetails.priceLKR || 0,
+              priceUSD: productDetails.priceUSD || 0,
+              discountPriceLKR: productDetails.discountPriceLKR || null,
+              discountPriceUSD: productDetails.discountPriceUSD || null,
+              category: productDetails.category,
+            };
           }
-        });
-      }
+        }
+      );
 
-      setCartItems(mergedItems);
+      setCartItems(displayItems);
+
+      // Calculate prices based on the new data
+      const calculatedSubtotal = displayItems.reduce((sum, item) => {
+        const price = item.isBundle
+          ? country === "LK"
+            ? item.offerPriceLKR || 0
+            : item.offerPriceUSD || 0
+          : country === "LK"
+          ? item.discountPriceLKR || item.priceLKR || 0
+          : item.discountPriceUSD || item.priceUSD || 0;
+
+        return sum + price * item.quantity;
+      }, 0);
+
+      // Check if we have a promo code applied
+      const promoCodeCookie = Cookies.get("promoCodeDiscount");
+      if (promoCodeCookie) {
+        try {
+          const promoCodeData: PromoCodeData = JSON.parse(promoCodeCookie);
+          setDiscount(promoCodeData.discount || 0);
+          setPromoCode(promoCodeData.code || "");
+          const discountAmount =
+            (calculatedSubtotal * promoCodeData.discount) / 100;
+          setDiscountAmount(discountAmount);
+          setTotal(calculatedSubtotal - discountAmount);
+        } catch (err) {
+          console.error("Failed to parse promo code cookie:", err);
+          setTotal(calculatedSubtotal);
+        }
+      } else {
+        setTotal(calculatedSubtotal);
+      }
     } catch (err: any) {
       console.error("Error fetching cart:", err);
       setError(err.message);
@@ -171,21 +194,69 @@ const CartPage = () => {
     }
   };
 
-  const updateQuantity = async (productId: string, newQuantity: number) => {
+  const loadPromoCodeFromCookies = async () => {
+    const promoCodeCookie = Cookies.get("promoCodeDiscount");
+    if (promoCodeCookie) {
+      try {
+        const promoCodeData: PromoCodeData = JSON.parse(promoCodeCookie);
+        // Instead of directly applying the discount from cookie, validate it with server
+        try {
+          setApplyingPromo(true);
+          const { data } = await axios.post("/api/promocodes/validate", {
+            code: promoCodeData.code,
+          });
+
+          // Only set the discount if server validation passes
+          setPromoCode(promoCodeData.code);
+          setDiscount(data.discount || 0);
+
+          // If server returns different discount than cookie, update the cookie
+          if (data.discount !== promoCodeData.discount) {
+            Cookies.set(
+              "promoCodeDiscount",
+              JSON.stringify({
+                code: promoCodeData.code,
+                discount: data.discount,
+              })
+            );
+          }
+        } catch (err) {
+          // If server rejects the promocode, clear it from cookie
+          console.error("Failed to validate saved promo code:", err);
+          Cookies.remove("promoCodeDiscount");
+          setPromoCode("");
+          setDiscount(0);
+        } finally {
+          setApplyingPromo(false);
+        }
+      } catch (err) {
+        console.error("Failed to parse promo code cookie:", err);
+        Cookies.remove("promoCodeDiscount");
+        setPromoCode("");
+        setDiscount(0);
+      }
+    }
+  };
+
+  const updateQuantity = async (
+    productId: string,
+    newQuantity: number,
+    isBundle: boolean = false
+  ) => {
     if (newQuantity < 1) return;
     try {
       setUpdatingItem(productId);
       const response = await axios.post("/api/cart", {
         productId,
         quantity: newQuantity,
-        isBundle: false, // Set based on item type if needed
+        isBundle,
         replaceQuantity: true, // This tells the API to replace the quantity instead of adding to it
       });
 
       // Update local state only if the API call succeeds
       setCartItems((prev) =>
         prev.map((item) =>
-          item.productId === productId
+          item.productId === productId && item.isBundle === isBundle
             ? { ...item, quantity: newQuantity }
             : item
         )
@@ -210,16 +281,19 @@ const CartPage = () => {
     }
   };
 
-  const removeItem = async (productId: string) => {
+  const removeItem = async (productId: string, isBundle: boolean = false) => {
     try {
       setRemovingItem(productId);
       const response = await axios.delete("/api/cart", {
-        data: { productId },
+        data: { productId, isBundle },
       });
 
       // Update local state only if the API call succeeds
       setCartItems((prev) =>
-        prev.filter((item) => item.productId !== productId)
+        prev.filter(
+          (item) =>
+            !(item.productId === productId && item.isBundle === isBundle)
+        )
       );
 
       toast.info(response.data.message || "Item removed from cart", {
@@ -248,16 +322,28 @@ const CartPage = () => {
         code: promoCode,
       });
       setDiscount(data.discount || 0);
+      // Calculate the discount amount immediately for the toast message
+      const calculatedDiscountAmount = (subtotal * data.discount) / 100;
       // Set promo code discount in cookies
-      Cookies.set("promoCodeDiscount", data.discount.toString());
+      Cookies.set(
+        "promoCodeDiscount",
+        JSON.stringify({ code: promoCode, discount: data.discount })
+      );
       toast.success(
-        `Promo code applied! You saved Rs ${data.discount.toFixed(2)}`,
+        `Promo code applied! You saved ${
+          country === "LK" ? "Rs" : "$"
+        } ${calculatedDiscountAmount.toFixed(2)}`,
         { position: "bottom-right" }
       );
     } catch (err: any) {
-      toast.error(err.message || "Failed to apply promo code", {
-        position: "bottom-right",
-      });
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to apply promo code",
+        {
+          position: "bottom-right",
+        }
+      );
     } finally {
       setApplyingPromo(false);
     }
@@ -415,7 +501,11 @@ const CartPage = () => {
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                           } rounded-l-lg transition-colors`}
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity - 1)
+                            updateQuantity(
+                              item.productId,
+                              item.quantity - 1,
+                              item.isBundle
+                            )
                           }
                           disabled={
                             updatingItem === item.productId ||
@@ -451,7 +541,11 @@ const CartPage = () => {
                               : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                           } rounded-r-lg transition-colors`}
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity + 1)
+                            updateQuantity(
+                              item.productId,
+                              item.quantity + 1,
+                              item.isBundle
+                            )
                           }
                           disabled={updatingItem === item.productId}
                         >
@@ -491,7 +585,7 @@ const CartPage = () => {
                         ? "text-gray-400"
                         : "text-gray-400 hover:text-red-500"
                     } transition-colors hidden group-hover:block`}
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.productId, item.isBundle)}
                     disabled={removingItem === item.productId}
                   >
                     {removingItem === item.productId ? (

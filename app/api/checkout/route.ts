@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 
 // Custom error classes
 class InsufficientStockError extends Error {
-  constructor(productId: string) {
-    super(`Insufficient stock for product ${productId}`);
+  constructor(itemId: string, isBundle: boolean = false) {
+    super(
+      `Insufficient stock for ${isBundle ? "bundle" : "product"} ${itemId}`
+    );
   }
 }
 
@@ -42,10 +44,16 @@ const checkoutRequestSchema = z.object({
     setDefault: z.boolean().optional().default(false),
   }),
   items: z.array(
-    z.object({
-      productId: z.string(),
-      quantity: z.number().positive(),
-    })
+    z
+      .object({
+        productId: z.string().optional(),
+        bundleId: z.string().optional(),
+        quantity: z.number().positive(),
+        isBundle: z.boolean().default(false),
+      })
+      .refine((data) => data.productId || data.bundleId, {
+        message: "Either productId or bundleId must be provided",
+      })
   ),
   paymentMethod: z.enum(["PAY_HERE", "KOKO", "CASH_ON_DELIVERY"]),
   currency: z.enum(["LKR", "USD"]),
@@ -64,13 +72,26 @@ export async function POST(request: Request) {
     // Validate stock availability first
     await Promise.all(
       validatedData.items.map(async (item) => {
-        const product = await prisma.product.findUnique({
-          where: { id: item.productId },
-          select: { stock: true },
-        });
+        if (item.isBundle && item.bundleId) {
+          // Check bundle stock
+          const bundle = await prisma.bundleOffer.findUnique({
+            where: { id: item.bundleId },
+            select: { stock: true },
+          });
 
-        if (!product || product.stock < item.quantity) {
-          throw new InsufficientStockError(item.productId);
+          if (!bundle || bundle.stock < item.quantity) {
+            throw new InsufficientStockError(item.bundleId, true);
+          }
+        } else if (item.productId) {
+          // Check product stock
+          const product = await prisma.product.findUnique({
+            where: { id: item.productId },
+            select: { stock: true },
+          });
+
+          if (!product || product.stock < item.quantity) {
+            throw new InsufficientStockError(item.productId);
+          }
         }
       })
     );
@@ -127,24 +148,58 @@ export async function POST(request: Request) {
         // Get order items with prices
         const orderItems = await Promise.all(
           validatedData.items.map(async (item) => {
-            const product = await tx.product.findUnique({
-              where: { id: item.productId },
-            });
+            if (item.isBundle && item.bundleId) {
+              // Handle bundle item
+              const bundle = await tx.bundleOffer.findUnique({
+                where: { id: item.bundleId },
+              });
 
-            if (!product) {
-              throw new Error(`Product ${item.productId} not found`);
+              if (!bundle) {
+                throw new Error(`Bundle ${item.bundleId} not found`);
+              }
+
+              const price =
+                validatedData.currency === "LKR"
+                  ? bundle.offerPriceLKR
+                  : bundle.offerPriceUSD;
+
+              return {
+                bundleId: item.bundleId,
+                productId: null,
+                quantity: item.quantity,
+                price: price,
+                isBundle: true,
+              };
+            } else if (item.productId) {
+              // Handle product item
+              const product = await tx.product.findUnique({
+                where: { id: item.productId },
+              });
+
+              if (!product) {
+                throw new Error(`Product ${item.productId} not found`);
+              }
+
+              // Use discounted price if available
+              let price;
+              if (validatedData.currency === "LKR") {
+                price = product.discountPriceLKR || product.priceLKR;
+              } else {
+                price = product.discountPriceUSD || product.priceUSD;
+              }
+
+              return {
+                productId: item.productId,
+                bundleId: null,
+                quantity: item.quantity,
+                price: price,
+                isBundle: false,
+              };
+            } else {
+              throw new Error(
+                "Invalid item: missing both productId and bundleId"
+              );
             }
-
-            const price =
-              validatedData.currency === "LKR"
-                ? product.priceLKR
-                : product.priceUSD;
-
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              price: price,
-            };
           })
         );
 
@@ -164,7 +219,7 @@ export async function POST(request: Request) {
         // Create the order with optional customerId
         const order = await tx.order.create({
           data: {
-            customerId: customer?.id, // Only set if customer exists
+            customerId: customer?.id,
             addressId: address.id,
             subtotal: validatedData.subtotal,
             shipping: validatedData.shipping,
@@ -176,8 +231,10 @@ export async function POST(request: Request) {
             items: {
               create: orderItems.map((item) => ({
                 productId: item.productId,
+                bundleId: item.bundleId,
                 quantity: item.quantity,
                 price: item.price,
+                isBundle: item.isBundle,
               })),
             },
           },
@@ -186,18 +243,31 @@ export async function POST(request: Request) {
           },
         });
 
-        // Update product stock
+        // Update stock for products and bundles
         await Promise.all(
-          orderItems.map((item) =>
-            tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: {
-                  decrement: item.quantity,
+          orderItems.map((item) => {
+            if (item.isBundle && item.bundleId) {
+              // Update bundle stock
+              return tx.bundleOffer.update({
+                where: { id: item.bundleId },
+                data: {
+                  stock: {
+                    decrement: item.quantity,
+                  },
                 },
-              },
-            })
-          )
+              });
+            } else if (item.productId) {
+              // Update product stock
+              return tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  stock: {
+                    decrement: item.quantity,
+                  },
+                },
+              });
+            }
+          })
         );
 
         return NextResponse.json(
