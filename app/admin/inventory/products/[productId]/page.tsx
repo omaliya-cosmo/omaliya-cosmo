@@ -168,6 +168,7 @@ const EditProduct = ({ params }: { params: { productId: string } }) => {
 
     try {
       productSchema.parse(formData); // Validate formData
+      console.log("Form data is valid:", formData);
 
       await axios.put(`/api/products/${params.productId}`, formData);
       router.push("/admin/inventory/products");

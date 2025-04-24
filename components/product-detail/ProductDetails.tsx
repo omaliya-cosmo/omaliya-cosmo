@@ -205,8 +205,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl mb-8 shadow-sm border border-indigo-100">
+              <div className="p-6 rounded-xl mb-8 shadow-sm border border-indigo-100">
                 <div
+                  className="quill-content"
                   dangerouslySetInnerHTML={{
                     __html: product.fullDescription || product.description,
                   }}

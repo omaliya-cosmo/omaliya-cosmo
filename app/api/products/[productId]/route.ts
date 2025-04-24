@@ -47,21 +47,14 @@ export async function PUT(
   try {
     const { productId } = params; // Get productId from dynamic route params
     const body = await request.json(); // Parse the request body
-    console.log("Updating product with ID:", body); // Debugging line to check the productId
+
+    const { id, ...data } = body;
 
     const updatedProduct = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        name: body.name, // Update the name field
-        description: body.description, // Update the description field
-        imageUrls: body.imageUrls, // Update the imageUrls field
-        categoryId: body.categoryId, // Update the categoryId field
-        priceLKR: body.priceLKR, // Update the priceLKR field
-        discountPriceLKR: body.discountPriceLKR, // Update the discountPriceLKR field
-        priceUSD: body.priceUSD, // Update the priceUSD field
-        discountPriceUSD: body.discountPriceUSD, // Update the discountPriceUSD field
-        stock: body.stock, // Update the stock field
+      where: {
+        id: productId,
       },
+      data: data,
     });
 
     return NextResponse.json(updatedProduct, { status: 200 });

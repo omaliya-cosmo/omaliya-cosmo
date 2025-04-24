@@ -24,6 +24,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 import { useInView } from "react-intersection-observer";
+import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation for App Router
+import axios from "axios";
 
 interface Product extends PrismaProduct {
   reviews: Review[];
@@ -570,7 +572,7 @@ export default function ProductGrid({
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 00-1.175 0l-2.8-2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 00.951-.69l1.07-3.292z" />
                             </svg>
                           );
                         })}
@@ -747,12 +749,22 @@ function ProductCard({
   const [isHovered, setIsHovered] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [quantity, setQuantity] = useState(1);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    show: false,
+    message: "",
+    type: "success",
+  });
+  const router = useRouter();
 
   // Calculate rating properly to avoid hydration mismatch
   const rating = useMemo(() => {
@@ -835,14 +847,64 @@ function ProductCard({
     setIsAddingToCart(true);
 
     if (onAddToCart) {
-      onAddToCart(product.id, quantity);
+      onAddToCart(product.id, 1); // Always add 1 item
     }
 
     // Reset animation after a delay
     setTimeout(() => {
       setIsAddingToCart(false);
-      setQuantity(1); // Reset quantity after adding to cart
     }, 1000);
+  };
+
+  // Enhanced buy now handler with checkout redirection
+  const handleBuyNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock <= 0) return;
+
+    setIsBuyingNow(true);
+
+    try {
+      // First add to cart
+      await axios.post("/api/cart", {
+        productId: product.id,
+        quantity: 1, // Always buy 1 item
+        isBundle: false,
+        replaceQuantity: true, // Replace existing quantity for buy now
+      });
+
+      // Refresh cart data in the context
+      // This assumes there's a refreshCart function from a CartContext
+      // If not available directly, we may need to modify this part
+      if (typeof window !== "undefined") {
+        // Dispatch an event that cart context listeners can pick up
+        window.dispatchEvent(new CustomEvent("cart:update"));
+      }
+
+      // Show brief toast message
+      setToast({
+        show: true,
+        message: "Redirecting to checkout...",
+        type: "success",
+      });
+
+      // Short delay before redirect to show the toast
+      setTimeout(() => {
+        router.push("/checkout");
+      }, 500);
+    } catch (error) {
+      console.error("Error adding to cart for checkout:", error);
+      setToast({
+        show: true,
+        message: "Failed to proceed to checkout. Please try again.",
+        type: "error",
+      });
+    } finally {
+      // Reset loading state after a delay to show feedback to user
+      setTimeout(() => {
+        setIsBuyingNow(false);
+      }, 1000);
+    }
   };
 
   // Handle quick view
@@ -872,23 +934,6 @@ function ProductCard({
     }
   };
 
-  // Handle quantity change
-  const incrementQuantity = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (quantity < product.stock) {
-      setQuantity((prev) => prev + 1);
-    }
-  };
-
-  const decrementQuantity = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (quantity > 1) {
-      setQuantity((prev) => prev - 1);
-    }
-  };
-
   return (
     <div
       ref={cardRef}
@@ -901,6 +946,21 @@ function ProductCard({
         setRotation({ x: 0, y: 0 });
       }}
     >
+      {/* Toast notification for buy now action */}
+      {toast.show && (
+        <div
+          className={`absolute top-2 right-2 z-50 px-4 py-2 rounded shadow-lg text-sm ${
+            toast.type === "success"
+              ? "bg-green-50 text-green-700 border-l-4 border-green-500"
+              : toast.type === "error"
+              ? "bg-red-50 text-red-700 border-l-4 border-red-500"
+              : "bg-blue-50 text-blue-700 border-l-4 border-blue-500"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <Link
         href={`/products/${product.id}`}
         className="block h-full outline-none"
@@ -1015,7 +1075,7 @@ function ProductCard({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={1}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 00-2-2V6a2 2 00-2-2H6a2 2 00-2 2v12a2 2 00-2 2z"
                   />
                 </svg>
               </div>
@@ -1113,7 +1173,7 @@ function ProductCard({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 00-2 2h10a2 2 00-2-2V7a2 2 00-2-2h-2M9 5a2 2 00-2 2h2a2 2 00-2-2M9 5a2 2 002-2h2a2 2 002 2"
                       />
                     </svg>
                   )}
@@ -1176,7 +1236,7 @@ function ProductCard({
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 00-1.175 0l-2.8-2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
                     </div>
@@ -1216,71 +1276,40 @@ function ProductCard({
               )}
             </div>
 
-            {/* Combined quantity selector and add to cart button in the same row */}
+            {/* Replace quantity selector with Buy Now and Add to Cart buttons */}
             {product.stock > 0 && (
               <div className="mt-3 flex items-center space-x-2">
-                {/* Enhanced quantity selector */}
-                <div className="flex items-center bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg overflow-hidden shadow-sm border border-purple-100">
-                  <button
-                    onClick={decrementQuantity}
-                    className={`px-2 py-1 transition-all duration-150 ${
-                      quantity <= 1
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-purple-700 hover:bg-purple-100 active:bg-purple-200"
-                    }`}
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                {/* Buy Now button */}
+                <button
+                  className={`flex-1 transition-all duration-300 ${
+                    isBuyingNow
+                      ? "bg-green-600 shadow-lg shadow-green-200"
+                      : "bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 shadow-md hover:shadow-lg hover:shadow-pink-100"
+                  } text-white text-sm font-medium py-2 px-3 rounded-lg flex items-center justify-center`}
+                  onClick={handleBuyNow}
+                  disabled={isBuyingNow}
+                >
+                  {isBuyingNow ? (
+                    <motion.div
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center justify-center"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 12H4"
-                      />
-                    </svg>
-                  </button>
-                  <div className="px-3 py-1 bg-white font-semibold text-gray-800 text-sm border-x border-purple-100 min-w-[2rem] text-center">
-                    {quantity}
-                  </div>
-                  <button
-                    onClick={incrementQuantity}
-                    className={`px-2 py-1 transition-all duration-150 ${
-                      quantity >= product.stock
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-purple-700 hover:bg-purple-100 active:bg-purple-200"
-                    }`}
-                    disabled={quantity >= product.stock}
-                    aria-label="Increase quantity"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v12m6-6H6"
-                      />
-                    </svg>
-                  </button>
-                </div>
+                      <CheckIcon className="w-4 h-4 mr-1" />
+                      Processing...
+                    </motion.div>
+                  ) : (
+                    <span className="font-medium">Buy Now</span>
+                  )}
+                </button>
 
-                {/* Add to cart button - more polished */}
+                {/* Add to cart button */}
                 <button
                   className={`flex-1 transition-all duration-300 ${
                     isAddingToCart
                       ? "bg-green-600 shadow-lg shadow-green-200"
                       : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md hover:shadow-lg hover:shadow-purple-100"
-                  } text-white text-sm font-medium py-1.5 px-3 rounded-lg flex items-center justify-center`}
+                  } text-white text-sm font-medium py-2 px-3 rounded-lg flex items-center justify-center`}
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
                 >
@@ -1296,7 +1325,7 @@ function ProductCard({
                   ) : (
                     <>
                       <ShoppingBagIcon className="w-4 h-4 mr-1" />
-                      {quantity > 1 ? `Add ${quantity}` : "Add to Cart"}
+                      Add to Cart
                     </>
                   )}
                 </button>

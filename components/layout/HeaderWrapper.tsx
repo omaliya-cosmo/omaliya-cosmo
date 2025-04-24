@@ -66,16 +66,22 @@ export default function HeaderWrapper() {
     fetchData();
   }, []);
 
+  const isAdmin = pathname.startsWith("/admin");
+
   // Return the Header component with all required props
   return (
-    <Header
-      userData={userData}
-      cartCount={cartCount}
-      products={products}
-      categories={categories}
-      bundles={bundles}
-      loading={loading}
-      error={error}
-    />
+    <>
+      {!isAdmin && (
+        <Header
+          userData={userData}
+          cartCount={cartCount}
+          products={products}
+          categories={categories}
+          bundles={bundles}
+          loading={loading}
+          error={error}
+        />
+      )}
+    </>
   );
 }

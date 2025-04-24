@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --font-poppins: 'Poppins', sans-serif;
+  --font-poppins: "Poppins", sans-serif;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -38,7 +38,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-
 }
 
 @theme inline {
@@ -82,7 +81,7 @@
 }
 
 body {
-  font-family: var(--font-poppins)
+  font-family: var(--font-poppins);
 }
 
 /* Mega menu backdrop overlay */
@@ -133,25 +132,85 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
 
+@layer components {
+  .quill-content {
+    @apply text-base leading-relaxed;
   }
 
+  .quill-content h1 {
+    @apply text-3xl font-bold mb-4;
+  }
+
+  .quill-content h2 {
+    @apply text-2xl font-bold mb-4;
+  }
+
+  .quill-content h3 {
+    @apply text-xl font-semibold mb-3;
+  }
+
+  .quill-content h4 {
+    @apply text-lg font-semibold mb-2;
+  }
+
+  .quill-content p {
+    @apply mb-4 text-gray-700;
+  }
+
+  .quill-content ol {
+    @apply list-decimal pl-6 mb-4;
+  }
+
+  .quill-content ul {
+    @apply list-disc pl-6 mb-4;
+  }
+
+  .quill-content li {
+    @apply text-gray-800 mb-2;
+  }
+
+  .quill-content a {
+    @apply text-blue-600 underline hover:text-blue-800;
+  }
+
+  .quill-content img {
+    @apply my-4 rounded-md max-w-full;
+  }
+
+  .quill-content blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4;
+  }
+
+  .quill-content pre {
+    @apply bg-gray-100 p-4 rounded-md mb-4 overflow-x-auto;
+  }
+
+  .quill-content code {
+    @apply bg-gray-200 text-sm px-1 py-0.5 rounded;
+  }
 }
 
 /* Add to your globals.css file */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fadeIn {
@@ -169,13 +228,13 @@ html {
 }
 
 .fancy-link::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 0;
   height: 2px;
   bottom: -2px;
   left: 0;
-  background: linear-gradient(to right, #8B5CF6, #EC4899);
+  background: linear-gradient(to right, #8b5cf6, #ec4899);
   transition: width 0.3s ease;
 }
 

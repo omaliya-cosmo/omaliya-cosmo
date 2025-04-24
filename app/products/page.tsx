@@ -453,11 +453,68 @@ export default function ProductsPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {/* Category Tabs */}
-          <CategoryTabsFilter
-            currentCategory={filters.category}
-            onCategoryChange={handleCategoryChange}
-          />
+          {/* Category Tabs and Search Bar - Flexbox layout */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="w-full md:w-auto">
+              <CategoryTabsFilter
+                currentCategory={filters.category}
+                onCategoryChange={handleCategoryChange}
+              />
+            </div>
+
+            <motion.div
+              className="w-full md:w-80 lg:w-96 mx-auto md:mx-0 md:ml-auto"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+            >
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <svg
+                    className="w-5 h-5 text-purple-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  className="w-full pl-11 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-100 hover:border-purple-200 focus:border-purple-300 rounded-xl shadow-sm transition-colors outline-none focus:ring-2 focus:ring-purple-200 placeholder-gray-400"
+                  value={filters.search}
+                  onChange={(e) =>
+                    handleFilterChange({ search: e.target.value })
+                  }
+                />
+                {filters.search && (
+                  <button
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                    onClick={() => handleFilterChange({ search: "" })}
+                    aria-label="Clear search"
+                  >
+                    <svg
+                      className="w-4 h-4 text-gray-400 hover:text-purple-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
 
           <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
             {/* Filter sidebar with subtle animations */}
