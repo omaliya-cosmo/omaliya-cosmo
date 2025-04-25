@@ -1,18 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getCustomerFromToken } from "../actions";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useCountry } from "@/app/lib/hooks/useCountry";
 import { motion } from "framer-motion";
-import { Package, Sparkles, Tag, ShoppingCart, Filter } from "lucide-react";
+import { Package, Sparkles, Tag, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 
 // Imported Components
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -25,67 +22,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCart } from "../lib/hooks/CartContext";
+import {
+  BundleOffer as PrismaBundleOffer,
+  ProductsOnBundles as PrismaProductsOnBundles,
+  Product,
+} from "@prisma/client";
 
-// Types for bundles
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image?: string;
-  description?: string;
+interface ProductsOnBundles extends PrismaProductsOnBundles {
+  product: Product;
 }
 
-interface Bundle {
-  id: string;
-  name: string;
-  description: string;
-  products: Product[];
-  originalPrice: number;
-  bundlePrice: number;
-  savings: number;
-  savingsPercentage: number;
-  image?: string;
-  featured?: boolean;
-  tags?: string[];
-}
-
-// API response interfaces to match the Prisma schema
-interface ApiProduct {
-  id: string;
-  name: string;
-  description: string;
-  priceLKR: number;
-  priceUSD: number;
-  imageUrls: string[];
-}
-
-interface ProductOnBundle {
-  id: string;
-  productId: string;
-  bundleId: string;
-  product: ApiProduct;
-}
-
-interface ApiBundleOffer {
-  id: string;
-  bundleName: string;
-  originalPriceLKR: number;
-  originalPriceUSD: number;
-  offerPriceLKR: number;
-  offerPriceUSD: number;
-  endDate: string;
-  imageUrl?: string;
-  createdAt: string;
-  products: ProductOnBundle[];
+interface BundleOffer extends PrismaBundleOffer {
+  products: ProductsOnBundles[];
 }
 
 export default function BundlesPage() {
   const { country } = useCountry();
-  const [bundles, setBundles] = useState<Bundle[]>([]);
-  const [filteredBundles, setFilteredBundles] = useState<Bundle[]>([]);
+  const [bundles, setBundles] = useState<BundleOffer[]>([]);
+  const [filteredBundles, setFilteredBundles] = useState<BundleOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<string>("featured");
+  const [featuredBundles, setFeaturedBundles] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     fetchBundles();
@@ -93,81 +53,87 @@ export default function BundlesPage() {
 
   const { refreshCart } = useCart();
 
+  // Calculate savings percentage
+  const getSavingsPercentage = (originalPrice: number, offerPrice: number) => {
+    return Math.round(((originalPrice - offerPrice) / originalPrice) * 100);
+  };
+
   useEffect(() => {
     // Apply sorting
+    if (bundles.length === 0) return;
+
     let result = [...bundles];
 
     switch (sortOption) {
       case "price-low":
-        result.sort((a, b) => a.bundlePrice - b.bundlePrice);
+        result.sort((a, b) => {
+          const priceA = country === "LK" ? a.offerPriceLKR : a.offerPriceUSD;
+          const priceB = country === "LK" ? b.offerPriceLKR : b.offerPriceUSD;
+          return priceA - priceB;
+        });
         break;
       case "price-high":
-        result.sort((a, b) => b.bundlePrice - a.bundlePrice);
+        result.sort((a, b) => {
+          const priceA = country === "LK" ? a.offerPriceLKR : a.offerPriceUSD;
+          const priceB = country === "LK" ? b.offerPriceLKR : b.offerPriceUSD;
+          return priceB - priceA;
+        });
         break;
       case "savings":
-        result.sort((a, b) => b.savingsPercentage - a.savingsPercentage);
+        result.sort((a, b) => {
+          const savingsA = getSavingsPercentage(
+            country === "LK" ? a.originalPriceLKR : a.originalPriceUSD,
+            country === "LK" ? a.offerPriceLKR : a.offerPriceUSD
+          );
+          const savingsB = getSavingsPercentage(
+            country === "LK" ? b.originalPriceLKR : b.originalPriceUSD,
+            country === "LK" ? b.offerPriceLKR : b.offerPriceUSD
+          );
+          return savingsB - savingsA;
+        });
         break;
       case "featured":
       default:
         result = result
-          .filter((b) => b.featured)
-          .concat(result.filter((b) => !b.featured));
+          .filter((b) => featuredBundles.has(b.id))
+          .concat(result.filter((b) => !featuredBundles.has(b.id)));
         break;
     }
 
     setFilteredBundles(result);
-  }, [bundles, sortOption]);
+  }, [bundles, sortOption, country, featuredBundles]);
 
   const fetchBundles = async () => {
     try {
       // Fetch from actual API
       const response = await axios.get("/api/bundleoffers");
-      const apiBundles: ApiBundleOffer[] = response.data;
+      const bundleOffers: BundleOffer[] = response.data;
 
-      // Transform API response to match our Bundle interface
-      const transformedBundles: Bundle[] = apiBundles.map((bundle) => {
-        // Calculate savings
-        const originalPrice = bundle.originalPriceLKR; // Using LKR price by default
-        const bundlePrice = bundle.offerPriceLKR;
-        const savings = originalPrice - bundlePrice;
-        const savingsPercentage = Math.round((savings / originalPrice) * 100);
+      // Identify featured bundles (those with highest savings %)
+      const featured = new Set<string>();
 
-        return {
-          id: bundle.id,
-          name: bundle.bundleName,
-          description: `Collection of ${bundle.products.length} products at a special price`,
-          products: bundle.products.map((p) => ({
-            id: p.product.id,
-            name: p.product.name,
-            price: p.product.priceLKR, // Using LKR price by default
-            image:
-              p.product.imageUrls && p.product.imageUrls.length > 0
-                ? p.product.imageUrls[0]
-                : undefined,
-            description: p.product.description,
-          })),
-          originalPrice,
-          bundlePrice,
-          savings,
-          savingsPercentage,
-          image: bundle.imageUrl,
-          featured: false, // Set based on some criteria if available
-          // Optionally add tags
-          tags: [],
-        };
+      // Sort bundles by savings percentage and mark top 3 as featured
+      const bundlesBySavings = [...bundleOffers].sort((a, b) => {
+        // Use the appropriate pricing based on country for consistent behavior
+        const savingsA = getSavingsPercentage(
+          a.originalPriceLKR,
+          a.offerPriceLKR
+        );
+        const savingsB = getSavingsPercentage(
+          b.originalPriceLKR,
+          b.offerPriceLKR
+        );
+        return savingsB - savingsA;
       });
 
-      // Check if any bundles should be featured (e.g., highest savings)
-      if (transformedBundles.length > 0) {
-        // Feature bundles with highest savings percentage
-        transformedBundles
-          .sort((a, b) => b.savingsPercentage - a.savingsPercentage)
-          .slice(0, Math.min(3, transformedBundles.length))
-          .forEach((bundle) => (bundle.featured = true));
-      }
+      // Mark top bundles as featured
+      bundlesBySavings
+        .slice(0, Math.min(3, bundlesBySavings.length))
+        .forEach((bundle) => featured.add(bundle.id));
 
-      setBundles(transformedBundles);
-      setFilteredBundles(transformedBundles);
+      setFeaturedBundles(featured);
+      setBundles(bundleOffers);
+      setFilteredBundles(bundleOffers);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching bundles:", error);
@@ -176,10 +142,8 @@ export default function BundlesPage() {
     }
   };
 
-  const addBundleToCart = async (bundle: Bundle) => {
+  const addBundleToCart = async (bundle: BundleOffer) => {
     try {
-      // In a real app, you would have an API endpoint to handle bundle additions
-      // For now, we'll simply add each product individually
       await axios.post("/api/cart", {
         productId: bundle.id,
         quantity: 1,
@@ -188,7 +152,7 @@ export default function BundlesPage() {
 
       await refreshCart(); // Refresh the cart context
 
-      await toast.success(`Added ${bundle.name} to your cart!`, {
+      toast.success(`Added ${bundle.bundleName} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
       });
@@ -242,6 +206,23 @@ export default function BundlesPage() {
 
         {/* Filters and Sorting */}
         <div className="container mx-auto px-24 py-8">
+          {/* Sorting controls */}
+          <div className="flex justify-end mb-6">
+            <div className="w-64">
+              <Select value={sortOption} onValueChange={setSortOption}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sort bundles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="featured">Featured</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="savings">Best Savings</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Bundles Grid */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -287,111 +268,133 @@ export default function BundlesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBundles.map((bundle) => (
-                <motion.div
-                  key={bundle.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  whileHover={{ y: -5 }}
-                  className="h-full"
-                >
-                  <Card className="h-full flex flex-col overflow-hidden border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
-                    <div
-                      className="relative overflow-hidden"
-                      style={{ height: "240px" }}
-                    >
-                      {bundle.image ? (
-                        <div
-                          className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110"
-                          style={{
-                            backgroundImage: `url('${bundle.image}')`,
-                            backgroundColor: "rgba(0,0,0,0.05)",
-                          }}
-                        />
-                      ) : (
-                        <div className="h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-                          <Package className="h-16 w-16 text-purple-300" />
-                        </div>
-                      )}
+              {filteredBundles.map((bundle) => {
+                // Use country to determine which price to use
+                const originalPrice =
+                  country === "LK"
+                    ? bundle.originalPriceLKR
+                    : bundle.originalPriceUSD;
+                const offerPrice =
+                  country === "LK"
+                    ? bundle.offerPriceLKR
+                    : bundle.offerPriceUSD;
+                const savingsPercentage = getSavingsPercentage(
+                  originalPrice,
+                  offerPrice
+                );
+                const isFeatured = featuredBundles.has(bundle.id);
+                const currencySymbol = country === "LK" ? "Rs." : "$";
 
-                      {bundle.featured && (
-                        <div className="absolute top-4 left-4">
-                          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
-                            Featured
+                return (
+                  <motion.div
+                    key={bundle.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    whileHover={{ y: -5 }}
+                    className="h-full"
+                  >
+                    <Card className="h-full flex flex-col overflow-hidden border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300">
+                      <div
+                        className="relative overflow-hidden"
+                        style={{ height: "240px" }}
+                      >
+                        {bundle.imageUrl ? (
+                          <div
+                            className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110"
+                            style={{
+                              backgroundImage: `url('${bundle.imageUrl}')`,
+                              backgroundColor: "rgba(0,0,0,0.05)",
+                            }}
+                          />
+                        ) : (
+                          <div className="h-full flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
+                            <Package className="h-16 w-16 text-purple-300" />
+                          </div>
+                        )}
+
+                        {isFeatured && (
+                          <div className="absolute top-4 left-4">
+                            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
+                              Featured
+                            </Badge>
+                          </div>
+                        )}
+
+                        <div className="absolute top-4 right-4">
+                          <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
+                            Save {savingsPercentage}%
                           </Badge>
                         </div>
-                      )}
-
-                      <div className="absolute top-4 right-4">
-                        <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
-                          Save {bundle.savingsPercentage}%
-                        </Badge>
                       </div>
-                    </div>
-                    <CardContent className="p-6 flex-grow">
-                      <div className="mb-4">
-                        <h3 className="text-xl font-semibold mb-3 transition-colors">
-                          <Link
-                            href={`/bundles/${bundle.id}`}
-                            className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
-                          >
-                            {bundle.name}
-                          </Link>
-                        </h3>
-                        <p className="text-gray-600 text-sm line-clamp-2">
-                          {bundle.description}
-                        </p>
-                      </div>
-
-                      <Separator className="my-4 bg-gradient-to-r from-transparent via-purple-200 to-transparent h-px" />
-
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-800">
-                          Includes:
-                        </p>
-                        <ul className="text-sm space-y-2">
-                          {bundle.products.slice(0, 3).map((product, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-center gap-2 text-gray-700"
+                      <CardContent className="p-6 flex-grow">
+                        <div className="mb-4">
+                          <h3 className="text-xl font-semibold mb-3 transition-colors">
+                            <Link
+                              href={`/bundles/${bundle.id}`}
+                              className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
                             >
-                              <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-                              {product.name}
-                            </li>
-                          ))}
-                          {bundle.products.length > 3 && (
-                            <li className="text-sm text-purple-600 font-medium pl-3.5 hover:text-pink-600 transition-colors cursor-pointer">
-                              + {bundle.products.length - 3} more items
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    </CardContent>
-
-                    <CardFooter className="p-6 border-t bg-gradient-to-r from-purple-50 to-pink-50">
-                      <div className="w-full flex justify-between items-center">
-                        <div className="space-y-1">
-                          <p className="text-sm text-gray-500 line-through">
-                            ${bundle.originalPrice.toFixed(2)}
-                          </p>
-                          <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-700">
-                            ${bundle.bundlePrice.toFixed(2)}
+                              {bundle.bundleName}
+                            </Link>
+                          </h3>
+                          <p className="text-gray-600 text-sm line-clamp-2">
+                            Collection of {bundle.products.length} products at a
+                            special price
                           </p>
                         </div>
 
-                        <Button
-                          onClick={() => addBundleToCart(bundle)}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all"
-                        >
-                          <ShoppingCart className="h-4 w-4" />
-                          Add Bundle
-                        </Button>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))}
+                        <Separator className="my-4 bg-gradient-to-r from-transparent via-purple-200 to-transparent h-px" />
+
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-800">
+                            Includes:
+                          </p>
+                          <ul className="text-sm space-y-2">
+                            {bundle.products.slice(0, 3).map((item) => (
+                              <li
+                                key={item.id}
+                                className="flex items-center gap-2 text-gray-700"
+                              >
+                                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
+                                {item.product.name}
+                              </li>
+                            ))}
+                            {bundle.products.length > 3 && (
+                              <li className="text-sm text-purple-600 font-medium pl-3.5 hover:text-pink-600 transition-colors cursor-pointer">
+                                + {bundle.products.length - 3} more items
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="p-6 border-t bg-gradient-to-r from-purple-50 to-pink-50">
+                        <div className="w-full flex justify-between items-center">
+                          <div className="space-y-1">
+                            <p className="text-sm text-gray-500 line-through">
+                              {currencySymbol}
+                              {originalPrice.toFixed(2)}
+                            </p>
+                            <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-700">
+                              {currencySymbol}
+                              {offerPrice.toFixed(2)}
+                            </p>
+                          </div>
+
+                          <Button
+                            onClick={() => addBundleToCart(bundle)}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2 shadow-md hover:shadow-lg transform transition-all"
+                            disabled={bundle.stock <= 0}
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                            {bundle.stock > 0 ? "Add Bundle" : "Out of Stock"}
+                          </Button>
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
