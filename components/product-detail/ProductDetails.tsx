@@ -259,7 +259,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 </h3>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl shadow-lg mb-10">
+              <div className="relative overflow-hidden rounded-2xl shadow-lg mb-8">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-90"></div>
                 <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-20"></div>
                 <div className="relative p-8 text-white">
@@ -270,9 +270,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                     100% Satisfaction Guarantee
                   </h4>
                   <p className="text-indigo-100 text-lg max-w-2xl">
-                    We stand behind every product we sell with a 30-day
-                    money-back guarantee. If you're not completely satisfied,
-                    we'll make it right — no questions asked.
+                    Experience peace of mind with our 100% Satisfaction
+                    Guarantee — crafted with care, our product is built to meet
+                    your expectations and deliver exceptional value.
                   </p>
                   <div className="mt-6 inline-block bg-white px-5 py-2.5 rounded-lg text-indigo-700 font-bold shadow-sm hover:bg-white/90 transition-colors cursor-pointer">
                     Learn More
@@ -280,7 +280,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <GuaranteeCard
                   icon={<FiShield className="h-6 w-6 text-indigo-600" />}
                   title="Quality Promise"
@@ -315,18 +315,18 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
 
                 <GuaranteeCard
                   icon={<FiRefreshCw className="h-6 w-6 text-blue-600" />}
-                  title="Easy Returns"
-                  description="Unhappy with your purchase? Our hassle-free return process makes it easy to get a refund or exchange within 30 days."
+                  title="Satisfaction Guaranteed"
+                  description="We’re confident you’ll love it — thoughtfully made to deliver quality and comfort, backed by our commitment to your satisfaction."
                   bgColor="bg-blue-50"
                   borderColor="border-blue-100"
                   iconBgColor="bg-blue-100"
                 />
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
                   <h4 className="font-bold text-gray-900">
-                    How Our Guarantee Works
+                    How Our Guarantee Supports You
                   </h4>
                 </div>
                 <div className="p-6">
@@ -334,27 +334,27 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                     {[
                       {
                         step: 1,
-                        title: "Contact Us",
+                        title: "Reach Out to Us",
                         description:
-                          "If you're not satisfied with your purchase for any reason, contact our customer service within 30 days.",
+                          "Have questions or concerns? Our friendly support team is here to help and ensure your satisfaction.",
                       },
                       {
                         step: 2,
-                        title: "Return Instructions",
+                        title: "Personalized Assistance",
                         description:
-                          "We'll provide detailed instructions for returning the product along with a prepaid shipping label.",
+                          "We’ll work with you directly to understand the issue and offer helpful solutions tailored to your experience.",
                       },
                       {
                         step: 3,
-                        title: "Ship It Back",
+                        title: "Ongoing Support",
                         description:
-                          "Pack the item in its original packaging and send it back using the provided shipping label.",
+                          "Whether it’s product guidance or general inquiries, we stay connected to make sure you're fully satisfied.",
                       },
                       {
                         step: 4,
-                        title: "Get Your Refund",
+                        title: "Confidence in Every Purchase",
                         description:
-                          "Once we receive the returned item, we'll process your refund within 3-5 business days.",
+                          "Our commitment means you can shop worry-free, knowing we stand by the quality of everything we offer.",
                       },
                     ].map((item) => (
                       <div key={item.step} className="flex">
@@ -396,7 +396,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 </h3>
               </div>
 
-              <div className="mb-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl p-6 border border-indigo-100 shadow-sm">
+              <div className="mb-4 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl p-6 py-4 border border-indigo-100 shadow-sm">
                 <p className="text-indigo-700">
                   Find answers to common questions about this product. If you
                   don't see your question listed here, feel free to contact our
@@ -404,7 +404,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 </p>
               </div>
 
-              <div className="space-y-4 mb-10">
+              <div className="space-y-4">
                 {getProductFAQs().map((faq, index) => (
                   <FAQ
                     key={index}
@@ -414,7 +414,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
                 ))}
               </div>
 
-              <div className="mt-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl overflow-hidden shadow-lg">
+              <div className="mt-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl overflow-hidden shadow-lg mb-16">
                 <div className="px-6 py-8 md:flex items-center justify-between">
                   <div className="text-white mb-6 md:mb-0">
                     <h4 className="font-bold text-xl mb-2">

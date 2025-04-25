@@ -40,14 +40,14 @@ export default function FeaturedProducts({
     threshold: 0.1,
   });
 
-  // Define the filter tabs using ProductTag enum
+  // Define the filter tabs
   const filterTabs = [
     { id: "all", name: "All Products" },
-    { id: ProductTag.NEW_ARRIVALS, name: "New Arrivals" },
-    { id: ProductTag.BEST_SELLERS, name: "Best Sellers" },
-    { id: ProductTag.SPECIAL_DEALS, name: "Special Deals" },
-    { id: ProductTag.GIFT_SETS, name: "Gift Sets" },
-    { id: ProductTag.TRENDING_NOW, name: "Trending Now" },
+    { id: "new-arrivals", name: "New Arrivals" },
+    { id: "best-sellers", name: "Best Sellers" },
+    { id: "special-deals", name: "Special Deals" },
+    { id: "gift-sets", name: "Gift Sets" },
+    { id: "trending", name: "Trending Now" },
   ];
 
   // Filter products based on active tag and search query

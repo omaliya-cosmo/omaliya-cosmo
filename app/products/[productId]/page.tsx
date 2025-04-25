@@ -16,9 +16,7 @@ import {
   Customer,
 } from "@prisma/client";
 import { motion } from "framer-motion";
-import Header from "@/components/layout/Header";
-import { getCustomerFromToken } from "@/app/actions";
-import Footer from "@/components/layout/Footer";
+import { useCountry } from "@/app/lib/hooks/useCountry";
 
 interface Review extends PrismaReview {
   customer: Customer;
@@ -34,8 +32,9 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currency, setCurrency] = useState<"LKR" | "USD">("LKR");
   const [quantity, setQuantity] = useState(1);
+
+  const { country } = useCountry();
 
   useEffect(() => {
     async function fetchProduct() {
@@ -187,8 +186,7 @@ export default function ProductDetailPage() {
               discountPriceLKR={product.discountPriceLKR}
               priceUSD={product.priceUSD}
               discountPriceUSD={product.discountPriceUSD}
-              currency={currency}
-              onCurrencyChange={setCurrency}
+              country={country}
             />
             <div className="mt-8 space-y-4">
               {/* Quantity selector */}
@@ -202,11 +200,12 @@ export default function ProductDetailPage() {
                     -
                   </button>
                   <input
-                    type="number"
+                    type="text"
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
                     className="w-16 text-center py-1 focus:outline-none"
+                    disabled
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
@@ -221,7 +220,7 @@ export default function ProductDetailPage() {
               <AddToCartButton
                 product={product}
                 quantity={quantity}
-                currency={currency}
+                country={country}
               />
             </div>
           </div>
@@ -233,7 +232,7 @@ export default function ProductDetailPage() {
         {/* Related products */}
         <RelatedProducts
           categoryId={product.categoryId}
-          currentProductId={product.id}
+          excludeProductId={product.id}
         />
       </div>
     </main>

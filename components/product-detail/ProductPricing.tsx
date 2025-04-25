@@ -8,8 +8,7 @@ interface ProductPricingProps {
   priceUSD: number;
   discountPriceLKR?: number | null;
   discountPriceUSD?: number | null;
-  currency: "LKR" | "USD";
-  onCurrencyChange: (currency: "LKR" | "USD") => void;
+  country?: string;
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({
@@ -17,12 +16,14 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
   priceUSD,
   discountPriceLKR,
   discountPriceUSD,
-  currency,
-  onCurrencyChange,
+  country = "US",
 }) => {
   // Local state for tracking loading state
   const [isLoading, setIsLoading] = useState(true);
   const [isPriceAnimating, setIsPriceAnimating] = useState(false);
+
+  // Determine which currency to use based on country
+  const effectiveCurrency = country === "LK" ? "LKR" : "USD";
 
   // Only handle loading animation
   useEffect(() => {
@@ -52,9 +53,10 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
     }
   };
 
-  const currentPrice = currency === "LKR" ? priceLKR : priceUSD;
+  // Select the appropriate price based on country
+  const currentPrice = country === "LK" ? priceLKR : priceUSD;
   const currentDiscountPrice =
-    currency === "LKR" ? discountPriceLKR : discountPriceUSD;
+    country === "LK" ? discountPriceLKR : discountPriceUSD;
 
   const hasDiscount = !!currentDiscountPrice;
   const discountPercentage = hasDiscount
@@ -69,7 +71,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
       ? currentDiscountPrice || 0
       : currentPrice;
 
-    return formatCurrency(effectivePrice, currency) + ` per unit`;
+    return formatCurrency(effectivePrice, effectiveCurrency) + ` per unit`;
   };
 
   // Flag emoji and currency name helpers
@@ -95,7 +97,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
             <span>
               Showing prices in:{" "}
               <span className="font-medium">
-                {getCurrencyFlag(currency)} {currency}
+                {getCurrencyFlag(effectiveCurrency)} {effectiveCurrency}
               </span>
             </span>
           </div>
@@ -114,7 +116,9 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
             </motion.div>
           ) : (
             <motion.div
-              key={`${currency}-${hasDiscount ? "discount" : "regular"}`}
+              key={`${effectiveCurrency}-${
+                hasDiscount ? "discount" : "regular"
+              }`}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -130,12 +134,15 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {formatCurrency(currentDiscountPrice || 0, currency)}
+                      {formatCurrency(
+                        currentDiscountPrice || 0,
+                        effectiveCurrency
+                      )}
                     </motion.span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-lg text-gray-500 line-through">
-                      {formatCurrency(currentPrice, currency)}
+                      {formatCurrency(currentPrice, effectiveCurrency)}
                     </span>
                     <motion.div
                       className="ml-2 px-3 py-1.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-pink-600 rounded-lg shadow-sm"
@@ -156,7 +163,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
                 </>
               ) : (
                 <span className="text-5xl font-bold text-gray-900">
-                  {formatCurrency(currentPrice, currency)}
+                  {formatCurrency(currentPrice, effectiveCurrency)}
                 </span>
               )}
             </motion.div>
@@ -183,7 +190,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
           </span>
         </div>
 
-        {currency === "USD" && (
+        {country !== "LK" && (
           <div className="ml-9 bg-amber-50 border border-amber-100 rounded-lg p-3 mt-2">
             <div className="flex items-start">
               <FiAlertCircle className="text-amber-500 mr-2 mt-0.5 flex-shrink-0" />

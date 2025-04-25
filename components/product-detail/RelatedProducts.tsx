@@ -1,40 +1,54 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/shared/ProductCard";
+import { useCountry } from "@/app/lib/hooks/useCountry";
+import { Product, ProductCategory, Review } from "@prisma/client";
+import { useCart } from "@/app/lib/hooks/CartContext";
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  imageUrls: string[];
-  priceLKR: number;
-  priceUSD: number;
-  stock: number;
-  discount?: number;
-  tags: string[];
-  categoryId: string; // Added categoryId property
+interface ProductWithDetails extends Product {
+  category: ProductCategory;
+  reviews: Review[];
 }
 
 interface RelatedProductsProps {
   categoryId: string;
-  currentProductId: string;
+  excludeProductId?: string; // Optional param to exclude current product
 }
 
-export default function RelatedProducts({ categoryId, currentProductId }: RelatedProductsProps) {
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+export default function RelatedProducts({
+  categoryId,
+  excludeProductId,
+}: RelatedProductsProps) {
+  const [relatedProducts, setRelatedProducts] = useState<ProductWithDetails[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
+  const { country } = useCountry();
+  const { refreshCart } = useCart();
 
   useEffect(() => {
     async function fetchRelatedProducts() {
       try {
-        // In a real app, you would fetch related products based on the category
-        const response = await axios.get(`/api/products?categoryId=${categoryId}&limit=4`);
-        // Filter out the current product
-        const filtered = response.data.products.filter((product: Product) => product.id !== currentProductId);
-        setRelatedProducts(filtered.slice(0, 3)); // Get up to 3 products
+        // Fetch products from the category API with includeProducts=true
+        const response = await axios.get(
+          `/api/categories/${categoryId}?includeProducts=true`
+        );
+
+        // Get products from the response and filter out the current product if needed
+        let products = response.data.products || [];
+        if (excludeProductId) {
+          products = products.filter(
+            (product: Product) => product.id !== excludeProductId
+          );
+        }
+
+        // Take up to 3 products
+        setRelatedProducts(products.slice(0, 3));
       } catch (error) {
         console.error("Error fetching related products:", error);
       } finally {
@@ -45,7 +59,35 @@ export default function RelatedProducts({ categoryId, currentProductId }: Relate
     if (categoryId) {
       fetchRelatedProducts();
     }
-  }, [categoryId, currentProductId]);
+  }, [categoryId, excludeProductId]);
+
+  interface CartProduct {
+    id: string;
+    name: string;
+  }
+
+  const addToCart = async (product: CartProduct) => {
+    try {
+      await axios.post("/api/cart", {
+        productId: product.id,
+        quantity: 1,
+      });
+
+      // Refresh cart data in the context
+      await refreshCart();
+
+      toast.success(`Added ${product.name} to your cart!`, {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error adding to cart";
+      toast.error(errorMessage, {
+        position: "bottom-right",
+      });
+    }
+  };
 
   // Container animation variants
   const containerVariants = {
@@ -65,7 +107,10 @@ export default function RelatedProducts({ categoryId, currentProductId }: Relate
         <h2 className="text-2xl font-bold mb-8">You May Also Like</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+            <div
+              key={i}
+              className="rounded-lg overflow-hidden border border-gray-100 shadow-sm"
+            >
               <div className="aspect-square bg-gray-100 animate-pulse" />
               <div className="p-4">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-4 animate-pulse" />
@@ -114,19 +159,11 @@ export default function RelatedProducts({ categoryId, currentProductId }: Relate
         initial="hidden"
         animate="visible"
       >
-        {relatedProducts.map((product, index) => (
+        {relatedProducts.map((product) => (
           <ProductCard
-            key={product.id}
             product={product}
-            currency="LKR"
-            currencySymbol="Rs."
-            index={index}
-            categoryName="Default Category" // Replace with actual category name if available
-            addToCart={async () => {
-              console.log(`Added ${product.name} to cart`);
-              return Promise.resolve();
-            }} // Replace with actual addToCart function
-            country="Sri Lanka" // Replace with actual country if available
+            addToCart={(product) => Promise.resolve(addToCart(product))}
+            country={country}
           />
         ))}
       </motion.div>

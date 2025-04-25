@@ -6,10 +6,21 @@ export async function GET(
   { params }: { params: { categoryId: string } }
 ) {
   try {
-    const { categoryId } = await params; // Get categoryId from dynamic route params
+    const { categoryId } = params;
+    const includeProducts =
+      request.nextUrl.searchParams.get("includeProducts") === "true";
 
     const category = await prisma.productCategory.findUnique({
-      where: { id: categoryId }, // Ensure that categoryId is of the correct format
+      where: { id: categoryId },
+      include: {
+        products: includeProducts
+          ? {
+              include: {
+                category: true, // Include category in each product
+              },
+            }
+          : false,
+      },
     });
 
     if (!category) {
@@ -19,7 +30,6 @@ export async function GET(
       );
     }
 
-    // Return the category data
     return NextResponse.json(category, { status: 200 });
   } catch (error) {
     console.error("Error fetching category:", error);

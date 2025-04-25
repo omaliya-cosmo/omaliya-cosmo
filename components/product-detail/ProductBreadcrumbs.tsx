@@ -1,5 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
 
 interface Product {
   id: string;
@@ -15,13 +15,15 @@ interface ProductBreadcrumbsProps {
   product: Product;
 }
 
-export default function ProductBreadcrumbs({ product }: ProductBreadcrumbsProps) {
+export default function ProductBreadcrumbs({
+  product,
+}: ProductBreadcrumbsProps) {
   return (
     <nav className="mb-6">
       <ol className="flex flex-wrap items-center space-x-2 text-sm">
         <li>
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="text-gray-600 hover:text-purple-600 transition-colors"
           >
             Home
@@ -31,8 +33,8 @@ export default function ProductBreadcrumbs({ product }: ProductBreadcrumbsProps)
           /
         </li>
         <li>
-          <Link 
-            href="/products" 
+          <Link
+            href="/products"
             className="text-gray-600 hover:text-purple-600 transition-colors"
           >
             Products
@@ -45,7 +47,7 @@ export default function ProductBreadcrumbs({ product }: ProductBreadcrumbsProps)
             </li>
             <li>
               <Link
-                href={`/products?category=${product.category.id}`}
+                href={`/products?category=${product.category.name.toLowerCase()}`}
                 className="text-gray-600 hover:text-purple-600 transition-colors"
               >
                 {product.category.name}

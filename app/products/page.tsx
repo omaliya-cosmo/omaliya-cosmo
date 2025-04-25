@@ -15,7 +15,7 @@ import {
   Product as PrismaProduct,
 } from "@prisma/client";
 import { motion } from "framer-motion";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useCart } from "../lib/hooks/CartContext";
@@ -54,6 +54,8 @@ interface Filters {
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -224,6 +226,21 @@ export default function ProductsPage() {
     }));
   }, [searchParams]);
 
+  useEffect(() => {
+    // Update URL when filters change
+    const queryParams = new URLSearchParams();
+
+    if (filters.category) {
+      queryParams.set("category", filters.category);
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      queryParams.set("feature", filters.tags[0]);
+    }
+
+    router.push(`${pathname}?${queryParams.toString()}`);
+  }, [filters, router, pathname]);
+
   // Handle pagination
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * pageSize,
@@ -239,25 +256,6 @@ export default function ProductsPage() {
       ...newFilters,
     }));
     setCurrentPage(1); // Reset to first page when filters change
-  };
-
-  const handleRemoveFilter = (param: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [param]: param === "inStock" ? false : undefined,
-    }));
-  };
-
-  const clearAllFilters = () => {
-    setFilters({
-      category: "",
-      minPrice: undefined,
-      maxPrice: undefined,
-      inStock: false,
-      rating: undefined,
-      search: "",
-      tags: [],
-    });
   };
 
   const addToCart = async (product: CartProduct) => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   FiShoppingCart,
   FiHeart,
@@ -14,65 +14,39 @@ import { FaWhatsapp } from "react-icons/fa";
 import { Product } from "@prisma/client";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useCart } from "@/app/lib/hooks/CartContext";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface AddToCartButtonProps {
   product: Product;
   quantity: number;
-  currency: "LKR" | "USD";
+  country?: string;
 }
-
-// Toast notification component
-const Toast = ({
-  message,
-  type,
-  onClose,
-}: {
-  message: string;
-  type: "success" | "error";
-  onClose: () => void;
-}) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className={`fixed top-5 right-5 p-4 rounded-md shadow-lg z-50 flex items-center ${
-        type === "success" ? "bg-green-500" : "bg-red-500"
-      } text-white`}
-    >
-      {type === "success" ? <FiCheck className="mr-2" /> : null}
-      {message}
-    </motion.div>
-  );
-};
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   quantity,
-  currency,
+  country = "US",
 }) => {
   const router = useRouter();
   const [addedToCart, setAddedToCart] = useState(false);
   const [addedToWishlist, setAddedToWishlist] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [toast, setToast] = useState<{
-    show: boolean;
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
 
   // Use our cart context to refresh cart data
   const { refreshCart } = useCart();
+
+  // Determine which currency to use based on country
+  const effectiveCurrency = country === "LK" ? "LKR" : "USD";
+
+  // Calculate the effective price based on country
+  const effectivePrice =
+    country === "LK"
+      ? product.discountPriceLKR || product.priceLKR
+      : product.discountPriceUSD || product.priceUSD;
 
   // Check if product is in stock and validate quantity
   const isInStock = product.stock > 0;
@@ -81,13 +55,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   // Handle adding to cart
   const handleAddToCart = async () => {
     if (!isInStock || !isQuantityValid) {
-      setToast({
-        show: true,
-        message: !isInStock
+      toast.error(
+        !isInStock
           ? "This product is out of stock"
           : "Requested quantity exceeds available stock",
-        type: "error",
-      });
+        { position: "bottom-right", autoClose: 3000 }
+      );
       return;
     }
 
@@ -104,13 +77,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
       // Show success message
       setAddedToCart(true);
-      setToast({
-        show: true,
-        message: `${quantity} ${
-          quantity === 1 ? "item" : "items"
-        } added to your cart`,
-        type: "success",
-      });
+      toast.success(
+        `${quantity} ${quantity === 1 ? "item" : "items"} added to your cart`,
+        {
+          position: "bottom-right",
+          autoClose: 3000,
+        }
+      );
 
       // Refresh cart data in the context
       await refreshCart();
@@ -119,10 +92,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      setToast({
-        show: true,
-        message: "Failed to add item to cart. Please try again.",
-        type: "error",
+      toast.error("Failed to add item to cart. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -132,13 +104,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   // Handle buy now (add to cart and redirect to checkout)
   const handleBuyNow = async () => {
     if (!isInStock || !isQuantityValid) {
-      setToast({
-        show: true,
-        message: !isInStock
+      toast.error(
+        !isInStock
           ? "This product is out of stock"
           : "Requested quantity exceeds available stock",
-        type: "error",
-      });
+        { position: "bottom-right", autoClose: 3000 }
+      );
       return;
     }
 
@@ -157,10 +128,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       await refreshCart();
 
       // Show brief toast message
-      setToast({
-        show: true,
-        message: "Redirecting to checkout...",
-        type: "success",
+      toast.success("Redirecting to checkout...", {
+        position: "bottom-right",
+        autoClose: 3000,
       });
 
       // Short delay before redirect to show the toast
@@ -169,10 +139,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       }, 500);
     } catch (error) {
       console.error("Error adding to cart for checkout:", error);
-      setToast({
-        show: true,
-        message: "Failed to proceed to checkout. Please try again.",
-        type: "error",
+      toast.error("Failed to proceed to checkout. Please try again.", {
+        position: "bottom-right",
+        autoClose: 3000,
       });
       setIsLoading(false);
     }
@@ -182,13 +151,15 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     // Toggle wishlist state
     setAddedToWishlist(!addedToWishlist);
 
-    setToast({
-      show: true,
-      message: !addedToWishlist
+    toast.success(
+      !addedToWishlist
         ? "Added to your wishlist"
         : "Removed from your wishlist",
-      type: "success",
-    });
+      {
+        position: "bottom-right",
+        autoClose: 3000,
+      }
+    );
   };
 
   // Main share function
@@ -233,26 +204,17 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
-    setToast({
-      show: true,
-      message: "Link copied to clipboard!",
-      type: "success",
+    toast.success("Link copied to clipboard!", {
+      position: "bottom-right",
+      autoClose: 3000,
     });
     setShowShareOptions(false);
   };
 
   return (
     <div className="space-y-4">
-      {/* Toast notifications */}
-      <AnimatePresence>
-        {toast?.show && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* React Toastify Container */}
+      <ToastContainer />
 
       {/* Main action buttons */}
       <div className="flex flex-col sm:flex-row gap-3">

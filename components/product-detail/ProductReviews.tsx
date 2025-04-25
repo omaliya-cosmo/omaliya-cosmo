@@ -250,23 +250,15 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
 
   return (
     <motion.div
-      className="mt-16 border-t border-gray-200 pt-10"
+      className="py-10 pt-4"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
       id="reviews"
     >
-      <motion.h2
-        className="text-2xl font-bold text-gray-900 flex items-center"
-        variants={itemVariants}
-      >
-        <FiMessageSquare className="mr-2" />
-        Customer Reviews ({reviews ? reviews.length : 0})
-      </motion.h2>
-
       {/* Review summary */}
       <motion.div
-        className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8"
+        className="grid grid-cols-1 md:grid-cols-2 gap-8"
         variants={itemVariants}
       >
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
@@ -599,7 +591,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
       </AnimatePresence>
 
       {/* Review list */}
-      <motion.div className="mt-8 space-y-6" variants={itemVariants}>
+      <motion.div className="mt-4 space-y-6" variants={itemVariants}>
         {reviews.length === 0 ? (
           searchQuery || filterOption !== "all" ? (
             <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
@@ -647,7 +639,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
           )
         ) : (
           <motion.div
-            className="space-y-8"
+            className="space-y-2"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
