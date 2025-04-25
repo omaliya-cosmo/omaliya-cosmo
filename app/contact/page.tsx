@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "../../components/layout/Header";
 import axios from "axios";
-import Footer from "@/components/layout/Footer";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -53,14 +51,21 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitStatus(null);
 
-    // Simulate form submission
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setSubmitStatus("success");
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      const response = await axios.post("/api/email/contactform", formData);
+
+      if (response.data.success) {
+        setSubmitStatus("success");
+        // Reset form after successful submission
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        throw new Error("Failed to send message");
+      }
     } catch (error) {
       setSubmitStatus("error");
+      console.error("Error sending message:", error);
     } finally {
       setIsSubmitting(false);
       // Reset status after 5 seconds
