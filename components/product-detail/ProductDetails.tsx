@@ -118,7 +118,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
         <div
           className={`${
             isSticky
-              ? "fixed top-0 left-0 right-0 bg-white z-50 shadow-md py-2 lg:absolute lg:shadow-none lg:py-0 lg:top-auto lg:left-auto lg:right-auto backdrop-blur-md bg-white/95"
+              ? "fixed top-0 left-0 right-0 bg-white shadow-md py-2 lg:absolute lg:shadow-none lg:py-0 lg:top-auto lg:left-auto lg:right-auto backdrop-blur-md bg-white/95"
               : ""
           }`}
         >

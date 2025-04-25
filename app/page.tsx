@@ -14,7 +14,7 @@ import BenefitsBanner from "@/components/home/BenefitsBanner";
 import Testimonials from "@/components/home/Testimonials";
 import FeaturedBundles from "@/components/home/FeaturedBundles";
 import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
-import { useCart } from "./lib/context/CartContext";
+import { useCart } from "./lib/hooks/CartContext";
 import {
   BundleOffer as PrismaBundleOffer,
   ProductsOnBundles as PrismaProductsOnBundles,

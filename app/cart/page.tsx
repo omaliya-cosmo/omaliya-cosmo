@@ -11,7 +11,7 @@ import { useCountry } from "../lib/hooks/useCountry";
 import { Product, ProductCategory } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
-import { useCart } from "../lib/context/CartContext";
+import { useCart } from "../lib/hooks/CartContext";
 
 // Define the cart item structure from the cart API
 interface CartItem {

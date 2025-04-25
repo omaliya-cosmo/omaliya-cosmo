@@ -5,7 +5,7 @@ import Header from "./Header";
 import { usePathname } from "next/navigation";
 import axios from "axios";
 import { getCustomerFromToken } from "@/app/actions";
-import { useCart } from "@/app/lib/context/CartContext";
+import { useCart } from "@/app/lib/hooks/CartContext";
 
 export default function HeaderWrapper() {
   const [userData, setUserData] = useState<any>(null);

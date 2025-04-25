@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCart } from "../lib/context/CartContext";
+import { useCart } from "../lib/hooks/CartContext";
 
 // Types for bundles
 interface Product {

@@ -25,6 +25,7 @@ interface FilterSidebarProps {
   };
   onFilterChange: (filters: any) => void;
   productCount: number;
+  country: string;
 }
 
 const priceRangesUSD = [
@@ -58,6 +59,7 @@ export default function ProductFilterSidebar({
   currentFilters,
   onFilterChange,
   productCount,
+  country,
 }: FilterSidebarProps) {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
@@ -65,7 +67,6 @@ export default function ProductFilterSidebar({
     availability: true,
     tags: true,
   });
-  const { country, updateCountry } = useCountry();
 
   // Check if any filters are active
   const hasActiveFilters =
@@ -269,22 +270,11 @@ export default function ProductFilterSidebar({
                           maxPrice: range.max,
                         })
                       }
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                     />
                     <label
                       htmlFor={`price-${index}`}
-                      className={`ml-3 text-sm ${
-                        // Highlight active filter
-                        (index === 0 &&
-                          (currentFilters.minPrice === undefined ||
-                            currentFilters.minPrice === null) &&
-                          (currentFilters.maxPrice === undefined ||
-                            currentFilters.maxPrice === null)) ||
-                        (currentFilters.minPrice === range.min &&
-                          currentFilters.maxPrice === range.max)
-                          ? "text-purple-700 font-medium"
-                          : "text-gray-600"
-                      }`}
+                      className="ml-2 text-sm text-gray-700"
                     >
                       {range.label}
                     </label>

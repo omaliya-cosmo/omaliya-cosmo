@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { Review, ProductCategory } from "@prisma/client";
 import { getCustomerFromToken } from "../actions";
 import Header from "@/components/layout/Header";
-import { useCart } from "../lib/context/CartContext";
+import { useCart } from "../lib/hooks/CartContext";
 import {
   Order as PrismaOrder,
   OrderItem as PrismaOrderItem,

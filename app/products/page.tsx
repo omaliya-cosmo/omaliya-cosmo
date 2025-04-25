@@ -3,22 +3,23 @@ import React, { useState, useEffect } from "react";
 import ProductsHeader from "@/components/products/ProductsHeader";
 import ProductFilterSidebar from "@/components/products/ProductFilterSidebar";
 import ProductGrid from "@/components/products/ProductGrid";
-import NewsletterSection from "@/components/home/Newsletter";
 import ClientSortingWrapper from "@/components/products/ClientSortingWrapper";
 import ClientEmptyStateWrapper from "@/components/products/ClientEmptyStateWrapper";
 import ProductsPagination from "@/components/products/ProductsPagination";
 import CategoryTabsFilter from "@/components/products/CategoryTabsFilter";
+import ProductsSorting from "@/components/products/ProductsSorting";
+
 import {
   ProductCategory,
   Review,
   Product as PrismaProduct,
 } from "@prisma/client";
-import Header from "@/components/layout/Header";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import { useCart } from "../lib/context/CartContext";
+import { toast } from "react-toastify";
+import { useCart } from "../lib/hooks/CartContext";
+import { useCountry } from "../lib/hooks/useCountry";
 
 // Define ProductTag enum
 enum ProductTag {
@@ -30,8 +31,8 @@ enum ProductTag {
 }
 
 interface Product extends PrismaProduct {
-  category?: ProductCategory; // Include the category relation
-  reviews?: Review[]; // Include reviews with count and average rating
+  category: ProductCategory; // Include the category relation
+  reviews: Review[]; // Include reviews with count and average rating
   tags: ProductTag[]; // Add tags property
 }
 
@@ -49,12 +50,6 @@ interface Filters {
   rating?: number;
   search: string;
   tags?: string[];
-}
-
-interface ClientPaginationWrapperProps {
-  currentPage: number;
-  totalPages: number;
-  currentParams: Record<string, string | undefined>;
 }
 
 export default function ProductsPage() {
@@ -76,7 +71,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [country, setCountry] = useState("LKR"); // Default country currency
+  const { country, updateCountry } = useCountry();
   const pageSize = 12;
 
   // New state variables for header props
@@ -106,8 +101,7 @@ export default function ProductsPage() {
         setFilteredProducts(productsResponse.data.products); // Initialize with all products
 
         setLoading(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+      } catch (err: string | any) {
         setError(err);
         setLoading(false);
       }
@@ -131,17 +125,17 @@ export default function ProductsPage() {
       });
     }
 
-    if (filters.minPrice !== undefined) {
+    if (filters.minPrice !== undefined && filters.minPrice !== null) {
       filtered = filtered.filter((product) =>
-        country === "LKR"
+        country === "LK"
           ? product.priceLKR >= filters.minPrice!
           : product.priceUSD >= filters.minPrice!
       );
     }
 
-    if (filters.maxPrice !== undefined) {
+    if (filters.maxPrice !== undefined && filters.maxPrice !== null) {
       filtered = filtered.filter((product) =>
-        country === "LKR"
+        country === "LK"
           ? product.priceLKR <= filters.maxPrice!
           : product.priceUSD <= filters.maxPrice!
       );
@@ -188,15 +182,15 @@ export default function ProductsPage() {
       case "price-low":
         filtered.sort(
           (a, b) =>
-            (country === "LKR" ? a.priceLKR : a.priceUSD) -
-            (country === "LKR" ? b.priceLKR : b.priceUSD)
+            (country === "LK" ? a.priceLKR : a.priceUSD) -
+            (country === "LK" ? b.priceLKR : b.priceUSD)
         );
         break;
       case "price-high":
         filtered.sort(
           (a, b) =>
-            (country === "LKR" ? b.priceLKR : b.priceUSD) -
-            (country === "LKR" ? a.priceLKR : a.priceUSD)
+            (country === "LK" ? b.priceLKR : b.priceUSD) -
+            (country === "LK" ? a.priceLKR : a.priceUSD)
         );
         break;
       case "rating":
@@ -528,6 +522,7 @@ export default function ProductsPage() {
                   currentFilters={filters}
                   onFilterChange={handleFilterChange}
                   productCount={filteredProducts.length}
+                  country={country}
                 />
               </div>
             </motion.aside>
@@ -539,7 +534,7 @@ export default function ProductsPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
             >
               {/* Sorting and product count */}
-              <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-purple-100/50">
+              <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-purple-100/50 relative z-20">
                 <p className="text-gray-700">
                   {filteredProducts.length > 0 ? (
                     <>
@@ -565,12 +560,14 @@ export default function ProductsPage() {
                   )}
                 </p>
 
-                <ClientSortingWrapper
-                  currentSort={sort}
-                  viewMode={viewMode}
-                  onSortChange={setSort}
-                  onViewModeChange={setViewMode}
-                />
+                <div className="z-30 relative">
+                  <ProductsSorting
+                    currentSort={sort}
+                    viewMode={viewMode}
+                    onSortChange={setSort}
+                    onViewModeChange={setViewMode}
+                  />
+                </div>
               </div>
 
               {/* Products grid or empty state */}
@@ -583,8 +580,7 @@ export default function ProductsPage() {
                   <div className="">
                     <ProductGrid
                       products={paginatedProducts}
-                      currency={country === "LKR" ? "LKR" : "USD"}
-                      currencySymbol={country === "LKR" ? "Rs" : "$"}
+                      country={country}
                       viewMode={viewMode}
                       onAddToCart={(productId) => {
                         const product = products.find(
@@ -600,7 +596,10 @@ export default function ProductsPage() {
                   <ClientEmptyStateWrapper
                     message="No products found"
                     suggestion="Try adjusting your filters or search terms to find what you're looking for."
-                    hasFilters={filters.category || filters.tags?.length > 0}
+                    hasFilters={
+                      filters.category !== null ||
+                      (filters.tags?.length ?? 0) > 0
+                    }
                   />
                 )}
               </motion.div>

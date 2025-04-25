@@ -9,7 +9,6 @@ import ProductPricing from "@/components/product-detail/ProductPricing";
 import ProductDetails from "@/components/product-detail/ProductDetails";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import AddToCartButton from "@/components/product-detail/AddToCartButton";
-import NewsletterSection from "@/components/home/Newsletter";
 import {
   Product as PrismaProduct,
   ProductCategory,

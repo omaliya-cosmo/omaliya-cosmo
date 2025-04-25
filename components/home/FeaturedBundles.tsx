@@ -17,7 +17,7 @@ import {
   ProductsOnBundles as PrismaProductsOnBundles,
   Product,
 } from "@prisma/client";
-import { useCart } from "@/app/lib/context/CartContext";
+import { useCart } from "@/app/lib/hooks/CartContext";
 
 interface ProductsOnBundles extends PrismaProductsOnBundles {
   product: Product;

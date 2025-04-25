@@ -13,7 +13,6 @@ import {
 import {
   ShoppingBagIcon,
   HeartIcon,
-  ArrowsUpDownIcon,
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
   EyeIcon,
@@ -26,6 +25,8 @@ import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 import { useInView } from "react-intersection-observer";
 import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation for App Router
 import axios from "axios";
+import { StarIcon } from "lucide-react";
+import { useCart } from "@/app/lib/hooks/CartContext";
 
 interface Product extends PrismaProduct {
   reviews: Review[];
@@ -35,8 +36,7 @@ interface Product extends PrismaProduct {
 
 interface ProductGridProps {
   products: Product[];
-  currency: string;
-  currencySymbol: string;
+  country: string;
   viewMode: "grid" | "list";
   onAddToCart?: (productId: string) => void;
   isLoading?: boolean;
@@ -44,12 +44,12 @@ interface ProductGridProps {
 
 export default function ProductGrid({
   products,
-  currency,
-  currencySymbol,
+  country,
   viewMode,
   onAddToCart,
   isLoading = false,
 }: ProductGridProps) {
+  console.log("country", country);
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9);
@@ -59,7 +59,6 @@ export default function ProductGrid({
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(
     null
   );
-  const [compareProducts, setCompareProducts] = useState<Product[]>([]);
 
   // Pagination logic
   const totalPages = Math.ceil(products.length / itemsPerPage);
@@ -101,26 +100,6 @@ export default function ProductGrid({
     }
   };
 
-  // Compare products
-  const toggleCompare = (product: Product) => {
-    setCompareProducts((prev) => {
-      const isAlreadyComparing = prev.some((p) => p.id === product.id);
-
-      if (isAlreadyComparing) {
-        return prev.filter((p) => p.id !== product.id);
-      } else if (prev.length < 3) {
-        return [...prev, product];
-      } else {
-        // Show max compare notification
-        showNotification({
-          type: "warning",
-          message: "You can compare up to 3 products at a time",
-        });
-        return prev;
-      }
-    });
-  };
-
   // Show notification
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "info" | "warning";
@@ -145,11 +124,11 @@ export default function ProductGrid({
       case "price-low":
         sorted = sorted.sort((a, b) => {
           const priceA =
-            currency === "LKR"
+            country === "LK"
               ? a.discountPriceLKR || a.priceLKR || 0
               : a.discountPriceUSD || a.priceUSD || 0;
           const priceB =
-            currency === "LKR"
+            country === "LK"
               ? b.discountPriceLKR || b.priceLKR || 0
               : b.discountPriceUSD || b.priceUSD || 0;
           return priceA - priceB;
@@ -158,11 +137,11 @@ export default function ProductGrid({
       case "price-high":
         sorted = sorted.sort((a, b) => {
           const priceA =
-            currency === "LKR"
+            country === "LK"
               ? a.discountPriceLKR || a.priceLKR || 0
               : a.discountPriceUSD || a.priceUSD || 0;
           const priceB =
-            currency === "LKR"
+            country === "LK"
               ? b.discountPriceLKR || b.priceLKR || 0
               : b.discountPriceUSD || b.priceUSD || 0;
           return priceB - priceA;
@@ -191,7 +170,7 @@ export default function ProductGrid({
       case "discount":
         sorted = sorted.sort((a, b) => {
           const discountA =
-            currency === "LKR"
+            country === "LK"
               ? a.discountPriceLKR && a.priceLKR
                 ? (a.priceLKR - a.discountPriceLKR) / a.priceLKR
                 : 0
@@ -200,7 +179,7 @@ export default function ProductGrid({
               : 0;
 
           const discountB =
-            currency === "LKR"
+            country === "LK"
               ? b.discountPriceLKR && b.priceLKR
                 ? (b.priceLKR - b.discountPriceLKR) / b.priceLKR
                 : 0
@@ -216,7 +195,7 @@ export default function ProductGrid({
     }
 
     return sorted.slice(0, currentPage * itemsPerPage);
-  }, [products, sortBy, currency, isLoading, currentPage, itemsPerPage]);
+  }, [products, sortBy, country, isLoading, currentPage, itemsPerPage]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -243,85 +222,6 @@ export default function ProductGrid({
 
   return (
     <div className="space-y-4">
-      {/* Compare Products Bar */}
-      <AnimatePresence>
-        {compareProducts.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-white rounded-xl shadow-md border border-gray-100 p-3"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium text-gray-800">
-                Compare Products ({compareProducts.length}/3)
-              </h3>
-              <button
-                className="text-xs text-gray-500 hover:text-gray-700"
-                onClick={() => setCompareProducts([])}
-              >
-                Clear All
-              </button>
-            </div>
-
-            <div className="flex items-stretch space-x-3">
-              {compareProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="relative flex-1 bg-gray-50 p-2 rounded-lg"
-                >
-                  <button
-                    className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-200"
-                    onClick={() => toggleCompare(product)}
-                  >
-                    <XMarkIcon className="w-3 h-3 text-gray-500" />
-                  </button>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative w-10 h-10 bg-gray-100 rounded">
-                      {product.imageUrls?.[0] && (
-                        <Image
-                          src={product.imageUrls[0]}
-                          alt={product.name}
-                          fill
-                          className="object-cover rounded"
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-800 line-clamp-1">
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {currencySymbol}
-                        {(currency === "LKR"
-                          ? product.discountPriceLKR || product.priceLKR
-                          : product.discountPriceUSD || product.priceUSD
-                        )?.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {[...Array(3 - compareProducts.length)].map((_, i) => (
-                <div
-                  key={i}
-                  className="relative flex-1 bg-gray-50 p-2 rounded-lg border border-dashed border-gray-200 flex items-center justify-center"
-                >
-                  <p className="text-xs text-gray-400">Add product</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 flex justify-end">
-              <button className="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
-                Compare Now
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Notification Toast */}
       <AnimatePresence>
         {notification && (
@@ -423,17 +323,12 @@ export default function ProductGrid({
                 <motion.div key={product.id} variants={itemVariants} layout>
                   <ProductCard
                     product={product}
-                    currency={currency}
-                    currencySymbol={currencySymbol}
+                    country={country}
                     viewMode={viewMode}
                     onAddToCart={onAddToCart}
                     isWishlisted={wishlist.includes(product.id)}
                     onToggleWishlist={() => toggleWishlist(product.id)}
                     onQuickView={() => setQuickViewProduct(product)}
-                    isComparing={compareProducts.some(
-                      (p) => p.id === product.id
-                    )}
-                    onToggleCompare={() => toggleCompare(product)}
                   />
                 </motion.div>
               ))}
@@ -507,7 +402,7 @@ export default function ProductGrid({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 p-4"
             onClick={() => setQuickViewProduct(null)}
           >
             <motion.div
@@ -572,7 +467,7 @@ export default function ProductGrid({
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 00-1.175 0l-2.8-2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 00.951-.69l1.07-3.292z" />
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8-2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 00.951-.69l1.07-3.292z" />
                             </svg>
                           );
                         })}
@@ -590,8 +485,8 @@ export default function ProductGrid({
 
                     <div className="mt-6 flex items-center">
                       <span className="text-2xl font-bold text-gray-900">
-                        {currencySymbol}
-                        {(currency === "LKR"
+                        {country === "LK" ? "Rs." : "$"}
+                        {(country === "LK"
                           ? quickViewProduct.discountPriceLKR ||
                             quickViewProduct.priceLKR
                           : quickViewProduct.discountPriceUSD ||
@@ -599,13 +494,13 @@ export default function ProductGrid({
                         )?.toFixed(2)}
                       </span>
 
-                      {((currency === "LKR" &&
+                      {((country === "LK" &&
                         quickViewProduct.discountPriceLKR) ||
-                        (currency === "USD" &&
+                        (country !== "LK" &&
                           quickViewProduct.discountPriceUSD)) && (
                         <span className="ml-3 text-gray-500 text-sm line-through">
-                          {currencySymbol}
-                          {(currency === "LKR"
+                          {country === "LK" ? "Rs." : "$"}
+                          {(country === "LK"
                             ? quickViewProduct.priceLKR
                             : quickViewProduct.priceUSD
                           )?.toFixed(2)}
@@ -722,28 +617,22 @@ function ProductCardSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
 
 interface ProductCardProps {
   product: Product;
-  currency: string;
-  currencySymbol: string;
+  country: string;
   viewMode: "grid" | "list";
   onAddToCart?: (productId: string, quantity?: number) => void; // Updated to include quantity
   isWishlisted?: boolean;
   onToggleWishlist?: () => void;
   onQuickView?: () => void;
-  isComparing?: boolean;
-  onToggleCompare?: () => void;
 }
 
 function ProductCard({
   product,
-  currency,
-  currencySymbol,
+  country,
   viewMode,
   onAddToCart,
   isWishlisted = false,
   onToggleWishlist,
   onQuickView,
-  isComparing = false,
-  onToggleCompare,
 }: ProductCardProps) {
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -765,6 +654,10 @@ function ProductCard({
     type: "success",
   });
   const router = useRouter();
+  const { refreshCart } = useCart();
+
+  // Determine currency symbol based on country
+  const currencySymbol = country === "LK" ? "Rs." : "$";
 
   // Calculate rating properly to avoid hydration mismatch
   const rating = useMemo(() => {
@@ -778,12 +671,12 @@ function ProductCard({
 
   const displayPrice = useMemo(() => {
     const price =
-      currency === "LKR"
+      country === "LK"
         ? product.discountPriceLKR || product.priceLKR
         : product.discountPriceUSD || product.priceUSD;
 
     return price ? price.toFixed(2) : "0.00";
-  }, [product, currency]);
+  }, [product, country]);
 
   // Check if product is on sale
   const isOnSale =
@@ -791,12 +684,12 @@ function ProductCard({
 
   // Calculate discount percentage
   const discountPercentage = useMemo(() => {
-    if (currency === "LKR" && product.discountPriceLKR && product.priceLKR) {
+    if (country === "LK" && product.discountPriceLKR && product.priceLKR) {
       return Math.round(
         ((product.priceLKR - product.discountPriceLKR) / product.priceLKR) * 100
       );
     } else if (
-      currency === "USD" &&
+      country !== "LK" &&
       product.discountPriceUSD &&
       product.priceUSD
     ) {
@@ -805,7 +698,7 @@ function ProductCard({
       );
     }
     return 0;
-  }, [product, currency]);
+  }, [product, country]);
 
   // Handle image zoom
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -873,9 +766,8 @@ function ProductCard({
         replaceQuantity: true, // Replace existing quantity for buy now
       });
 
-      // Refresh cart data in the context
-      // This assumes there's a refreshCart function from a CartContext
-      // If not available directly, we may need to modify this part
+      await refreshCart(); // Refresh cart context
+
       if (typeof window !== "undefined") {
         // Dispatch an event that cart context listeners can pick up
         window.dispatchEvent(new CustomEvent("cart:update"));
@@ -922,15 +814,6 @@ function ProductCard({
     e.stopPropagation();
     if (onToggleWishlist) {
       onToggleWishlist();
-    }
-  };
-
-  // Handle compare toggle
-  const handleCompareToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onToggleCompare) {
-      onToggleCompare();
     }
   };
 
@@ -1145,39 +1028,6 @@ function ProductCard({
                 >
                   <EyeIcon className="w-4 h-4 text-gray-600 hover:text-purple-500 transition-colors" />
                 </motion.button>
-
-                {/* Compare button */}
-                <motion.button
-                  className={`p-2 rounded-full backdrop-blur-sm shadow-md transition-all duration-300 ${
-                    isComparing
-                      ? "bg-purple-600 text-white hover:bg-purple-700"
-                      : "bg-white/90 text-gray-600 hover:bg-white hover:text-purple-500"
-                  }`}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleCompareToggle}
-                  aria-label={
-                    isComparing ? "Remove from compare" : "Add to compare"
-                  }
-                >
-                  {isComparing ? (
-                    <CheckIcon className="w-4 h-4" />
-                  ) : (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 00-2 2h10a2 2 00-2-2V7a2 2 00-2-2h-2M9 5a2 2 00-2 2h2a2 2 00-2-2M9 5a2 2 002-2h2a2 2 002 2"
-                      />
-                    </svg>
-                  )}
-                </motion.button>
               </div>
             )}
 
@@ -1224,20 +1074,14 @@ function ProductCard({
                   <div className="flex bg-amber-50 px-1.5 py-0.5 rounded-md">
                     <div className="flex">
                       {[...Array(5)].map((_, i) => (
-                        <svg
+                        <StarIcon
                           key={i}
-                          className={`w-3 h-3 ${
-                            i < Math.floor(rating)
-                              ? "text-amber-400 fill-current"
-                              : i === Math.floor(rating) && rating % 1 > 0
-                              ? "text-gradient-star"
-                              : "text-gray-300"
+                          className={`w-4 h-4 ${
+                            i < rating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "fill-gray-200 text-gray-200"
                           }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 00-1.175 0l-2.8-2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 00.951-.69l1.07-3.292z" />
-                        </svg>
+                        />
                       ))}
                     </div>
                     <span className="ml-1 text-xs font-medium text-gray-700">
@@ -1263,7 +1107,7 @@ function ProductCard({
                   </span>
                   <span className="text-sm text-gray-500 line-through">
                     {currencySymbol}
-                    {currency === "LKR"
+                    {country === "LK"
                       ? product.priceLKR?.toFixed(2)
                       : product.priceUSD?.toFixed(2)}
                   </span>
@@ -1284,7 +1128,7 @@ function ProductCard({
                   className={`flex-1 transition-all duration-300 ${
                     isBuyingNow
                       ? "bg-green-600 shadow-lg shadow-green-200"
-                      : "bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 shadow-md hover:shadow-lg hover:shadow-pink-100"
+                      : "bg-pink-600 hover:bg-pink-700 shadow-md hover:shadow-lg hover:shadow-pink-100"
                   } text-white text-sm font-medium py-2 px-3 rounded-lg flex items-center justify-center`}
                   onClick={handleBuyNow}
                   disabled={isBuyingNow}

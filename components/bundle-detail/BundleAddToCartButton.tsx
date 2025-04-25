@@ -15,7 +15,7 @@ import { BundleOffer, Product } from "@prisma/client";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCart } from "@/app/lib/context/CartContext";
+import { useCart } from "@/app/lib/hooks/CartContext";
 
 interface BundleAddToCartButtonProps {
   bundle: BundleOffer;

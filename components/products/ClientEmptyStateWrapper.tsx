@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import ProductsEmptyState from './ProductsEmptyState';
+import { useRouter } from "next/navigation";
+import ProductsEmptyState from "./ProductsEmptyState";
 
 interface ClientEmptyStateWrapperProps {
   message: string;
@@ -12,12 +12,12 @@ interface ClientEmptyStateWrapperProps {
 export default function ClientEmptyStateWrapper({
   message,
   suggestion,
-  hasFilters
+  hasFilters,
 }: ClientEmptyStateWrapperProps) {
   const router = useRouter();
 
   const handleClearFilters = () => {
-    router.push('/products');
+    router.push("/products");
   };
 
   return (
