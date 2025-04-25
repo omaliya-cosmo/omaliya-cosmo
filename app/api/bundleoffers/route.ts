@@ -19,7 +19,17 @@ export async function GET() {
   try {
     // Fetch all bundle offers from the database
     const bundleOffers = await prisma.bundleOffer.findMany({
-      include: { products: { include: { product: true } } },
+      include: {
+        products: {
+          include: {
+            product: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     // Return the bundle offers as a JSON response

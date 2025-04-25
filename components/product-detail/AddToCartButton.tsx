@@ -22,13 +22,13 @@ import "react-toastify/dist/ReactToastify.css";
 interface AddToCartButtonProps {
   product: Product;
   quantity: number;
-  country?: string;
+  country: string;
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   quantity,
-  country = "US",
+  country,
 }) => {
   const router = useRouter();
   const [addedToCart, setAddedToCart] = useState(false);

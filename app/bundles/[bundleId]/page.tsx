@@ -26,138 +26,67 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
-import NewsletterSection from "@/components/home/Newsletter";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import BundleAddToCartButton from "@/components/bundle-detail/BundleAddToCartButton";
-import { getCustomerFromToken } from "@/app/actions";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { BundleOffer as PrismaBundleOffer, Product } from "@prisma/client";
+import {
+  BundleOffer as PrismaBundleOffer,
+  Product as PrismaProduct,
+  ProductsOnBundles as PrismaProductsOnBundles,
+  ProductCategory,
+  Review,
+} from "@prisma/client";
+import { useCountry } from "@/app/lib/hooks/useCountry";
+import ProductCard from "@/components/shared/ProductCard";
+import { useCart } from "@/app/lib/hooks/CartContext";
+
+interface Product extends PrismaProduct {
+  category: ProductCategory;
+  reviews: Review[];
+}
+
+interface ProductsOnBundles extends PrismaProductsOnBundles {
+  product: Product;
+}
 
 interface BundleOffer extends PrismaBundleOffer {
-  products: Product[];
-}
-
-// Types for bundles
-interface BundleProduct {
-  id: string;
-  name: string;
-  price: number;
-  image?: string;
-  description?: string;
-}
-
-interface Bundle {
-  id: string;
-  name: string;
-  description: string;
-  products: BundleProduct[];
-  originalPrice: number;
-  bundlePrice: number;
-  savings: number;
-  savingsPercentage: number;
-  image?: string;
-  category: string;
-  featured?: boolean;
-  tags?: string[];
-  longDescription?: string;
-  benefits?: string[];
-  howToUse?: string;
-  // Additional props needed for BundleAddToCartButton compatibility
-  stock: number;
-  priceLKR: number;
-  priceUSD: number;
-  discountPriceLKR: number | null;
-  discountPriceUSD: number | null;
+  products: ProductsOnBundles[];
 }
 
 export default function BundleDetailPage() {
   const { bundleId } = useParams();
-  const [bundle, setBundle] = useState<Bundle | null>(null);
+  const [bundle, setBundle] = useState<BundleOffer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Add state for Header props
-  const [bundleoffers, setBundleoffers] = useState([]);
+  const { country } = useCountry();
+  const { refreshCart } = useCart();
+
+  // Add state for related bundles
+  const [relatedBundles, setRelatedBundles] = useState<BundleOffer[]>([]);
 
   useEffect(() => {
-    // Fetch header data
-    async function fetchHeaderData() {
-      try {
-        // Fetch bundle offers for Header
-        const bundlesResponse = await axios.get("/api/bundleoffers");
-        console.log("bundlesResponse", bundlesResponse.data);
-        setBundleoffers(bundlesResponse.data);
-      } catch (err) {
-        console.error("Error fetching header data:", err);
-        setError(err.message || "Error fetching data");
-      }
-    }
-
-    fetchHeaderData();
-
-    async function fetchBundle() {
+    async function fetchData() {
       try {
         setLoading(true);
         // Fetch bundle data from the API
-        const response = await axios.get(`/api/bundleoffers`);
+        const response = await axios.get("/api/bundleoffers");
 
         // Find the specific bundle by ID
-        const bundleData = response.data.find(
-          (bundle: any) => bundle.id === bundleId
+        const currentBundle = response.data.find(
+          (bundle: BundleOffer) => bundle.id === bundleId
         );
 
-        if (bundleData) {
-          // Transform API data to match our Bundle interface
-          const transformedBundle: Bundle = {
-            id: bundleData.id,
-            name: bundleData.bundleName,
-            description:
-              bundleData.description ||
-              "A curated collection of our best products at a special price",
-            products: bundleData.products.map((item: any) => ({
-              id: item.product.id,
-              name: item.product.name,
-              price: item.product.priceLKR,
-              description: item.product.description,
-              image: item.product.imageUrls?.[0],
-            })),
-            originalPrice: bundleData.originalPriceLKR,
-            bundlePrice: bundleData.offerPriceLKR,
-            savings: bundleData.originalPriceLKR - bundleData.offerPriceLKR,
-            savingsPercentage: Math.round(
-              ((bundleData.originalPriceLKR - bundleData.offerPriceLKR) /
-                bundleData.originalPriceLKR) *
-                100
-            ),
-            image: bundleData.imageUrl,
-            category:
-              bundleData.products[0]?.product.category?.name || "beauty",
-            featured: bundleData.featured || false,
-            tags: bundleData.tags || ["bundle offer"],
-            longDescription:
-              bundleData.longDescription ||
-              "Experience the ultimate in beauty care with this specially curated bundle. Each product is selected to complement the others, providing you with a complete solution for your beauty needs.",
-            benefits: bundleData.benefits || [
-              "Save money with our bundle pricing",
-              "Products selected to work together for better results",
-              "Perfect for gifting or treating yourself",
-            ],
-            howToUse:
-              bundleData.howToUse ||
-              "For best results, use each product as directed on its individual packaging.",
-            // BundleAddToCartButton compatibility properties
-            stock: 100, // Assuming bundles are always in stock with a high quantity
-            priceLKR: bundleData.offerPriceLKR,
-            priceUSD: bundleData.offerPriceUSD,
-            discountPriceLKR: bundleData.offerPriceLKR,
-            discountPriceUSD: bundleData.offerPriceUSD,
-          };
-
-          setBundle(transformedBundle);
+        if (currentBundle) {
+          setBundle(currentBundle);
+          // Set related bundles (excluding current bundle)
+          setRelatedBundles(
+            response.data
+              .filter((b: BundleOffer) => b.id !== bundleId)
+              .slice(0, 3)
+          );
         } else {
           setError("Bundle not found");
         }
@@ -169,8 +98,24 @@ export default function BundleDetailPage() {
       }
     }
 
-    fetchBundle();
+    fetchData();
   }, [bundleId]);
+
+  // Calculate savings
+  const calculateSavings = () => {
+    if (!bundle) return { amount: 0, percentage: 0 };
+
+    // Use appropriate price values based on country
+    const originalPrice =
+      country === "LK" ? bundle.originalPriceLKR : bundle.originalPriceUSD;
+    const offerPrice =
+      country === "LK" ? bundle.offerPriceLKR : bundle.offerPriceUSD;
+
+    const savings = originalPrice - offerPrice;
+    const percentage = Math.round((savings / originalPrice) * 100);
+
+    return { amount: savings, percentage };
+  };
 
   if (loading) {
     return (
@@ -213,6 +158,39 @@ export default function BundleDetailPage() {
       </div>
     );
   }
+
+  interface CartProduct {
+    id: string;
+    name: string;
+  }
+
+  const addToCart = async (product: CartProduct) => {
+    try {
+      await axios.post("/api/cart", {
+        productId: product.id,
+        quantity: 1,
+      });
+
+      // Refresh cart data in the context
+      await refreshCart();
+
+      toast.success(`Added ${product.name} to your cart!`, {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error adding to cart";
+      toast.error(errorMessage, {
+        position: "bottom-right",
+      });
+    }
+  };
+
+  const { amount: savings, percentage: savingsPercentage } = calculateSavings();
+
+  // Get category name from first product if available
+  const category = bundle.products[0]?.product?.category?.name || "beauty";
 
   // Image variants for animation
   const imageVariants = {
@@ -290,7 +268,7 @@ export default function BundleDetailPage() {
             </BreadcrumbItem>
             <BreadcrumbItem>
               <BreadcrumbLink isActive>
-                <span className="font-medium">{bundle.name}</span>
+                <span className="font-medium">{bundle.bundleName}</span>
               </BreadcrumbLink>
             </BreadcrumbItem>
           </Breadcrumb>
@@ -326,10 +304,10 @@ export default function BundleDetailPage() {
               variants={imageVariants}
               className="h-full w-full z-10"
             >
-              {bundle.image ? (
+              {bundle.imageUrl ? (
                 <Image
-                  src={bundle.image}
-                  alt={bundle.name}
+                  src={bundle.imageUrl}
+                  alt={bundle.bundleName}
                   fill
                   className="object-cover object-center"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -346,16 +324,9 @@ export default function BundleDetailPage() {
               )}
             </motion.div>
 
-            {/* Featured badge */}
-            {bundle.featured && (
-              <div className="absolute top-4 left-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold z-10 shadow-md">
-                Featured
-              </div>
-            )}
-
             {/* Savings badge */}
             <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1.5 rounded-full font-semibold z-10 shadow-md">
-              Save {bundle.savingsPercentage}%
+              Save {savingsPercentage}%
             </div>
           </motion.div>
 
@@ -368,25 +339,21 @@ export default function BundleDetailPage() {
             {/* Category and tags */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Badge className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 hover:from-purple-200 hover:to-pink-200 border-none">
-                {bundle.category.charAt(0).toUpperCase() +
-                  bundle.category.slice(1)}
+                {category.charAt(0).toUpperCase() + category.slice(1)}
               </Badge>
 
-              {bundle.tags?.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="border-purple-200 text-purple-700 hover:bg-purple-50"
-                >
-                  {tag}
-                </Badge>
-              ))}
+              <Badge
+                variant="outline"
+                className="border-purple-200 text-purple-700 hover:bg-purple-50"
+              >
+                Bundle Offer
+              </Badge>
             </div>
 
             {/* Bundle name and rating */}
             <div className="mb-4">
               <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-800 to-pink-700">
-                {bundle.name}
+                {bundle.bundleName}
               </h1>
               <div className="flex items-center mt-2">
                 <div className="flex">
@@ -408,20 +375,30 @@ export default function BundleDetailPage() {
             </div>
 
             {/* Bundle description */}
-            <p className="text-gray-600 mb-6">{bundle.description}</p>
+            <p className="text-gray-600 mb-6">
+              A curated collection of our best products at a special price
+            </p>
 
             {/* Pricing section */}
             <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg border border-purple-100/50 shadow-sm">
               <div className="flex items-baseline">
                 <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700">
-                  ${bundle.bundlePrice.toFixed(2)}
+                  {country === "LK" ? "Rs." : "$"}
+                  {(country === "LK"
+                    ? bundle.offerPriceLKR
+                    : bundle.offerPriceUSD
+                  ).toFixed(2)}
                 </span>
                 <span className="ml-2 text-lg line-through text-gray-500">
-                  ${bundle.originalPrice.toFixed(2)}
+                  {country === "LK" ? "Rs." : "$"}
+                  {(country === "LK"
+                    ? bundle.originalPriceLKR
+                    : bundle.originalPriceUSD
+                  ).toFixed(2)}
                 </span>
                 <span className="ml-2 text-sm text-green-600 font-medium">
-                  You save: ${bundle.savings.toFixed(2)} (
-                  {bundle.savingsPercentage}%)
+                  You save: {country === "LK" ? "Rs." : "$"}
+                  {savings.toFixed(2)} ({savingsPercentage}%)
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -435,14 +412,23 @@ export default function BundleDetailPage() {
                 Bundle Contains:
               </h3>
               <ul className="space-y-2 divide-y divide-gray-100">
-                {bundle.products.map((product) => (
-                  <li key={product.id} className="flex justify-between py-2">
+                {bundle.products.map((productItem) => (
+                  <li
+                    key={productItem.id}
+                    className="flex justify-between py-2"
+                  >
                     <span className="flex items-center">
                       <CheckCircle className="w-4 h-4 mr-2 text-purple-500" />
-                      <span className="text-gray-800">{product.name}</span>
+                      <span className="text-gray-800">
+                        {productItem.product.name}
+                      </span>
                     </span>
                     <span className="text-gray-600 font-medium">
-                      ${product.price.toFixed(2)}
+                      {country === "LK" ? "Rs." : "$"}
+                      {(country === "LK"
+                        ? productItem.product.priceLKR
+                        : productItem.product.priceUSD
+                      ).toFixed(2)}
                     </span>
                   </li>
                 ))}
@@ -461,11 +447,12 @@ export default function BundleDetailPage() {
                     -
                   </button>
                   <input
-                    type="number"
+                    type="text"
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
                     className="w-16 text-center py-1 focus:outline-none"
+                    disabled
                   />
                   <button
                     onClick={() => setQuantity(quantity + 1)}
@@ -480,7 +467,7 @@ export default function BundleDetailPage() {
               <BundleAddToCartButton
                 bundle={bundle}
                 quantity={quantity}
-                currency="LKR"
+                country={country}
               />
             </div>
           </motion.div>
@@ -490,46 +477,12 @@ export default function BundleDetailPage() {
         <div className="mb-16">
           <h2 className="text-2xl font-bold mb-6">Products in This Bundle</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {bundle.products.map((product) => (
-              <div
-                key={product.id}
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
-              >
-                <div className="aspect-square relative bg-gray-100">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-12 h-12 text-gray-300" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Button
-                      variant="secondary"
-                      className="bg-white text-pink-600 hover:bg-pink-50"
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium mb-1 text-gray-900">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                    {product.description || "No description available."}
-                  </p>
-                  <p className="font-bold text-pink-600">
-                    ${product.price.toFixed(2)}
-                  </p>
-                </div>
-              </div>
+            {bundle.products.map((productItem) => (
+              <ProductCard
+                product={productItem.product}
+                addToCart={addToCart}
+                country={country}
+              />
             ))}
           </div>
         </div>
@@ -540,18 +493,20 @@ export default function BundleDetailPage() {
             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-pink-700">
               You May Also Like
             </h2>
-            <Button
-              variant="link"
-              className="text-purple-600 hover:text-pink-600 transition-colors"
-            >
-              View All Bundles
-            </Button>
+            <Link href="/bundles">
+              <Button
+                variant="link"
+                className="text-purple-600 hover:text-pink-600 transition-colors"
+              >
+                View All Bundles
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {bundleoffers.slice(0, 3).map((bundle: BundleOffer) => (
+            {relatedBundles.map((relatedBundle) => (
               <motion.div
-                key={bundle.id}
+                key={relatedBundle.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -563,11 +518,11 @@ export default function BundleDetailPage() {
                     className="relative overflow-hidden"
                     style={{ height: "240px" }}
                   >
-                    {bundle.imageUrl ? (
+                    {relatedBundle.imageUrl ? (
                       <div
                         className="h-full bg-cover bg-center transform transition-transform duration-700 hover:scale-110"
                         style={{
-                          backgroundImage: `url('${bundle.imageUrl}')`,
+                          backgroundImage: `url('${relatedBundle.imageUrl}')`,
                           backgroundColor: "rgba(0,0,0,0.05)",
                         }}
                       />
@@ -577,30 +532,36 @@ export default function BundleDetailPage() {
                       </div>
                     )}
 
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none shadow-md">
-                        Featured
-                      </Badge>
-                    </div>
+                    {/* Calculate savings for the related bundle */}
+                    {(() => {
+                      const savingsPercent = Math.round(
+                        ((relatedBundle.originalPriceLKR -
+                          relatedBundle.offerPriceLKR) /
+                          relatedBundle.originalPriceLKR) *
+                          100
+                      );
 
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
-                        Save 12%
-                      </Badge>
-                    </div>
+                      return (
+                        <div className="absolute top-4 right-4">
+                          <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white border-none font-medium shadow-md">
+                            Save {savingsPercent}%
+                          </Badge>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <CardContent className="p-6 flex-grow">
                     <div className="mb-4">
                       <h3 className="text-xl font-semibold mb-3 transition-colors">
                         <Link
-                          href={`/bundles/${bundle.id}`}
+                          href={`/bundles/${relatedBundle.id}`}
                           className="hover:text-purple-600 bg-clip-text hover:text-transparent hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
                         >
-                          {bundle.bundleName}
+                          {relatedBundle.bundleName}
                         </Link>
                       </h3>
                       <p className="text-gray-600 text-sm line-clamp-2">
-                        {`Collection of ${bundle.products.length} products at a special price`}
+                        {`Collection of ${relatedBundle.products.length} products at a special price`}
                       </p>
                     </div>
 
@@ -611,15 +572,22 @@ export default function BundleDetailPage() {
                         Includes:
                       </p>
                       <ul className="text-sm space-y-2">
-                        {bundle.products.map((product, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-center gap-2 text-gray-700"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-                            {product.product.name}
+                        {relatedBundle.products
+                          .slice(0, 3)
+                          .map((productItem, idx) => (
+                            <li
+                              key={idx}
+                              className="flex items-center gap-2 text-gray-700"
+                            >
+                              <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
+                              {productItem.product.name}
+                            </li>
+                          ))}
+                        {relatedBundle.products.length > 3 && (
+                          <li className="text-purple-600 text-xs mt-1">
+                            + {relatedBundle.products.length - 3} more products
                           </li>
-                        ))}
+                        )}
                       </ul>
                     </div>
                   </CardContent>
