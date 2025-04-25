@@ -12,20 +12,18 @@ import {
 import { ShoppingBag, Heart, Star } from "lucide-react";
 
 interface Product extends PrismaProduct {
-  reviews?: Review[];
+  category: ProductCategory;
+  reviews: Review[];
 }
 
 interface ProductCardProps {
   product: Product;
-  categoryName: string;
   addToCart: (product: Product, quantity?: number) => Promise<void>;
   country: string;
-  index?: number; // Added optional index property
 }
 
 export default function ProductCard({
   product,
-  categoryName,
   addToCart,
   country,
 }: ProductCardProps) {
@@ -166,10 +164,10 @@ export default function ProductCard({
           {/* Product details */}
           <div className="p-5 flex flex-col flex-grow">
             <div className="text-xs text-purple-700 font-semibold mb-1.5 uppercase tracking-wide">
-              {categoryName}
+              {product.category.name}
             </div>
 
-            <h3 className="text-gray-900 font-medium text-lg mb-1.5 line-clamp-1 group-hover:text-purple-700 transition-colors">
+            <h3 className="text-gray-900 font-medium text-lg mb-1.5 line-clamp-2 group-hover:text-purple-700 transition-colors">
               {product.name}
             </h3>
 

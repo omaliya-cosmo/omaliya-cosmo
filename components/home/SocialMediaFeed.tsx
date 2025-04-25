@@ -20,21 +20,21 @@ export default function SocialMediaFeed() {
   });
 
   // State for social media content and loading state
-  const [SOCIAL_MEDIA_CONTENT, setSocialMediaContent] = useState<Videos[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [socialMediaContent, setSocialMediaContent] = useState<Videos[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch social media content from API
   useEffect(() => {
     const fetchSocialMediaContent = async () => {
       try {
-        setIsLoading(true);
+        setLoading(true);
         const response = await axios.get<Videos[]>("/api/videos");
         setSocialMediaContent(response.data);
       } catch (err) {
         console.error("Error fetching social media content:", err);
         // Fallback content in case of API failure
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
@@ -60,7 +60,7 @@ export default function SocialMediaFeed() {
 
   // Navigation functions for the carousel
   const nextSlide = () => {
-    if (currentIndex < SOCIAL_MEDIA_CONTENT.length - displayCount) {
+    if (currentIndex < socialMediaContent.length - displayCount) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -73,8 +73,7 @@ export default function SocialMediaFeed() {
 
   // Determine if we can navigate prev/next
   const canScrollPrev = currentIndex > 0;
-  const canScrollNext =
-    currentIndex < SOCIAL_MEDIA_CONTENT.length - displayCount;
+  const canScrollNext = currentIndex < socialMediaContent.length - displayCount;
 
   // Animation variants for floating particles
   const floatingParticle = {
@@ -91,6 +90,29 @@ export default function SocialMediaFeed() {
     }),
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <section className="py-16 bg-gradient-to-b from-purple-50 via-white to-white relative">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Social Media Content
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Loading social media content...
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-pulse flex space-x-4">
+              <div className="bg-gray-200 h-48 w-96 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   // Platform-specific styling and logos
   const getPlatformLogo = (platform: string) => {
     switch (platform) {
@@ -104,6 +126,19 @@ export default function SocialMediaFeed() {
               fill="currentColor"
             >
               <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+            </svg>
+          </div>
+        );
+      case "instagram":
+        return (
+          <div className="absolute top-3 left-3 bg-white p-1.5 rounded-full shadow-md z-20">
+            <svg
+              className="w-5 h-5 text-pink-600"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
             </svg>
           </div>
         );
@@ -317,7 +352,7 @@ export default function SocialMediaFeed() {
               animate={{ x: -currentIndex * (100 / displayCount) + "%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
-              {SOCIAL_MEDIA_CONTENT.map((item) => (
+              {socialMediaContent.map((item) => (
                 <motion.div
                   key={item.id}
                   className={`flex-shrink-0 ${
@@ -326,65 +361,72 @@ export default function SocialMediaFeed() {
                   whileHover={{ y: -5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <div className="bg-white rounded-2xl shadow-md overflow-hidden relative group">
-                    {/* Platform Logo */}
-                    {getPlatformLogo(item.platform)}
+                  <Link
+                    href={item.videoUrl || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <div className="bg-white rounded-2xl shadow-md overflow-hidden relative group cursor-pointer">
+                      {/* Platform Logo */}
+                      {getPlatformLogo(item.platform.toLowerCase())}
 
-                    {/* Video Thumbnail with 9:16 aspect ratio */}
-                    <div className="relative pb-[177.78%] bg-gray-200">
-                      <Image
-                        src={item.thumbnail}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                      />
+                      {/* Video Thumbnail with 9:16 aspect ratio */}
+                      <div className="relative pb-[177.78%] bg-gray-200">
+                        <Image
+                          src={item.thumbnail}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
 
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="bg-white/90 rounded-full p-3 transform transition-transform group-hover:scale-110">
-                          <svg
-                            className="w-8 h-8 text-purple-600"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
+                        {/* Play button overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-white/90 rounded-full p-3 transform transition-transform group-hover:scale-110">
+                            <svg
+                              className="w-8 h-8 text-purple-600"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Video metadata */}
+                      <div className="p-4">
+                        <h3 className="font-medium mb-2 line-clamp-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <span className="flex items-center">
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                            {item.likes}
+                          </span>
+                          <span className="flex items-center">
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                            </svg>
+                            {item.views}
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Video metadata */}
-                    <div className="p-4">
-                      <h3 className="font-medium mb-2 line-clamp-1">
-                        {item.title}
-                      </h3>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span className="flex items-center">
-                          <svg
-                            className="w-4 h-4 mr-1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                          </svg>
-                          {item.likes}
-                        </span>
-                        <span className="flex items-center">
-                          <svg
-                            className="w-4 h-4 mr-1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                          </svg>
-                          {item.views}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  </Link>
                 </motion.div>
               ))}
             </motion.div>
@@ -394,7 +436,7 @@ export default function SocialMediaFeed() {
           {isMobile && (
             <div className="flex justify-center mt-6 gap-2">
               {Array.from({
-                length: SOCIAL_MEDIA_CONTENT.length - displayCount + 1,
+                length: socialMediaContent.length - displayCount + 1,
               }).map((_, index) => (
                 <button
                   key={index}
@@ -411,11 +453,7 @@ export default function SocialMediaFeed() {
 
         {/* View All Social Media Button */}
         <div className="text-center mt-10">
-          <Link
-            href="https://www.youtube.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link href="/about" target="_blank" rel="noopener noreferrer">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

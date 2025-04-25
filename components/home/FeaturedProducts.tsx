@@ -5,13 +5,22 @@ import Link from "next/link";
 import ProductCard from "../shared/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { Product, ProductCategory } from "@prisma/client";
+import {
+  Product as PrismaProduct,
+  ProductCategory,
+  Review,
+  ProductTag,
+} from "@prisma/client";
+
+interface Product extends PrismaProduct {
+  category: ProductCategory;
+  reviews: Review[];
+}
 
 interface FeaturedProductsProps {
   products: Product[];
   loading: boolean;
   error: string | null;
-  categories: ProductCategory[];
   addToCart: (product: Product) => void;
   country: string;
 }
@@ -20,7 +29,6 @@ export default function FeaturedProducts({
   products,
   loading,
   error,
-  categories,
   addToCart,
   country,
 }: FeaturedProductsProps) {
@@ -32,19 +40,14 @@ export default function FeaturedProducts({
     threshold: 0.1,
   });
 
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    return category ? category.name : "Cosmetics"; // Default to "Cosmetics" if not found
-  };
-
-  // Define the filter tabs
+  // Define the filter tabs using ProductTag enum
   const filterTabs = [
     { id: "all", name: "All Products" },
-    { id: "new-arrivals", name: "New Arrivals" },
-    { id: "best-sellers", name: "Best Sellers" },
-    { id: "special-deals", name: "Special Deals" },
-    { id: "gift-sets", name: "Gift Sets" },
-    { id: "trending", name: "Trending Now" },
+    { id: ProductTag.NEW_ARRIVALS, name: "New Arrivals" },
+    { id: ProductTag.BEST_SELLERS, name: "Best Sellers" },
+    { id: ProductTag.SPECIAL_DEALS, name: "Special Deals" },
+    { id: ProductTag.GIFT_SETS, name: "Gift Sets" },
+    { id: ProductTag.TRENDING_NOW, name: "Trending Now" },
   ];
 
   // Filter products based on active tag and search query
@@ -499,7 +502,6 @@ export default function FeaturedProducts({
                   <motion.div key={product.id} variants={itemVariants}>
                     <ProductCard
                       product={product}
-                      categoryName={getCategoryName(product.categoryId)}
                       addToCart={(product) =>
                         Promise.resolve(addToCart(product))
                       }

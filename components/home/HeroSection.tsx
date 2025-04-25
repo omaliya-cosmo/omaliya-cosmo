@@ -340,11 +340,11 @@ export default function HeroSection() {
                 </span>
               </div>
               <p className="text-sm italic text-gray-600">
-                "These products transformed my skin in just a few weeks. Can't
-                imagine my routine without them!"
+                "Sleek design, smooth navigation, fast checkout, great
+                deals—shopping here feels effortless and enjoyable."
               </p>
               <div className="mt-2 text-xs text-gray-500 flex items-center">
-                <span className="font-semibold">Sarah M.</span>
+                <span className="font-semibold">Kasuni Perera</span>
                 <span className="mx-1">•</span>
                 <span>Verified Customer</span>
               </div>

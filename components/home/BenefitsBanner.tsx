@@ -443,7 +443,7 @@ export default function BenefitsBanner() {
                 {/* Learn more button that appears on hover */}
                 <div className="h-0 group-hover:h-auto overflow-hidden transition-all duration-300 opacity-0 group-hover:opacity-100 pt-0 group-hover:pt-4 mt-0 group-hover:mt-2 transform translate-y-4 group-hover:translate-y-0">
                   <Link
-                    href="#"
+                    href="/about"
                     className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-800 transition-colors"
                   >
                     Learn more

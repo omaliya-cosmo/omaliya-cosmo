@@ -7,9 +7,10 @@ export default function Testimonials() {
   const testimonials = [
     {
       id: 1,
-      name: "Samantha Lee",
+      name: "Nishani Perera",
       location: "Colombo, Sri Lanka",
-      image: "/images/testimonials/customer-1.jpg",
+      image:
+        "https://res.cloudinary.com/omaliya/image/upload/v1745546113/istockphoto-986662114-612x612_dnytym.jpg",
       quote:
         "Ive been using the Miracle Glow Serum for just three weeks and my skin is already transformed! My dark spots have faded and my friends keep asking what Im doing differently.",
       rating: 5,
@@ -17,9 +18,10 @@ export default function Testimonials() {
     },
     {
       id: 2,
-      name: "Michelle Taylor",
-      location: "New York, USA",
-      image: "/images/testimonials/customer-2.jpg",
+      name: "Dilini Jayawardena",
+      location: "Kandy, Sri Lanka",
+      image:
+        "https://res.cloudinary.com/omaliya/image/upload/v1745546113/istockphoto-986662114-612x612_dnytym.jpg",
       quote:
         "As someone with sensitive skin, Ive always struggled to find products that dont cause irritation. The Gentle Cleansing Balm is a game-changer - it removes all my makeup without any redness or reaction.",
       rating: 5,
@@ -27,9 +29,10 @@ export default function Testimonials() {
     },
     {
       id: 3,
-      name: "Priya Sharma",
-      location: "Mumbai, India",
-      image: "/images/testimonials/customer-3.jpg",
+      name: "Kumari Fonseka",
+      location: "Galle, Sri Lanka",
+      image:
+        "https://res.cloudinary.com/omaliya/image/upload/v1745546113/istockphoto-986662114-612x612_dnytym.jpg",
       quote:
         "The Hydrating Night Cream has completely eliminated my dry patches, even in air-conditioned environments. I wake up with plump, moisturized skin every morning. Worth every penny!",
       rating: 4,
@@ -37,9 +40,10 @@ export default function Testimonials() {
     },
     {
       id: 4,
-      name: "David Chen",
-      location: "Singapore",
-      image: "/images/testimonials/customer-4.jpg",
+      name: "Roshan Silva",
+      location: "Negombo, Sri Lanka",
+      image:
+        "https://res.cloudinary.com/omaliya/image/upload/v1745546113/istockphoto-986662114-612x612_dnytym.jpg",
       quote:
         "My wife bought me the Mens Essentials Kit and I was skeptical at first. Now Im a convert! My skin feels healthier and the products are simple to use - perfect for my minimal skincare routine.",
       rating: 5,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,77 +10,58 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import axios from "axios";
 import { toast } from "react-toastify";
+import {
+  BundleOffer as PrismaBundleOffer,
+  ProductsOnBundles as PrismaProductsOnBundles,
+  Product,
+} from "@prisma/client";
+import { useCart } from "@/app/lib/context/CartContext";
 
-// Define types for bundle data
-interface BundleProduct {
-  id: string;
-  name: string;
-  price: number;
-  image?: string;
-  description?: string;
+interface ProductsOnBundles extends PrismaProductsOnBundles {
+  product: Product;
 }
 
-interface Bundle {
-  id: string;
-  bundleName: string;
-  description?: string;
-  products: {
-    product: {
-      id: string;
-      name: string;
-      priceLKR: number;
-      priceUSD: number;
-      imageUrls?: string[];
-      description?: string;
-    };
-  }[];
-  originalPriceLKR: number;
-  originalPriceUSD: number;
-  offerPriceLKR: number;
-  offerPriceUSD: number;
-  imageUrl?: string;
-  endDate: string;
+interface BundleOffer extends PrismaBundleOffer {
+  products: ProductsOnBundles[];
 }
 
-const FeaturedBundles = () => {
-  const [bundles, setBundles] = useState<Bundle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface FeaturedBundlesProps {
+  bundles: BundleOffer[];
+  loading: boolean;
+  error: string | null;
+  country: string;
+}
+
+const FeaturedBundles = ({
+  bundles,
+  loading,
+  error,
+  country,
+}: FeaturedBundlesProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [width, setWidth] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Fetch bundles from API
-  useEffect(() => {
-    const fetchBundles = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get("/api/bundleoffers");
-        // Filter for featured bundles if you have a way to identify them
-        // For now, showing all bundles from the API
-        setBundles(response.data);
-      } catch (err) {
-        setError("Failed to load bundles");
-        console.error("Error fetching bundles:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const isLKR = country === "LK";
+  const { refreshCart } = useCart();
 
-    fetchBundles();
-  }, []);
+  // Helper functions for price display
+  const getPrice = (bundle: BundleOffer) => {
+    return isLKR ? bundle.offerPriceLKR : bundle.offerPriceUSD;
+  };
 
-  useEffect(() => {
-    if (carouselRef.current) {
-      setWidth(
-        carouselRef.current.scrollWidth - carouselRef.current.offsetWidth
-      );
-    }
-  }, [bundles]);
+  const getOriginalPrice = (bundle: BundleOffer) => {
+    return isLKR ? bundle.originalPriceLKR : bundle.originalPriceUSD;
+  };
+
+  const getCurrencySymbol = () => {
+    return isLKR ? "Rs. " : "$";
+  };
+
+  const getProductPrice = (product: Product) => {
+    return isLKR ? product.priceLKR : product.priceUSD;
+  };
 
   const nextSlide = () => {
     setCurrentIndex((prevIndex) =>
@@ -99,7 +79,7 @@ const FeaturedBundles = () => {
     setCurrentIndex(index);
   };
 
-  const addBundleToCart = async (bundle: Bundle) => {
+  const addBundleToCart = async (bundle: BundleOffer) => {
     try {
       // In a real app, you would have an API endpoint to handle bundle additions
       await axios.post("/api/cart", {
@@ -108,7 +88,8 @@ const FeaturedBundles = () => {
         isBundle: true,
       });
 
-      setCartCount((prev) => prev + 1);
+      await refreshCart(); // Refresh the cart context after adding the bundle
+
       toast.success(`Added ${bundle.bundleName} to your cart!`, {
         position: "bottom-right",
         autoClose: 3000,
@@ -395,8 +376,8 @@ const FeaturedBundles = () => {
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-medium">
                         Save{" "}
                         {calculateSavingsPercentage(
-                          bundle.originalPriceLKR,
-                          bundle.offerPriceLKR
+                          getOriginalPrice(bundle),
+                          getPrice(bundle)
                         )}
                         %
                       </div>
@@ -409,16 +390,17 @@ const FeaturedBundles = () => {
                       {bundle.bundleName}
                     </h3>
                     <p className="text-gray-600 mb-5">
-                      {bundle.description ||
-                        `Special bundle offer with ${bundle.products.length} products.`}
+                      {`Special bundle offer with ${bundle.products.length} products.`}
                     </p>
 
                     <div className="flex items-center mb-6">
                       <span className="text-3xl font-bold text-purple-800 mr-3">
-                        ${bundle.offerPriceUSD.toFixed(2)}
+                        {getCurrencySymbol()}
+                        {getPrice(bundle).toFixed(2)}
                       </span>
                       <span className="text-xl line-through text-gray-500">
-                        ${bundle.originalPriceUSD.toFixed(2)}
+                        {getCurrencySymbol()}
+                        {getOriginalPrice(bundle).toFixed(2)}
                       </span>
                     </div>
 
@@ -429,8 +411,8 @@ const FeaturedBundles = () => {
                         {bundle.products.slice(0, 3).map((productItem, idx) => (
                           <li key={idx} className="flex items-center gap-2">
                             <div className="w-1 h-1 rounded-full bg-primary" />
-                            {productItem.product.name} - $
-                            {productItem.product.priceUSD.toFixed(2)}
+                            {productItem.product.name} - {getCurrencySymbol()}
+                            {getProductPrice(productItem.product).toFixed(2)}
                           </li>
                         ))}
                         {bundle.products.length > 3 && (

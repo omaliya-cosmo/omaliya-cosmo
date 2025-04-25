@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 
 export function useCountry() {
-  const [country, setCountry] = useState<string | null>(null);
+  const [country, setCountry] = useState<string>("LK");
 
   useEffect(() => {
     let storedCountry = Cookies.get("user_country");

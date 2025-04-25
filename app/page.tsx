@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getCustomerFromToken } from "./actions";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useCountry } from "@/app/lib/hooks/useCountry";
 
 // Imported Components
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
 import CategoriesSection from "@/components/home/CategoriesSection";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
@@ -18,12 +15,32 @@ import Testimonials from "@/components/home/Testimonials";
 import FeaturedBundles from "@/components/home/FeaturedBundles";
 import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
 import { useCart } from "./lib/context/CartContext";
+import {
+  BundleOffer as PrismaBundleOffer,
+  ProductsOnBundles as PrismaProductsOnBundles,
+  Product as PrismaProduct,
+  ProductCategory,
+  Review,
+} from "@prisma/client";
+
+interface ProductsOnBundles extends PrismaProductsOnBundles {
+  product: Product;
+}
+
+interface BundleOffer extends PrismaBundleOffer {
+  products: ProductsOnBundles[];
+}
+
+interface Product extends PrismaProduct {
+  category: ProductCategory;
+  reviews: Review[];
+}
 
 export default function Home() {
-  const { country, updateCountry } = useCountry();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [bundleoffers, setBundleoffers] = useState([]);
+  const { country } = useCountry();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [bundleoffers, setBundleoffers] = useState<BundleOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,7 +50,7 @@ export default function Home() {
   useEffect(() => {
     // Fetch products data
     axios
-      .get("/api/products")
+      .get("/api/products?reviews=true&category=true")
       .then((res) => {
         setProducts(res.data.products);
         setLoading(false);
@@ -105,21 +122,29 @@ export default function Home() {
         <HeroSection />
 
         <div className="bg-white">
-          <CategoriesSection />
+          <CategoriesSection
+            categories={categories}
+            loading={loading}
+            error={error}
+          />
 
           <div className="bg-white">
             <FeaturedProducts
               products={products}
               loading={loading}
               error={error}
-              categories={categories}
               addToCart={addToCart}
-              country={country || ""}
+              country={country}
             />
           </div>
 
           <div className="bg-white">
-            <FeaturedBundles />
+            <FeaturedBundles
+              bundles={bundleoffers}
+              loading={loading}
+              error={error}
+              country={country}
+            />
           </div>
 
           <div className="bg-white">

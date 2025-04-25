@@ -6,50 +6,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { ProductCategory } from "@prisma/client";
 
-export default function CategoriesSection() {
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface CategoriesSectionProps {
+  categories: ProductCategory[];
+  loading: boolean;
+  error: string | null;
+}
+
+export default function CategoriesSection({
+  categories,
+  loading,
+  error,
+}: CategoriesSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get("/api/categories");
-        setCategories(response.data.categories);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        setError("Failed to load categories");
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  // Retry function for error recovery
-  const handleRetry = () => {
-    setLoading(true);
-    setError(null);
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get("/api/categories");
-        setCategories(response.data.categories);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        setError("Failed to load categories");
-        setLoading(false);
-      }
-    };
-    fetchCategories();
-  };
 
   // Filter categories based on search query
   const filteredCategories = categories.filter((category) => {
@@ -222,26 +195,6 @@ export default function CategoriesSection() {
             <p className="text-sm text-red-600 mb-6">
               We're having trouble loading the categories. Please try again.
             </p>
-            <button
-              onClick={handleRetry}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                ></path>
-              </svg>
-              Retry
-            </button>
           </motion.div>
         )}
 
