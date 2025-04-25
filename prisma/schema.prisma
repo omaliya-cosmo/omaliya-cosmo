@@ -90,7 +90,7 @@ model Address {
   country       String
   customerId    String?    @unique @db.ObjectId @map("customer_id") // Make unique for one-to-one
   customer      Customer?  @relation(fields: [customerId], references: [id])
-  orders        Order[]
+  order         Order?     // Changed from Order[] to Order? for one-to-one
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 }
@@ -112,8 +112,8 @@ model Order {
   items          OrderItem[]  
   trackingNumber String?      @map("tracking_number")
   paymentMethod  PaymentMethod
-  addressId      String        @db.ObjectId @map("address_id")
-  address        Address       @relation(fields: [addressId], references: [id])
+  addressId      String       @unique @db.ObjectId @map("address_id") // Added @unique for one-to-one
+  address        Address      @relation(fields: [addressId], references: [id])
 }
 
 // Enum for payment methods

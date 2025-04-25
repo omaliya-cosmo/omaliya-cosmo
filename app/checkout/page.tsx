@@ -61,12 +61,11 @@ const checkoutSchema = z
   );
 
 interface OrderItem extends OrderItemPrisma {
-  product: Product;
-  bundle: BundleOffer;
+  details?: any; // Unified property for product or bundle details
+  isBundle: boolean;
 }
 
 interface DisplayCartItem {
-  _id: string;
   name: string;
   quantity: number;
   priceLKR: number;
@@ -78,6 +77,7 @@ interface DisplayCartItem {
 
 // Define shipping rates by country
 const shippingRates: Record<string, { LKR: number; USD: number }> = {
+  Default: { LKR: 6000, USD: 20 },
   "Sri Lanka": { LKR: 350, USD: 1 },
   "United States": { LKR: 4500, USD: 15 },
   "United Kingdom": { LKR: 5000, USD: 17 },
@@ -90,7 +90,6 @@ const shippingRates: Record<string, { LKR: number; USD: number }> = {
   Japan: { LKR: 6000, USD: 20 },
   Singapore: { LKR: 4800, USD: 16 },
   Malaysia: { LKR: 4500, USD: 15 },
-  Default: { LKR: 6000, USD: 20 },
 };
 
 export default function CheckoutPage() {
@@ -128,7 +127,7 @@ export default function CheckoutPage() {
     city: "",
     postalCode: "",
     country: "",
-    paymentMethod: "PAY_HERE",
+    paymentMethod: "CASH_ON_DELIVERY",
   });
 
   useEffect(() => {
@@ -191,9 +190,8 @@ export default function CheckoutPage() {
   const fetchCartData = async () => {
     try {
       setLoading(true);
-      const { data: cartData } = await axios.get<{ items: OrderItem[] }>(
-        "/api/cart"
-      );
+      // Fetch cart items (products and bundles) from our enhanced cart API
+      const { data: cartData } = await axios.get("/api/cart");
       const cartItemsFromApi = cartData.items || [];
 
       if (cartItemsFromApi.length === 0) {
@@ -202,105 +200,50 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Separate regular products and bundles
-      const productIds = cartItemsFromApi
-        .filter((item) => !item.isBundle && item.productId)
-        .map((item) => item.productId);
-      const bundleIds = cartItemsFromApi
-        .filter((item) => item.isBundle && item.productId)
-        .map((item) => item.productId);
+      // Directly use the cart items from API with details
+      setCartItems(cartItemsFromApi);
 
-      const [productsData, bundlesData] = await Promise.all([
-        productIds.length > 0
-          ? axios.post<Product[]>("/api/products/batch", { productIds })
-          : Promise.resolve({ data: [] }),
-        bundleIds.length > 0
-          ? axios.post<BundleOffer[]>("/api/bundleoffers/batch", { bundleIds })
-          : Promise.resolve({ data: [] }),
-      ]);
-
-      // Merge all items (both regular products and bundles)
-      const mergedItems: OrderItem[] = cartItemsFromApi.map((cartItem) => {
-        if (cartItem.isBundle) {
-          const bundle = bundlesData.data.find(
-            (b) => b.id === cartItem.productId
-          );
-          return {
-            ...cartItem,
-            bundleId: cartItem.productId, // Properly set bundleId for bundles
-            bundle: bundle || {
-              id: cartItem.productId || "unknown-id",
-              bundleName: "Unknown Bundle",
-              originalPriceLKR: 0,
-              originalPriceUSD: 0,
-              offerPriceLKR: 0,
-              offerPriceUSD: 0,
-              endDate: new Date(),
-              stock: 0,
-              imageUrl: null,
-              createdAt: new Date(),
-            },
-          };
-        } else {
-          const product = productsData.data.find(
-            (p) => p.id === cartItem.productId
-          );
-          return {
-            ...cartItem,
-            product: product || {
-              id: cartItem.productId || "unknown-id",
-              name: "Unknown Product",
-              description: "No description available",
-              fullDescription: "No detailed description available",
-              imageUrls: [],
-              categoryId: "unknown-category",
-              priceLKR: 0,
-              discountPriceLKR: null,
-              priceUSD: 0,
-              discountPriceUSD: null,
-              stock: 0,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              tags: [],
-            },
-          };
-        }
-      });
-
-      setCartItems(mergedItems);
-
-      // Calculate subtotal
-      const calculatedSubtotal = mergedItems.reduce((sum, item) => {
+      // Calculate subtotal based on product or bundle prices
+      const calculatedSubtotal = cartItemsFromApi.reduce((sum, item) => {
         const price = item.isBundle
           ? country === "LK"
-            ? item.bundle?.offerPriceLKR || 0
-            : item.bundle?.offerPriceUSD || 0
+            ? item.details?.offerPriceLKR || 0
+            : item.details?.offerPriceUSD || 0
           : country === "LK"
-          ? item.product?.discountPriceLKR || item.product?.priceLKR || 0
-          : item.product?.discountPriceUSD || item.product?.priceUSD || 0;
+          ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
+          : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
 
         return sum + price * item.quantity;
       }, 0);
 
+      // Check if we have a promo code applied
       const promoCodeCookie = Cookies.get("promoCodeDiscount");
-      const promoCodeData: PromoCodeData | null = promoCodeCookie
-        ? JSON.parse(promoCodeCookie)
-        : null;
+      if (promoCodeCookie) {
+        try {
+          const promoCodeData: PromoCodeData = JSON.parse(promoCodeCookie);
+          setDiscount(promoCodeData.discount || 0);
+          setPromoCode(promoCodeData.code || "");
 
-      setPromoCode(promoCodeData?.code || "");
-      setDiscount(promoCodeData?.discount || 0); // This is the percentage discount
-      setSubtotal(calculatedSubtotal);
+          // Calculate discount amount
+          const discountAmount =
+            (calculatedSubtotal * promoCodeData.discount) / 100;
 
-      // Calculate discount amount and total
-      const discountAmount = promoCodeData
-        ? (calculatedSubtotal * promoCodeData.discount) / 100
-        : 0;
-      setTotal(calculatedSubtotal - discountAmount + shippingCost);
-
-      setLoading(false);
+          // Set subtotal and calculate total with shipping
+          setSubtotal(calculatedSubtotal);
+          setTotal(calculatedSubtotal - discountAmount + shippingCost);
+        } catch (err) {
+          console.error("Failed to parse promo code cookie:", err);
+          setSubtotal(calculatedSubtotal);
+          setTotal(calculatedSubtotal + shippingCost);
+        }
+      } else {
+        setSubtotal(calculatedSubtotal);
+        setTotal(calculatedSubtotal + shippingCost);
+      }
     } catch (err: any) {
       console.error("Error fetching cart:", err);
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -394,7 +337,7 @@ export default function CheckoutPage() {
   const renderCartItem = (item: DisplayCartItem) => {
     return (
       <div
-        key={item._id}
+        key={item.name}
         className="flex justify-between py-3 border-b border-gray-100 last:border-0"
       >
         <div className="flex items-start">
@@ -441,8 +384,14 @@ export default function CheckoutPage() {
         <div className="text-right">
           <span className="font-medium text-gray-900">
             {country === "LK"
-              ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
-              : `$ ${(item.priceUSD * item.quantity).toFixed(2)}`}
+              ? `Rs ${(item.priceLKR * item.quantity).toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}`
+              : `$ ${(item.priceUSD * item.quantity).toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}`}
           </span>
         </div>
       </div>
@@ -690,7 +639,7 @@ export default function CheckoutPage() {
                           value={formData.country}
                           onChange={handleInputChange}
                           required
-                          className="w-f  ull p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                          className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
                         >
                           {Object.keys(shippingRates).map((country) => (
                             <option key={country} value={country}>
@@ -755,24 +704,29 @@ export default function CheckoutPage() {
                 <div className="max-h-64 overflow-y-auto mb-4">
                   {cartItems.map((item) => {
                     const displayItem: DisplayCartItem = {
-                      _id: item.id,
                       name: item.isBundle
-                        ? item.bundle?.bundleName
-                        : item.product?.name,
+                        ? item.details?.bundleName || "Bundle"
+                        : item.details?.name || "Product",
                       quantity: item.quantity,
                       priceLKR: item.isBundle
-                        ? item.bundle?.offerPriceLKR || 0
-                        : item.product?.priceLKR || 0,
+                        ? item.details?.offerPriceLKR || 0
+                        : item.details?.discountPriceLKR ||
+                          item.details?.priceLKR ||
+                          0,
                       priceUSD: item.isBundle
-                        ? item.bundle?.offerPriceUSD || 0
-                        : item.product?.priceUSD || 0,
+                        ? item.details?.offerPriceUSD || 0
+                        : item.details?.discountPriceUSD ||
+                          item.details?.priceUSD ||
+                          0,
                       imageUrls: item.isBundle
-                        ? item.bundle?.imageUrl
-                          ? [item.bundle.imageUrl]
+                        ? item.details?.imageUrl
+                          ? [item.details.imageUrl]
                           : []
-                        : item.product?.imageUrls || [],
+                        : item.details?.imageUrls || [],
                       isBundle: item.isBundle,
-                      category: item.isBundle ? undefined : { name: "Product" },
+                      category: item.isBundle
+                        ? { name: "Bundle" }
+                        : item.details?.category || { name: "Product" },
                     };
                     return renderCartItem(displayItem);
                   })}
@@ -788,8 +742,14 @@ export default function CheckoutPage() {
                     </span>
                     <span className="font-medium">
                       {country === "LK"
-                        ? `Rs ${subtotal.toFixed(2)}`
-                        : `$ ${subtotal.toFixed(2)}`}
+                        ? `Rs ${subtotal.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : `$ ${subtotal.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}`}
                     </span>
                   </div>
 
@@ -799,8 +759,20 @@ export default function CheckoutPage() {
                       <span>
                         -{" "}
                         {country === "LK"
-                          ? `Rs ${((subtotal * discount) / 100).toFixed(2)}`
-                          : `$ ${((subtotal * discount) / 100).toFixed(2)}`}
+                          ? `Rs ${((subtotal * discount) / 100).toLocaleString(
+                              "en-US",
+                              {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              }
+                            )}`
+                          : `$ ${((subtotal * discount) / 100).toLocaleString(
+                              "en-US",
+                              {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              }
+                            )}`}
                       </span>
                     </div>
                   )}
@@ -809,8 +781,14 @@ export default function CheckoutPage() {
                     <span className="text-gray-600">Shipping</span>
                     <span className="font-medium">
                       {country === "LK"
-                        ? `Rs ${shippingCost.toFixed(2)}`
-                        : `$ ${shippingCost.toFixed(2)}`}
+                        ? `Rs ${shippingCost.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : `$ ${shippingCost.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          })}`}
                     </span>
                   </div>
                 </div>
@@ -820,8 +798,14 @@ export default function CheckoutPage() {
                   <span className="text-gray-800">Total</span>
                   <span className="text-purple-700">
                     {country === "LK"
-                      ? `Rs ${total.toFixed(2)}`
-                      : `$ ${total.toFixed(2)}`}
+                      ? `Rs ${total.toLocaleString("en-US", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : `$ ${total.toLocaleString("en-US", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}`}
                   </span>
                 </div>
               </div>
@@ -865,6 +849,7 @@ export default function CheckoutPage() {
                       checked={formData.paymentMethod === "PAY_HERE"}
                       onChange={handleInputChange}
                       className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                      disabled
                     />
                     <span className="flex-1">Pay Here</span>
                     <svg
@@ -891,6 +876,7 @@ export default function CheckoutPage() {
                       checked={formData.paymentMethod === "KOKO"}
                       onChange={handleInputChange}
                       className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                      disabled
                     />
                     <span className="flex-1">Koko</span>
                     <svg

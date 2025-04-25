@@ -343,7 +343,7 @@ const OrderConfirmationPage = () => {
               </p>
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                 <Link
-                  href="/account/orders"
+                  href="/profile"
                   className="inline-flex items-center justify-center px-5 py-2 border border-purple-300 text-sm font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50"
                 >
                   Track Order
