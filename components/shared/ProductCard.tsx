@@ -3,13 +3,12 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import {
   Product as PrismaProduct,
   ProductCategory,
   Review,
 } from "@prisma/client";
-import { ShoppingBag, Heart, Star } from "lucide-react";
+import { ShoppingBag, Star } from "lucide-react";
 
 interface Product extends PrismaProduct {
   category: ProductCategory;
