@@ -186,12 +186,18 @@ export default function ProductCard({
                         product.discountPriceLKR ||
                         product.priceLKR ||
                         0
-                      ).toFixed(2)}`
+                      ).toLocaleString("en-US", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                      })}`
                     : `$${(
                         product.discountPriceUSD ||
                         product.priceUSD ||
                         0
-                      ).toFixed(2)}`}
+                      ).toLocaleString("en-US", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                      })}`}
                 </span>
 
                 {/* Show original price if discounted */}
@@ -199,8 +205,14 @@ export default function ProductCard({
                   (country !== "LK" && product.discountPriceUSD)) && (
                   <span className="text-sm text-gray-500 line-through">
                     {country === "LK"
-                      ? `Rs. ${product.priceLKR?.toFixed(2)}`
-                      : `$${product.priceUSD?.toFixed(2)}`}
+                      ? `Rs. ${(product.priceLKR || 0).toLocaleString("en-US", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : `$${(product.priceUSD || 0).toLocaleString("en-US", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })}`}
                   </span>
                 )}
               </div>

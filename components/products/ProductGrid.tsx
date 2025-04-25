@@ -1103,19 +1103,35 @@ function ProductCard({
                 <div className="flex items-center space-x-2">
                   <span className="text-lg font-bold text-gray-900">
                     {currencySymbol}
-                    {displayPrice}
+                    {(country === "LK"
+                      ? product.discountPriceLKR || product.priceLKR || 0
+                      : product.discountPriceUSD || product.priceUSD || 0
+                    ).toLocaleString("en-US", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
                   <span className="text-sm text-gray-500 line-through">
                     {currencySymbol}
-                    {country === "LK"
-                      ? product.priceLKR?.toFixed(2)
-                      : product.priceUSD?.toFixed(2)}
+                    {(country === "LK"
+                      ? product.priceLKR || 0
+                      : product.priceUSD || 0
+                    ).toLocaleString("en-US", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
                 </div>
               ) : (
                 <span className="text-lg font-bold text-gray-900">
                   {currencySymbol}
-                  {displayPrice}
+                  {(country === "LK"
+                    ? product.priceLKR || 0
+                    : product.priceUSD || 0
+                  ).toLocaleString("en-US", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
               )}
             </div>

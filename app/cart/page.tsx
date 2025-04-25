@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-// import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Cookies from "js-cookie";
@@ -8,9 +7,8 @@ import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
-import { Product, ProductCategory } from "@prisma/client";
+import { Product, ProductCategory, BundleOffer } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import Header from "@/components/layout/Header";
 import { useCart } from "../lib/hooks/CartContext";
 
 // Define the cart item structure from the cart API
@@ -19,27 +17,8 @@ interface CartItem {
   quantity: number;
   isBundle: boolean;
   details?: any; // This will contain product or bundle details from the enhanced API
-}
-
-// Combined structure for display purposes
-interface DisplayCartItem {
-  productId: string;
-  quantity: number;
-  isBundle: boolean;
-  name: string;
-  description: string;
-  imageUrls: string[];
-  priceLKR: number;
-  priceUSD: number;
-  discountPriceLKR: number | null;
-  discountPriceUSD: number | null;
-  category?: ProductCategory;
-  // Bundle specific fields
-  originalPriceLKR?: number;
-  originalPriceUSD?: number;
-  offerPriceLKR?: number;
-  offerPriceUSD?: number;
-  bundleProducts?: Product[];
+  product?: Product;
+  bundle?: BundleOffer;
 }
 
 // Define the structure for promo code cookie data
@@ -50,9 +29,8 @@ interface PromoCodeData {
 
 const CartPage = () => {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  // const [processingCheckout, setProcessingCheckout] = useState<boolean>(false);
   const [updatingItem, setUpdatingItem] = useState<string | null>(null);
   const [removingItem, setRemovingItem] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,11 +44,18 @@ const CartPage = () => {
 
   const { country } = useCountry();
 
-  const subtotal = cartItems.reduce(
-    (sum, item) =>
-      sum + (country === "LK" ? item.priceLKR : item.priceUSD) * item.quantity,
-    0
-  );
+  // Calculate subtotal based on product or bundle prices
+  const subtotal = cartItems.reduce((sum, item) => {
+    const price = item.isBundle
+      ? country === "LK"
+        ? item.details?.offerPriceLKR || 0
+        : item.details?.offerPriceUSD || 0
+      : country === "LK"
+      ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
+      : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
+
+    return sum + price * item.quantity;
+  }, 0);
 
   // Calculate discount amount and total when subtotal or discount changes
   useEffect(() => {
@@ -108,65 +93,8 @@ const CartPage = () => {
         return;
       }
 
-      // Map the enhanced cart items to display format
-      const displayItems: DisplayCartItem[] = cartItemsFromApi.map(
-        (item: CartItem) => {
-          if (item.isBundle) {
-            const bundleDetails = item.details || {};
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              isBundle: true,
-              name: bundleDetails.bundleName || "Bundle",
-              description: `Bundle with ${
-                bundleDetails.products?.length || 0
-              } products`,
-              imageUrls: bundleDetails.imageUrl ? [bundleDetails.imageUrl] : [],
-              priceLKR: bundleDetails.offerPriceLKR || 0,
-              priceUSD: bundleDetails.offerPriceUSD || 0,
-              discountPriceLKR: null,
-              discountPriceUSD: null,
-              originalPriceLKR: bundleDetails.originalPriceLKR || 0,
-              originalPriceUSD: bundleDetails.originalPriceUSD || 0,
-              offerPriceLKR: bundleDetails.offerPriceLKR || 0,
-              offerPriceUSD: bundleDetails.offerPriceUSD || 0,
-              bundleProducts:
-                bundleDetails.products?.map((p: any) => p.product) || [],
-            };
-          } else {
-            // Regular product
-            const productDetails = item.details || {};
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              isBundle: false,
-              name: productDetails.name || "Product",
-              description: productDetails.description || "",
-              imageUrls: productDetails.imageUrls || [],
-              priceLKR: productDetails.priceLKR || 0,
-              priceUSD: productDetails.priceUSD || 0,
-              discountPriceLKR: productDetails.discountPriceLKR || null,
-              discountPriceUSD: productDetails.discountPriceUSD || null,
-              category: productDetails.category,
-            };
-          }
-        }
-      );
-
-      setCartItems(displayItems);
-
-      // Calculate prices based on the new data
-      const calculatedSubtotal = displayItems.reduce((sum, item) => {
-        const price = item.isBundle
-          ? country === "LK"
-            ? item.offerPriceLKR || 0
-            : item.offerPriceUSD || 0
-          : country === "LK"
-          ? item.discountPriceLKR || item.priceLKR || 0
-          : item.discountPriceUSD || item.priceUSD || 0;
-
-        return sum + price * item.quantity;
-      }, 0);
+      // Directly use the cart items from API with details
+      setCartItems(cartItemsFromApi);
 
       // Check if we have a promo code applied
       const promoCodeCookie = Cookies.get("promoCodeDiscount");
@@ -175,16 +103,15 @@ const CartPage = () => {
           const promoCodeData: PromoCodeData = JSON.parse(promoCodeCookie);
           setDiscount(promoCodeData.discount || 0);
           setPromoCode(promoCodeData.code || "");
-          const discountAmount =
-            (calculatedSubtotal * promoCodeData.discount) / 100;
+          const discountAmount = (subtotal * promoCodeData.discount) / 100;
           setDiscountAmount(discountAmount);
-          setTotal(calculatedSubtotal - discountAmount);
+          setTotal(subtotal - discountAmount);
         } catch (err) {
           console.error("Failed to parse promo code cookie:", err);
-          setTotal(calculatedSubtotal);
+          setTotal(subtotal);
         }
       } else {
-        setTotal(calculatedSubtotal);
+        setTotal(subtotal);
       }
     } catch (err: any) {
       console.error("Error fetching cart:", err);
@@ -332,7 +259,10 @@ const CartPage = () => {
       toast.success(
         `Promo code applied! You saved ${
           country === "LK" ? "Rs" : "$"
-        } ${calculatedDiscountAmount.toFixed(2)}`,
+        } ${calculatedDiscountAmount.toLocaleString("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        })}`,
         { position: "bottom-right" }
       );
     } catch (err: any) {
@@ -419,10 +349,39 @@ const CartPage = () => {
                   <div className="grid grid-cols-12 gap-4 items-center">
                     <div className="col-span-12 md:col-span-6 flex items-center space-x-4">
                       <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-colors">
-                        {item.imageUrls.length > 0 ? (
+                        {item.isBundle ? (
+                          // Bundle image
+                          item.details?.imageUrl ? (
+                            <Image
+                              src={item.details.imageUrl}
+                              alt={item.details?.bundleName || "Bundle"}
+                              width={80}
+                              height={80}
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="text-gray-400 group-hover:text-purple-500 transition-colors">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-10 w-10"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1.5}
+                                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                                />
+                              </svg>
+                            </div>
+                          )
+                        ) : // Product image
+                        item.details?.imageUrls?.length > 0 ? (
                           <Image
-                            src={item.imageUrls[0]}
-                            alt={item.name}
+                            src={item.details.imageUrls[0]}
+                            alt={item.details?.name || "Product"}
                             width={80}
                             height={80}
                             className="object-cover"
@@ -461,7 +420,9 @@ const CartPage = () => {
                           }
                         >
                           <h3 className="font-semibold text-gray-800 text-lg mb-1 group-hover:text-purple-700 transition-colors">
-                            {item.name}
+                            {item.isBundle
+                              ? item.details?.bundleName || "Bundle"
+                              : item.details?.name || "Product"}
                           </h3>
                         </Link>
                         <div className="flex items-center space-x-2">
@@ -472,7 +433,7 @@ const CartPage = () => {
                           <span className="text-sm text-gray-500">
                             {item.isBundle
                               ? "Bundle"
-                              : item.category?.name || "Cosmetics"}
+                              : item.details?.category?.name || "Cosmetics"}
                           </span>
                         </div>
                       </div>
@@ -484,8 +445,24 @@ const CartPage = () => {
                       </div>
                       <span className="font-medium text-gray-900">
                         {country === "LK"
-                          ? `Rs ${item.priceLKR.toFixed(2)}`
-                          : `$ ${item.priceUSD.toFixed(2)}`}
+                          ? `Rs ${(item.isBundle
+                              ? item.details?.offerPriceLKR || 0
+                              : item.details?.discountPriceLKR ||
+                                item.details?.priceLKR ||
+                                0
+                            ).toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : `$ ${(item.isBundle
+                              ? item.details?.offerPriceUSD || 0
+                              : item.details?.discountPriceUSD ||
+                                item.details?.priceUSD ||
+                                0
+                            ).toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`}
                       </span>
                     </div>
 
@@ -573,8 +550,26 @@ const CartPage = () => {
                       </div>
                       <span className="font-semibold text-gray-900">
                         {country === "LK"
-                          ? `Rs ${(item.priceLKR * item.quantity).toFixed(2)}`
-                          : `$ ${(item.priceUSD * item.quantity).toFixed(2)}`}
+                          ? `Rs ${(
+                              (item.isBundle
+                                ? item.details?.offerPriceLKR || 0
+                                : item.details?.discountPriceLKR ||
+                                  item.details?.priceLKR ||
+                                  0) * item.quantity
+                            ).toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : `$ ${(
+                              (item.isBundle
+                                ? item.details?.offerPriceUSD || 0
+                                : item.details?.discountPriceUSD ||
+                                  item.details?.priceUSD ||
+                                  0) * item.quantity
+                            ).toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`}
                       </span>
                     </div>
                   </div>
@@ -706,8 +701,14 @@ const CartPage = () => {
                       </span>
                       <span className="font-medium">
                         {country === "LK"
-                          ? `Rs ${subtotal.toFixed(2)}`
-                          : `$ ${subtotal.toFixed(2)}`}
+                          ? `Rs ${subtotal.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : `$ ${subtotal.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`}
                       </span>
                     </div>
 
@@ -717,8 +718,14 @@ const CartPage = () => {
                         <span className="font-medium">
                           -{" "}
                           {country === "LK"
-                            ? `Rs ${discountAmount.toFixed(2)}`
-                            : `$ ${discountAmount.toFixed(2)}`}
+                            ? `Rs ${discountAmount.toLocaleString("en-US", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : `$ ${discountAmount.toLocaleString("en-US", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}`}
                         </span>
                       </div>
                     )}
@@ -731,12 +738,18 @@ const CartPage = () => {
                       </span>
                       <span className="text-lg font-bold text-purple-700">
                         {country === "LK"
-                          ? `Rs ${total.toFixed(2)}`
-                          : `$ ${total.toFixed(2)}`}
+                          ? `Rs ${total.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : `$ ${total.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}`}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      Delivery expected in 3-5 business days
+                      Delivery expected within a few business days.
                     </p>
                   </div>
 
@@ -764,10 +777,31 @@ const CartPage = () => {
                       Secure payment
                     </span>
                     <div className="flex space-x-1">
-                      <div className="w-8 h-5 bg-gray-800 rounded"></div>
-                      <div className="w-8 h-5 bg-blue-600 rounded"></div>
-                      <div className="w-8 h-5 bg-red-500 rounded"></div>
-                      <div className="w-8 h-5 bg-yellow-500 rounded"></div>
+                      <img
+                        src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/VISA-logo_aehekz.png"
+                        alt="Visa"
+                        className="h-5 w-8 object-contain"
+                      />
+                      <img
+                        src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/MAINLogo-HD_H_21.01.05_navu1g.webp"
+                        alt="KOKO"
+                        className="h-5 w-8 object-contain"
+                      />
+                      <img
+                        src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/American-Express-Color_ga7hmr.png"
+                        alt="American Express"
+                        className="h-5 w-8 object-contain"
+                      />
+                      <img
+                        src="https://res.cloudinary.com/omaliya/image/upload/v1745201618/mastercard-logo_p8qlfa.png"
+                        alt="Mastercard"
+                        className="h-5 w-8 object-contain"
+                      />
+                      <img
+                        src="https://res.cloudinary.com/omaliya/image/upload/v1745201618/PayHere-Logo_brngkl.png"
+                        alt="PayHere"
+                        className="h-5 w-8 object-contain"
+                      />
                     </div>
                   </div>
 

@@ -8,7 +8,7 @@ interface ProductPricingProps {
   priceUSD: number;
   discountPriceLKR?: number | null;
   discountPriceUSD?: number | null;
-  country?: string;
+  country: string;
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({
@@ -16,7 +16,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
   priceUSD,
   discountPriceLKR,
   discountPriceUSD,
-  country = "US",
+  country,
 }) => {
   // Local state for tracking loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +38,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
       return new Intl.NumberFormat("en-LK", {
         style: "currency",
         currency: "LKR",
-        minimumFractionDigits: 2,
+        minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       })
         .format(price)
@@ -47,7 +47,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
-        minimumFractionDigits: 2,
+        minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }).format(price);
     }
