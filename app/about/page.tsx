@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 
 export default function AboutPage() {
   // Fetch necessary data for header
@@ -139,20 +137,16 @@ export default function AboutPage() {
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-r from-purple-400 to-pink-400 flex-shrink-0">
                   {/* Replace with actual founder image */}
                   <Image
-                    src="/founder.jpg"
-                    alt="Jane Smith, Founder"
+                    src="https://res.cloudinary.com/omaliya/image/upload/v1745603277/454006821_7680864805347803_4495142905038263634_n_qgrldy.jpg"
+                    alt="Kasun Shaluka, Founder"
                     width={64}
                     height={64}
                     className="object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23f3e8ff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='18' fill='%238b5cf6'%3EJS%3C/text%3E%3C/svg%3E";
-                    }}
                   />
                 </div>
                 <div className="ml-4">
                   <p className="font-semibold text-gray-800">Jane Smith</p>
-                  <p className="text-purple-600 font-medium">Founder & CEO</p>
+                  <p className="text-purple-600 font-medium">Founder & Owner</p>
                   <div className="flex mt-2 space-x-2">
                     <a
                       href="#"
@@ -325,25 +319,29 @@ export default function AboutPage() {
             {[
               {
                 name: "Kasun Shaluka",
-                position: "CEO / Founder",
-                image: "/team1.jpg",
+                position: "Founder / Owner",
+                image:
+                  "https://res.cloudinary.com/omaliya/image/upload/v1745603277/454006821_7680864805347803_4495142905038263634_n_qgrldy.jpg",
               },
               {
                 name: "Pamodani Hansika",
-                position: "Co Founder",
-                image: "/team2.jpg",
+                position: "Co-Owner",
+                image:
+                  "https://res.cloudinary.com/omaliya/image/upload/v1745603605/488537653_9160081904092745_7792472065025335707_n_rsgcgg.jpg",
               },
             ].map((member, index) => (
               <div key={index} className="group reveal">
                 <div className="bg-purple-50 rounded-2xl p-6 text-center transition-all duration-300 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-pink-100 group-hover:shadow-xl">
                   <div className="w-48 h-48 rounded-full mx-auto mb-6 overflow-hidden border-4 border-white shadow-md group-hover:shadow-lg transition-all duration-300">
                     {/* Team member image placeholder */}
-                    <div className="bg-gradient-to-tr from-purple-300 to-pink-300 h-full w-full flex items-center justify-center text-white font-medium">
-                      {member.name
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")}
-                    </div>
+                    <div
+                      className="bg-gradient-to-tr from-purple-300 to-pink-300 h-full w-full flex items-center justify-center text-white font-medium"
+                      style={{
+                        backgroundImage: `url(${member.image})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    ></div>
                   </div>
                   <h3 className="text-2xl font-semibold text-gray-800 mb-1 group-hover:text-purple-700">
                     {member.name}
