@@ -30,7 +30,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
-  const [touchStart, setTouchStart] = useState(0);
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [touchEnd, setTouchEnd] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<'standard' | 'grid'>('standard');
   const [isVideoActive, setIsVideoActive] = useState(false);
@@ -50,13 +51,33 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const x = useMotionValue(0);
   const dragConstraints = useRef<HTMLDivElement>(null);
   
-  // Determine if running on mobile
+  // Enhanced mobile detection with ResizeObserver
   const [isMobile, setIsMobile] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(0);
+  
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    // Set initial values
+    if (typeof window !== 'undefined') {
+      setWindowWidth(window.innerWidth);
+      setIsMobile(window.innerWidth < 768);
+      
+      // Use ResizeObserver for more efficient resize handling
+      const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          const width = entry.contentRect.width || window.innerWidth;
+          setWindowWidth(width);
+          setIsMobile(width < 768);
+          
+          // Force horizontal thumbnails on mobile
+          if (width < 768 && thumbnailLayout === 'vertical') {
+            setThumbnailLayout('horizontal');
+          }
+        }
+      });
+      
+      resizeObserver.observe(document.body);
+      return () => resizeObserver.disconnect();
+    }
   }, []);
 
   // Handle previous image navigation
@@ -165,18 +186,33 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     }
   };
 
-  // Handle touch events for mobile swiping
+  // Enhanced touch handling for better mobile experience
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
+    setTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isZoomed) return; // Don't interfere with native pinch zoom
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const touchEnd = e.changedTouches[0].clientX;
-    const diff = touchStart - touchEnd;
+    if (isZoomed) return;
     
-    // If swipe distance is significant enough
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) {
+    setTouchEnd({
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY
+    });
+    
+    const deltaX = touchStart.x - e.changedTouches[0].clientX;
+    const deltaY = touchStart.y - e.changedTouches[0].clientY;
+    
+    // Only process as swipe if horizontal movement is greater than vertical
+    // and the movement is significant enough
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
         // Swiped left, go to next
         handleNext();
       } else {
@@ -236,15 +272,28 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } }
   };
 
-  // Gallery layout based on thumbnail orientation
-  const galleryLayoutClass = thumbnailLayout === 'vertical' 
-    ? 'md:flex md:space-x-4' 
-    : 'space-y-4';
+  // Responsive layout classes based on screen size
+  const galleryLayoutClass = isMobile
+    ? 'flex flex-col space-y-4' 
+    : thumbnailLayout === 'vertical' 
+      ? 'md:flex md:flex-row md:space-x-4' 
+      : 'flex flex-col space-y-4';
 
-  // Thumbnail layout class
-  const thumbnailsContainerClass = thumbnailLayout === 'vertical'
-    ? 'md:flex-col md:space-y-2 md:space-x-0 md:w-20 md:overflow-y-auto md:overflow-x-hidden md:max-h-[500px] md:pr-2'
-    : 'flex space-x-2 overflow-x-auto pb-2 hide-scrollbar snap-x';
+  // Responsive thumbnail container classes
+  const thumbnailsContainerClass = isMobile
+    ? 'flex flex-row space-x-2 overflow-x-auto pb-2 hide-scrollbar snap-x'
+    : thumbnailLayout === 'vertical'
+      ? 'md:flex-col md:space-y-2 md:space-x-0 md:w-20 md:overflow-y-auto md:overflow-x-hidden md:max-h-[500px] md:pr-2'
+      : 'flex space-x-2 overflow-x-auto pb-2 hide-scrollbar snap-x';
+
+  // Responsive thumbnail size based on screen size
+  const getThumbnailSize = () => {
+    if (isMobile) {
+      return 'w-16 h-16';
+    } else {
+      return thumbnailLayout === 'vertical' ? 'w-16 h-16' : 'w-20 h-20';
+    }
+  };
 
   return (
     <div className={`${galleryLayoutClass}`}>
@@ -283,7 +332,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   }
                 }}
                 className={`relative rounded-md overflow-hidden flex-shrink-0 border-2 transition-all duration-200 
-                  ${thumbnailLayout === 'vertical' ? 'w-16 h-16' : 'w-20 h-20 snap-start'}
+                  ${getThumbnailSize()}
                   ${currentIndex === index
                     ? "border-indigo-500 shadow-md"
                     : "border-transparent hover:border-indigo-200"
@@ -324,6 +373,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isZoomed && setIsZoomed(false)}
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           {/* Gradient background for more visual appeal */}
@@ -402,27 +452,29 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             )
           )}
 
-          {/* Image navigation arrows */}
+          {/* Image navigation arrows - larger on mobile for touch targets */}
           {allMedia.length > 1 && (
             <>
               <button
                 onClick={handlePrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white hover:bg-gray-50 p-2 rounded-full shadow-md z-20 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 sm:p-2 rounded-full shadow-md z-20 transition-all duration-200 opacity-70 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
                 aria-label="Previous image"
+                style={{ width: isMobile ? 40 : 36, height: isMobile ? 40 : 36 }}
               >
-                <FiChevronLeft size={20} className="text-gray-700" />
+                <FiChevronLeft size={isMobile ? 24 : 20} className="text-gray-700" />
               </button>
               <button
                 onClick={handleNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white hover:bg-gray-50 p-2 rounded-full shadow-md z-20 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 sm:p-2 rounded-full shadow-md z-20 transition-all duration-200 opacity-70 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
                 aria-label="Next image"
+                style={{ width: isMobile ? 40 : 36, height: isMobile ? 40 : 36 }}
               >
-                <FiChevronRight size={20} className="text-gray-700" />
+                <FiChevronRight size={isMobile ? 24 : 20} className="text-gray-700" />
               </button>
             </>
           )}
 
-          {/* Image counter with animation */}
+          {/* Image counter with adjusted size for mobile */}
           {allMedia.length > 1 && (
             <AnimatePresence mode="wait">
               <motion.div 
@@ -431,33 +483,37 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 animate="animate"
                 exit="exit"
                 variants={counterVariants}
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full z-20 backdrop-blur-sm"
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full z-20 backdrop-blur-sm"
               >
                 {currentIndex + 1} / {allMedia.length}
               </motion.div>
             </AnimatePresence>
           )}
 
-          {/* Controls overlay - zoom, fullscreen, like, share */}
-          <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+          {/* Controls overlay - more visible on mobile */}
+          <div className={`absolute top-4 right-4 flex space-x-2 ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-200 z-20`}>
             <button
               onClick={() => setIsZoomed(!isZoomed)}
-              className="bg-white hover:bg-gray-50 p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
+              className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
               aria-label={isZoomed ? "Zoom out" : "Zoom in"}
               title={isZoomed ? "Zoom out" : "Zoom in"}
+              style={{ width: isMobile ? 36 : 32, height: isMobile ? 36 : 32 }}
             >
-              {isZoomed ? <FiZoomOut size={16} /> : <FiZoomIn size={16} />}
+              {isZoomed ? <FiZoomOut size={isMobile ? 18 : 16} /> : <FiZoomIn size={isMobile ? 18 : 16} />}
             </button>
+
+            {/* Show fullscreen button only if not on mobile or using iOS with limited fullscreen support */}
             <button
               onClick={() => {
                 setIsLightboxOpen(true);
                 setIsZoomed(false);
               }}
-              className="bg-white hover:bg-gray-50 p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
+              className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
               aria-label="View fullscreen"
               title="View fullscreen"
+              style={{ width: isMobile ? 36 : 32, height: isMobile ? 36 : 32 }}
             >
-              <FiMaximize size={16} />
+              <FiMaximize size={isMobile ? 18 : 16} />
             </button>
             <button
               onClick={() => setIsLiked(!isLiked)}
@@ -468,47 +524,37 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               }`}
               aria-label={isLiked ? "Remove from favorites" : "Add to favorites"}
               title={isLiked ? "Remove from favorites" : "Add to favorites"}
+              style={{ width: isMobile ? 36 : 32, height: isMobile ? 36 : 32 }}
             >
-              <FiHeart size={16} className={isLiked ? "fill-white" : ""} />
+              <FiHeart size={isMobile ? 18 : 16} className={isLiked ? "fill-white" : ""} />
             </button>
             <button
               onClick={handleShare}
-              className="bg-white hover:bg-gray-50 p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
+              className="bg-white/80 hover:bg-white p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
               aria-label="Share product"
               title="Share product"
+              style={{ width: isMobile ? 36 : 32, height: isMobile ? 36 : 32 }}
             >
-              <FiShare2 size={16} />
+              <FiShare2 size={isMobile ? 18 : 16} />
             </button>
           </div>
 
-          {/* Layout toggle button */}
-          <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
-            <button
-              onClick={toggleThumbnailLayout}
-              className="bg-white hover:bg-gray-50 p-2 rounded-full shadow-md text-gray-700 transition-transform hover:scale-110"
-              aria-label="Toggle layout"
-              title="Toggle thumbnail layout"
-            >
-              {thumbnailLayout === 'horizontal' ? <FiGrid size={16} /> : <FiImage size={16} />}
-            </button>
-          </div>
-
-          {/* Zoom instruction overlay */}
-          {!isZoomed && !isLightboxOpen && !isVideoActive && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          {/* Mobile swipe instruction overlay */}
+          {isMobile && !isVideoActive && (
+            <div className="absolute top-1/3 inset-x-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
               <div className="bg-black/60 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm">
-                Click to zoom
+                Swipe to navigate
               </div>
             </div>
           )}
-          
+
           {/* 360 badge for improved UX */}
           <div className="absolute top-4 right-4 bg-indigo-600 text-white text-xs px-2 py-1 rounded-full font-semibold z-10 animate-pulse">
             360° View
           </div>
         </div>
 
-        {/* Thumbnails - Horizontal layout places them on the bottom */}
+        {/* Thumbnails - Horizontal layout optimized for mobile */}
         {(thumbnailLayout === 'horizontal' || isMobile) && (
           <div 
             ref={thumbnailsContainerRef}
@@ -542,11 +588,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       setMainImage(images[index]);
                     }
                   }}
-                  className={`relative ${thumbnailLayout === 'vertical' ? 'w-full h-16' : 'w-20 h-20'} rounded-md overflow-hidden flex-shrink-0 border-2 snap-start transition-all duration-200 hover:opacity-95 ${
-                    currentIndex === index
+                  className={`relative rounded-md overflow-hidden flex-shrink-0 border-2 snap-start transition-all duration-200 hover:opacity-95 
+                    ${getThumbnailSize()}
+                    ${currentIndex === index
                       ? "border-indigo-500 shadow-md"
                       : "border-transparent hover:border-indigo-200"
-                  }`}
+                    }`}
                 >
                   {isVideo ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
@@ -603,7 +650,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         )}
       </div>
 
-      {/* Lightbox / Fullscreen view with improved design */}
+      {/* Mobile-optimized Lightbox */}
       <AnimatePresence>
         {isLightboxOpen && (
           <motion.div 
@@ -611,19 +658,20 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-2 sm:p-4 backdrop-blur-sm"
             onClick={() => setIsLightboxOpen(false)}
           >
-            {/* Close button */}
+            {/* Close button - larger on mobile for easier tapping */}
             <motion.button
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               onClick={() => setIsLightboxOpen(false)}
-              className="absolute top-6 right-6 text-white p-2 rounded-full hover:bg-white/10 z-10 transition-transform hover:scale-110"
+              className="absolute top-4 sm:top-6 right-4 sm:right-6 text-white p-2 sm:p-3 rounded-full hover:bg-white/10 z-10 transition-transform hover:scale-110"
               aria-label="Close fullscreen view"
+              style={{ width: isMobile ? 44 : 40, height: isMobile ? 44 : 40 }}
             >
-              <FiX size={24} />
+              <FiX size={isMobile ? 28 : 24} />
             </motion.button>
 
             {/* Image counter with animation */}
@@ -697,7 +745,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 </AnimatePresence>
               </motion.div>
 
-              {/* Navigation arrows for lightbox with improved design */}
+              {/* Navigation arrows for lightbox - enlarged on mobile */}
               {allMedia.length > 1 && (
                 <>
                   <motion.button
@@ -708,10 +756,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       e.stopPropagation();
                       handlePrevious();
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm hover:bg-white/20 p-4 rounded-full text-white z-10 transition-transform hover:scale-110"
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 sm:p-4 rounded-full text-white z-10 transition-transform hover:scale-110"
                     aria-label="Previous image"
+                    style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56 }}
                   >
-                    <FiChevronLeft size={24} />
+                    <FiChevronLeft size={isMobile ? 24 : 24} />
                   </motion.button>
                   <motion.button
                     initial={{ opacity: 0, x: 20 }}
@@ -721,74 +770,75 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       e.stopPropagation();
                       handleNext();
                     }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm hover:bg-white/20 p-4 rounded-full text-white z-10 transition-transform hover:scale-110"
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 sm:p-4 rounded-full text-white z-10 transition-transform hover:scale-110"
                     aria-label="Next image"
+                    style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56 }}
                   >
-                    <FiChevronRight size={24} />
+                    <FiChevronRight size={isMobile ? 24 : 24} />
                   </motion.button>
                 </>
               )}
-            </div>
 
-            {/* Thumbnail strip in lightbox with improved design */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-6 flex space-x-3 overflow-x-auto max-w-full bg-white/5 backdrop-blur-sm p-3 rounded-xl"
-            >
-              {allMedia.map((src, index) => {
-                const isVideo = index >= images.length;
-                return (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentIndex(index);
+              {/* Mobile-optimized thumbnail strip in lightbox */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mt-4 sm:mt-6 flex space-x-2 sm:space-x-3 overflow-x-auto max-w-full bg-white/5 backdrop-blur-sm p-2 sm:p-3 rounded-xl"
+              >
+                {allMedia.map((src, index) => {
+                  const isVideo = index >= images.length;
+                  return (
+                    <motion.button
+                      key={index}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentIndex(index);
+                        
+                        if (isVideo) {
+                          setIsVideoActive(true);
+                          setActiveVideoUrl(videos[index - images.length]);
+                          setMainImage('');
+                        } else {
+                          setIsVideoActive(false);
+                          setActiveVideoUrl(null);
+                          setMainImage(images[index]);
+                        }
+                      }}
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 ${
+                        currentIndex === index
+                          ? "ring-2 ring-white ring-offset-1 ring-offset-black"
+                          : "opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      {isVideo ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
+                          <FiPlay className="text-white" />
+                        </div>
+                      ) : null}
                       
-                      if (isVideo) {
-                        setIsVideoActive(true);
-                        setActiveVideoUrl(videos[index - images.length]);
-                        setMainImage('');
-                      } else {
-                        setIsVideoActive(false);
-                        setActiveVideoUrl(null);
-                        setMainImage(images[index]);
-                      }
-                    }}
-                    className={`relative w-16 h-16 md:w-20 md:h-20 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 ${
-                      currentIndex === index
-                        ? "ring-2 ring-white ring-offset-1 ring-offset-black"
-                        : "opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    {isVideo ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
-                        <FiPlay className="text-white" />
-                      </div>
-                    ) : null}
-                    
-                    <Image
-                      src={isVideo 
-                        ? `https://picsum.photos/seed/${index}/200/200` // Placeholder
-                        : src
-                      }
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover object-center"
-                      sizes="64px"
-                    />
-                  </motion.button>
-                );
-              })}
+                      <Image
+                        src={isVideo 
+                          ? `https://picsum.photos/seed/${index}/200/200` // Placeholder
+                          : src
+                        }
+                        alt={`Thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover object-center"
+                        sizes="64px"
+                      />
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
+            </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Add CSS for hide-scrollbar utility */}
+      {/* Enhanced CSS to handle mobile styles */}
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -796,6 +846,21 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         .hide-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        
+        /* Ensure images are properly sized on mobile */
+        @media (max-width: 640px) {
+          .object-contain {
+            max-height: 80vh;
+          }
+        }
+        
+        /* Improve touch targets for mobile */
+        @media (max-width: 640px) {
+          button {
+            min-width: 36px;
+            min-height: 36px;
+          }
         }
       `}</style>
     </div>
