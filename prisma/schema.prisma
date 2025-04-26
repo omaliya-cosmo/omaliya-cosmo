@@ -71,9 +71,9 @@ model Customer {
   email         String    @unique
   passwordHash  String    @map("password_hash")
   registeredAt  DateTime  @default(now()) @map("registered_at")
-  address       Address?  // Single address relation
   orders        Order[]
   reviews       Review[]
+  addresses     CustomerAddress[] // New relation to customer addresses
 }
 
 model Address {
@@ -88,9 +88,27 @@ model Address {
   state         String?
   postalCode    String    @map("postal_code")
   country       String
-  customerId    String?    @unique @db.ObjectId @map("customer_id") // Make unique for one-to-one
-  customer      Customer?  @relation(fields: [customerId], references: [id])
-  order         Order?     // Changed from Order[] to Order? for one-to-one
+  order         Order?    // Changed from Order[] to Order? for one-to-one relationship
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+}
+
+// New model for customer default addresses
+model CustomerAddress {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  customerId    String    @db.ObjectId @map("customer_id")
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phoneNumber   String?   @map("phone_number")
+  email         String?   // Optional email field
+  addressLine1  String    @map("address_line1")
+  addressLine2  String?   @map("address_line2")
+  city          String
+  state         String?
+  postalCode    String    @map("postal_code")
+  country       String
+  isDefault     Boolean   @default(false) @map("is_default")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 }
@@ -112,8 +130,8 @@ model Order {
   items          OrderItem[]  
   trackingNumber String?      @map("tracking_number")
   paymentMethod  PaymentMethod
-  addressId      String       @unique @db.ObjectId @map("address_id") // Added @unique for one-to-one
-  address        Address      @relation(fields: [addressId], references: [id])
+  addressId      String        @unique @db.ObjectId @map("address_id")
+  address        Address       @relation(fields: [addressId], references: [id])
 }
 
 // Enum for payment methods

@@ -11,13 +11,13 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const includeOrders = searchParams.get("orders") === "true";
     const includeReviews = searchParams.get("reviews") === "true";
-    const includeAddress = searchParams.get("address") === "true";
+    const includeAddress = searchParams.get("addresses") === "true";
 
     // Fetch the customer from the database
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
       include: {
-        address: includeAddress,
+        addresses: includeAddress,
         orders: includeOrders
           ? {
               include: {

@@ -41,6 +41,7 @@ const checkoutRequestSchema = z.object({
     state: z.string().optional(),
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
+    setDefault: z.boolean().optional().default(false),
   }),
   items: z.array(
     z
@@ -101,23 +102,51 @@ export async function POST(request: Request) {
         // Get authenticated customer (if any)
         const customer = await getCustomerFromToken();
 
-        // Create standalone address without any customer reference
-        // Omitting the customerId field completely to avoid unique constraint violation
+        const addressData = {
+          firstName: validatedData.addressDetails.firstName,
+          lastName: validatedData.addressDetails.lastName,
+          phoneNumber: validatedData.addressDetails.phoneNumber || null,
+          email: validatedData.addressDetails.email || null,
+          addressLine1: validatedData.addressDetails.addressLine1,
+          addressLine2: validatedData.addressDetails.addressLine2 || null,
+          city: validatedData.addressDetails.city,
+          state: validatedData.addressDetails.state || null,
+          postalCode: validatedData.addressDetails.postalCode,
+          country: validatedData.addressDetails.country,
+        };
+
+        // Create new address (without customer association)
         const address = await tx.address.create({
-          data: {
-            firstName: validatedData.addressDetails.firstName,
-            lastName: validatedData.addressDetails.lastName,
-            phoneNumber: validatedData.addressDetails.phoneNumber || null,
-            email: validatedData.addressDetails.email || null,
-            addressLine1: validatedData.addressDetails.addressLine1,
-            addressLine2: validatedData.addressDetails.addressLine2 || null,
-            city: validatedData.addressDetails.city,
-            state: validatedData.addressDetails.state || null,
-            postalCode: validatedData.addressDetails.postalCode,
-            country: validatedData.addressDetails.country,
-            // Do not specify customerId at all
-          },
+          data: addressData,
         });
+
+        // If the customer is logged in and wants to save address, create a CustomerAddress
+        if (customer && validatedData.addressDetails.setDefault) {
+          // Check if there's an existing default address
+          const existingDefault = await tx.customerAddress.findFirst({
+            where: {
+              customerId: customer.id,
+              isDefault: true,
+            },
+          });
+
+          if (existingDefault) {
+            // Update existing default address to be non-default
+            await tx.customerAddress.update({
+              where: { id: existingDefault.id },
+              data: { isDefault: false },
+            });
+          }
+
+          // Create a new customer address record
+          await tx.customerAddress.create({
+            data: {
+              ...addressData,
+              customerId: customer.id,
+              isDefault: true,
+            },
+          });
+        }
 
         // Get order items with prices
         const orderItems = await Promise.all(
@@ -190,10 +219,10 @@ export async function POST(request: Request) {
           throw new InvalidTotalError();
         }
 
-        // Create the order with customerId explicitly set to null if no customer
+        // Create the order with optional customerId
         const order = await tx.order.create({
           data: {
-            customerId: customer ? customer.id : null,
+            customerId: customer?.id,
             addressId: address.id,
             subtotal: validatedData.subtotal,
             shipping: validatedData.shipping,

@@ -108,6 +108,7 @@ interface Address {
   state: string;
   postalCode: string;
   country: string;
+  isDefault?: boolean;
 }
 
 const countries = [
@@ -191,30 +192,13 @@ const ProfileAddresses: React.FC = () => {
           });
 
           setCustomerId(customer.id);
-          // Fetch customer address
+          // Fetch customer addresses
           const response = await axios.get(
-            `/api/customers/${customer.id}?address=true`
+            `/api/customers/${customer.id}/address`
           );
-          const customerData = response.data;
-
-          if (customerData && customerData.address) {
-            const addressData = customerData.address;
-            // Convert address from API to our Address interface
-            const customerAddress: Address = {
-              id: addressData.id || Date.now().toString(),
-              firstName: addressData.firstName || customer.firstName || "",
-              lastName: addressData.lastName || customer.lastName || "",
-              email: addressData.email || customer.email || "",
-              phoneNumber: addressData.phoneNumber || "",
-              addressLine1: addressData.addressLine1 || "",
-              addressLine2: addressData.addressLine2 || "",
-              city: addressData.city || "",
-              state: addressData.state || "",
-              postalCode: addressData.postalCode || "",
-              country: addressData.country || "",
-            };
-
-            setAddresses([customerAddress]);
+          console.log("Customer addresses:", response.data);
+          if (response.data && Array.isArray(response.data)) {
+            setAddresses(response.data);
           }
         }
       } catch (error) {
@@ -313,23 +297,29 @@ const ProfileAddresses: React.FC = () => {
         email: data.email,
         phoneNumber: data.phoneNumber,
         addressLine1: data.addressLine1,
-        addressLine2: data.addressLine2,
+        addressLine2: data.addressLine2 || "",
         city: data.city,
         state: data.state,
         postalCode: data.postalCode,
         country: data.country,
+        isDefault: addresses.length === 0 ? true : false, // Make it default if it's the first address
       };
 
       // Call API to save address to customer
-      await axios.post(`/api/customers/${customerId}/address`, addressData);
+      const response = await axios.post(
+        `/api/customers/${customerId}/address`,
+        addressData
+      );
 
-      // Update local state
-      const newAddress: Address = {
-        id: Date.now().toString(),
-        ...data,
-      };
+      // Fetch updated addresses
+      const addressesResponse = await axios.get(
+        `/api/customers/${customerId}/address`
+      );
 
-      setAddresses([newAddress]);
+      if (addressesResponse.data && Array.isArray(addressesResponse.data)) {
+        setAddresses(addressesResponse.data);
+      }
+
       toast.success("Address added successfully!");
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -349,28 +339,30 @@ const ProfileAddresses: React.FC = () => {
     try {
       // Create address data in format that matches API
       const addressData = {
+        addressId: currentAddress.id,
         firstName: data.firstName,
         lastName: data.lastName,
-        phoneNumber: data.phoneNumber,
         email: data.email,
+        phoneNumber: data.phoneNumber,
         addressLine1: data.addressLine1,
-        addressLine2: data.addressLine2,
+        addressLine2: data.addressLine2 || "",
         city: data.city,
         state: data.state,
         postalCode: data.postalCode,
         country: data.country,
+        isDefault: currentAddress.isDefault || false,
       };
 
       // Call API to update address
       await axios.put(`/api/customers/${customerId}/address`, addressData);
 
-      // Update local state
-      const updatedAddress = {
-        ...currentAddress,
-        ...data,
-      };
+      // Fetch updated addresses
+      const response = await axios.get(`/api/customers/${customerId}/address`);
 
-      setAddresses([updatedAddress]);
+      if (response.data && Array.isArray(response.data)) {
+        setAddresses(response.data);
+      }
+
       toast.success("Address updated successfully!");
       setIsEditDialogOpen(false);
       setCurrentAddress(null);
@@ -388,14 +380,45 @@ const ProfileAddresses: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Call API to delete address
-      await axios.delete(`/api/customers/${customerId}/address`);
+      // Call API to delete address with addressId as a query parameter
+      await axios.delete(
+        `/api/customers/${customerId}/address?addressId=${id}`
+      );
 
-      setAddresses([]);
+      // Update the local state by removing the deleted address
+      setAddresses(addresses.filter((address) => address.id !== id));
       toast.success("Address deleted successfully!");
     } catch (error) {
       console.error("Error deleting address:", error);
       toast.error("Failed to delete address. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Set address as default
+  const handleSetDefaultAddress = async (id: string) => {
+    if (!customerId) return;
+
+    setIsLoading(true);
+    try {
+      // Call API to set address as default
+      await axios.put(`/api/customers/${customerId}/address/default`, {
+        addressId: id,
+      });
+
+      // Update the local state to reflect the change
+      setAddresses(
+        addresses.map((address) => ({
+          ...address,
+          isDefault: address.id === id,
+        }))
+      );
+
+      toast.success("Default address updated successfully!");
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      toast.error("Failed to update default address. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -577,9 +600,9 @@ const ProfileAddresses: React.FC = () => {
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <CardTitle>Your Address</CardTitle>
+            <CardTitle>Your Addresses</CardTitle>
             <CardDescription>
-              Manage your shipping and billing address
+              Manage your shipping and billing addresses
             </CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -587,10 +610,9 @@ const ProfileAddresses: React.FC = () => {
               <Button
                 onClick={openAddDialog}
                 className="flex items-center gap-2"
-                disabled={addresses.length > 0}
               >
                 <Plus className="h-4 w-4" />
-                {addresses.length > 0 ? "Address Already Added" : "Add Address"}
+                Add New Address
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
@@ -656,11 +678,21 @@ const ProfileAddresses: React.FC = () => {
                 >
                   <Card
                     key={address.id}
-                    className={`transition-all hover:shadow-md`}
+                    className={`transition-all hover:shadow-md ${
+                      address.isDefault ? "border-primary" : ""
+                    }`}
                   >
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div className="flex flex-col">
+                          {address.isDefault && (
+                            <Badge className="self-start mb-2 bg-primary text-primary-foreground">
+                              Default
+                            </Badge>
+                          )}
+                          <p className="text-sm font-medium">
+                            {address.firstName} {address.lastName}
+                          </p>
                           <p className="text-sm">{address.addressLine1}</p>
                           {address.addressLine2 && (
                             <p className="text-sm">{address.addressLine2}</p>
@@ -691,6 +723,17 @@ const ProfileAddresses: React.FC = () => {
                                 <span>Copy</span>
                               </>
                             )}
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 h-8"
+                            onClick={() => handleSetDefaultAddress(address.id)}
+                            disabled={isLoading || address.isDefault}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            Set Default
                           </Button>
 
                           <Dialog

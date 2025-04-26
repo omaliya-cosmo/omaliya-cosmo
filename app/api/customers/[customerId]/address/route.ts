@@ -12,6 +12,7 @@ const addressSchema = z.object({
   country: z.string().min(1, "Country is required"),
   phoneNumber: z.string().optional(),
   email: z.string().email().optional(),
+  isDefault: z.boolean().optional(),
 });
 
 // POST: Create or update a customer's address
@@ -19,13 +20,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { customerId: string } }
 ) {
-  const { customerId } = await params;
+  const { customerId } = params;
 
   try {
     // Validate the customer exists
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
-      include: { address: true },
+      include: { addresses: true },
     });
 
     if (!customer) {
@@ -50,35 +51,33 @@ export async function POST(
     }
 
     const addressData = validationResult.data;
+    const isDefault = addressData.isDefault ?? false;
 
-    let address;
-    if (customer.address) {
-      // Update existing address
-      address = await prisma.address.update({
-        where: { id: customer.address.id },
-        data: {
-          ...addressData,
-          // If firstName and lastName are not provided in the request,
-          // keep the existing values from the customer
-          firstName: customer.firstName,
-          lastName: customer.lastName,
+    // If setting this address as default, unset any existing default
+    if (isDefault) {
+      await prisma.customerAddress.updateMany({
+        where: {
+          customerId,
+          isDefault: true,
         },
-      });
-    } else {
-      // Create new address
-      address = await prisma.address.create({
-        data: {
-          ...addressData,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          customer: {
-            connect: {
-              id: customerId,
-            },
-          },
-        },
+        data: { isDefault: false },
       });
     }
+
+    // Create new address
+    const address = await prisma.customerAddress.create({
+      data: {
+        ...addressData,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        isDefault,
+        customer: {
+          connect: {
+            id: customerId,
+          },
+        },
+      },
+    });
 
     return NextResponse.json(address, { status: 200 });
   } catch (error) {
@@ -95,32 +94,22 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { customerId: string } }
 ) {
-  const { customerId } = await params;
+  const { customerId } = params;
 
   try {
-    // Check if customer exists and has an address
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-      include: { address: true },
-    });
-
-    if (!customer) {
-      return NextResponse.json(
-        { error: "Customer not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!customer.address) {
-      return NextResponse.json(
-        { error: "Customer has no address to update" },
-        { status: 404 }
-      );
-    }
-
     // Parse and validate request body
     const body = await req.json();
-    const validationResult = addressSchema.safeParse(body);
+
+    // Ensure addressId is provided
+    if (!body.addressId) {
+      return NextResponse.json(
+        { error: "Address ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const { addressId, ...addressData } = body;
+    const validationResult = addressSchema.safeParse(addressData);
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -132,15 +121,40 @@ export async function PUT(
       );
     }
 
-    const addressData = validationResult.data;
+    // Verify the address belongs to this customer
+    const existingAddress = await prisma.customerAddress.findFirst({
+      where: {
+        id: addressId,
+        customerId,
+      },
+    });
+
+    if (!existingAddress) {
+      return NextResponse.json(
+        { error: "Address not found for this customer" },
+        { status: 404 }
+      );
+    }
+
+    const isDefault = addressData.isDefault ?? false;
+
+    // If setting this address as default, unset any existing default
+    if (isDefault && !existingAddress.isDefault) {
+      await prisma.customerAddress.updateMany({
+        where: {
+          customerId,
+          isDefault: true,
+        },
+        data: { isDefault: false },
+      });
+    }
 
     // Update the address
-    const updatedAddress = await prisma.address.update({
-      where: { id: customer.address.id },
+    const updatedAddress = await prisma.customerAddress.update({
+      where: { id: addressId },
       data: {
-        ...addressData,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
+        ...validationResult.data,
+        isDefault,
       },
     });
 
@@ -156,36 +170,57 @@ export async function PUT(
 
 // DELETE: Delete a customer's address
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { customerId: string } }
 ) {
-  const { customerId } = await params;
+  const { customerId } = params;
 
   try {
-    // Check if customer exists and has an address
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-      include: { address: true },
-    });
+    // Get the addressId from the query parameters
+    const url = new URL(req.url);
+    const addressId = url.searchParams.get("addressId");
 
-    if (!customer) {
+    if (!addressId) {
       return NextResponse.json(
-        { error: "Customer not found" },
-        { status: 404 }
+        { error: "Address ID is required" },
+        { status: 400 }
       );
     }
 
-    if (!customer.address) {
+    // Verify the address belongs to this customer
+    const existingAddress = await prisma.customerAddress.findFirst({
+      where: {
+        id: addressId,
+        customerId,
+      },
+    });
+
+    if (!existingAddress) {
       return NextResponse.json(
-        { error: "Customer has no address to delete" },
+        { error: "Address not found for this customer" },
         { status: 404 }
       );
     }
 
     // Delete the address
-    await prisma.address.delete({
-      where: { id: customer.address.id },
+    await prisma.customerAddress.delete({
+      where: { id: addressId },
     });
+
+    // If this was the default address and customer has other addresses,
+    // set a new default
+    if (existingAddress.isDefault) {
+      const anotherAddress = await prisma.customerAddress.findFirst({
+        where: { customerId },
+      });
+
+      if (anotherAddress) {
+        await prisma.customerAddress.update({
+          where: { id: anotherAddress.id },
+          data: { isDefault: true },
+        });
+      }
+    }
 
     return NextResponse.json(
       { success: true, message: "Address deleted successfully" },
@@ -195,6 +230,37 @@ export async function DELETE(
     console.error("Error deleting customer address:", error);
     return NextResponse.json(
       { error: "Failed to delete address" },
+      { status: 500 }
+    );
+  }
+}
+
+// GET: Retrieve customer addresses
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { customerId: string } }
+) {
+  const { customerId } = params;
+
+  try {
+    // Check if customer exists
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: { addresses: true },
+    });
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(customer.addresses, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching customer addresses:", error);
+    return NextResponse.json(
+      { error: "Failed to retrieve addresses" },
       { status: 500 }
     );
   }

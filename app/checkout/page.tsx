@@ -118,6 +118,7 @@ export default function CheckoutPage() {
     postalCode: string;
     country: string;
     paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY";
+    saveAddress: boolean;
   }>({
     firstName: "",
     lastName: "",
@@ -131,6 +132,7 @@ export default function CheckoutPage() {
     postalCode: "",
     country: "",
     paymentMethod: "CASH_ON_DELIVERY",
+    saveAddress: false,
   });
 
   useEffect(() => {
@@ -139,14 +141,16 @@ export default function CheckoutPage() {
       if (customerData) {
         try {
           const { data } = await axios.get(
-            `/api/customers/${customerData.id}?address=true`
+            `/api/customers/${customerData.id}?addresses=true`
           );
-          const address = data.address || {};
+          const addresses = data.addresses || [];
+          const address =
+            addresses.find((addr) => addr.isDefault) || addresses[0] || {};
           setFormData((prev) => ({
             ...prev,
-            firstName: customerData.firstName || "",
-            lastName: customerData.lastName || "",
-            email: customerData.email || "",
+            firstName: address.firstName || "",
+            lastName: address.lastName || "",
+            email: address.email || "",
             phoneNumber: address.phoneNumber || "",
             addressLine1: address.addressLine1 || "",
             addressLine2: address.addressLine2 || "",
@@ -256,9 +260,16 @@ export default function CheckoutPage() {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target as HTMLInputElement;
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (type === "checkbox") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: (e.target as HTMLInputElement).checked,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -292,6 +303,7 @@ export default function CheckoutPage() {
           state: validatedData.data.state,
           postalCode: validatedData.data.postalCode,
           country: validatedData.data.country,
+          setDefault: formData.saveAddress, // Pass the checkbox value to the API
         },
         items: cartItems.map((item) => ({
           // For bundles, use bundleId; for products, use productId
@@ -603,6 +615,23 @@ export default function CheckoutPage() {
                           className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
                         />
                       </div>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="saveAddress"
+                        name="saveAddress"
+                        checked={formData.saveAddress}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="saveAddress"
+                        className="ml-2 block text-sm text-gray-700"
+                      >
+                        Save this address for future orders
+                      </label>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
