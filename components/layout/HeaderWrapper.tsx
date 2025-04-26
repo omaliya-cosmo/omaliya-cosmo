@@ -6,10 +6,9 @@ import { usePathname } from "next/navigation";
 import axios from "axios";
 import { getCustomerFromToken } from "@/app/actions";
 import { useCart } from "@/app/lib/hooks/CartContext";
+import { useUser } from "@/app/lib/hooks/UserContext";
 
 export default function HeaderWrapper() {
-  const [userData, setUserData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [products, setProducts] = useState([]);
@@ -19,23 +18,7 @@ export default function HeaderWrapper() {
 
   // Use our cart context instead of local state
   const { cartCount } = useCart();
-
-  // Load user data on component mount
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // Get user from localStorage
-        const userData = await getCustomerFromToken();
-        setUserData(userData);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, []);
+  const { userData, reloadUserData, isLoading } = useUser();
 
   // Fetch products, categories and bundles for the header navigation
   useEffect(() => {

@@ -9,10 +9,7 @@ import { redirect } from "next/navigation";
 // Login Schema
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }).trim(),
-  password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters" })
-    .trim(),
+  password: z.string().trim(),
 });
 
 // Signup Schema
@@ -58,7 +55,7 @@ export async function login(prevState: any, formData: FormData) {
 
   await createSession(customer.id);
 
-  redirect("/");
+  return { success: true };
 }
 
 /**
@@ -105,7 +102,7 @@ export async function signup(prevState: any, formData: FormData) {
 
   await createSession(customer.id);
 
-  return redirect("/");
+  return { success: true };
 }
 
 /**

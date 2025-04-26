@@ -4,6 +4,7 @@ import "./globals.css";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { CartProvider } from "./lib/hooks/CartContext";
 import Footer from "@/components/layout/Footer";
+import { UserProvider } from "@/app/lib/hooks/UserContext";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -32,8 +33,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={poppins.variable}>
         <CartProvider>
-          <HeaderWrapper />
-          {children}
+          <UserProvider>
+            <HeaderWrapper />
+            {children}
+          </UserProvider>
           <Footer />
         </CartProvider>
       </body>

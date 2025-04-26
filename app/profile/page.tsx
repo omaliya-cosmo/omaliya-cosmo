@@ -250,9 +250,9 @@ export default function ProfilePage() {
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
-            className="space-y-8"
+            className="space-y-2"
           >
-            <div className="overflow-x-auto pb-2">
+            <div className="overflow-x-auto">
               <TabsList className="inline-flex h-auto p-1 rounded-lg bg-muted">
                 <TabsTrigger
                   value="security"

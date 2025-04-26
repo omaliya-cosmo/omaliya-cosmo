@@ -17,6 +17,7 @@ import {
 import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
 import { z } from "zod";
+import { useCart } from "../lib/hooks/CartContext";
 
 // Define the structure for promo code cookie data
 interface PromoCodeData {
@@ -101,6 +102,8 @@ export default function CheckoutPage() {
   const { country, updateCountry } = useCountry();
   const [shippingCost, setShippingCost] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
+
+  const { refreshCart } = useCart();
 
   const [formData, setFormData] = useState<{
     firstName: string;
@@ -289,7 +292,6 @@ export default function CheckoutPage() {
           state: validatedData.data.state,
           postalCode: validatedData.data.postalCode,
           country: validatedData.data.country,
-          setDefault: true, // Add this option for logged-in users
         },
         items: cartItems.map((item) => ({
           // For bundles, use bundleId; for products, use productId
@@ -307,7 +309,6 @@ export default function CheckoutPage() {
         notes: validatedData.data.notes || "",
       };
 
-      console.log("Sending order data:", orderData);
       const response = await axios.post("/api/checkout", orderData);
 
       if (response.data.success) {
@@ -315,6 +316,7 @@ export default function CheckoutPage() {
         document.cookie =
           "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setCartItems([]);
+        await refreshCart(); // Refresh cart context
         toast.success("Order placed successfully!");
         router.push(`/order-confirmation?orderId=${response.data.order.id}`);
       } else {

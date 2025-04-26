@@ -5,11 +5,23 @@ import React from "react";
 import { useActionState, useState, useEffect } from "react";
 import { signup } from "../actions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/app/lib/hooks/UserContext"; // Assuming you have a context to get user data
 
 const RegisterForm = () => {
   const [state, signupAction, loading] = useActionState(signup, undefined);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [password, setPassword] = useState("");
+
+  const { reloadUserData, userData, isLoading } = useUser();
+  const router = useRouter(); // Using Next.js useRouter hook to handle redirect
+
+  useEffect(() => {
+    if (state?.success) {
+      reloadUserData(); // Reload user data on success
+      router.push("/"); // Redirect to home page after login
+    }
+  }, [state, reloadUserData, router]);
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;

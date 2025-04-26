@@ -1,14 +1,26 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 
 import { useActionState } from "react";
 import { useState } from "react";
 import { login } from "@/app/(auth)/actions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/app/lib/hooks/UserContext"; // Assuming you have a context to get user data
 
 const LoginForm = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [state, loginAction, loading] = useActionState(login, undefined);
+
+  const { reloadUserData, userData, isLoading } = useUser();
+  const router = useRouter(); // Using Next.js useRouter hook to handle redirect
+
+  useEffect(() => {
+    if (state?.success) {
+      reloadUserData(); // Reload user data on success
+      router.push("/"); // Redirect to home page after login
+    }
+  }, [state, reloadUserData, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
