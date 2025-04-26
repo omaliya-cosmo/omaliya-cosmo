@@ -56,10 +56,10 @@ export default function CategoryTabsFilter({
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="w-full flex flex-wrap justify-start mb-8 bg-red-808">
+        <TabsList className="w-full flex flex-wrap justify-start mb-8 bg-red-808 overflow-x-auto tabs-list-container">
           <TabsTrigger
             value=""
-            className="rounded-md flex-grow-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 py-6 text-sm"
+            className="rounded-md flex-grow-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 md:py-6 text-xs sm:text-sm whitespace-nowrap"
           >
             All Categories
           </TabsTrigger>
@@ -67,13 +67,69 @@ export default function CategoryTabsFilter({
             <TabsTrigger
               key={category.id}
               value={category.name.toLowerCase()}
-              className="rounded-md flex-grow-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 py-6 text-sm"
+              className="rounded-md flex-grow-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white px-3 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 md:py-6 text-xs sm:text-sm whitespace-nowrap"
             >
               {category.name}
             </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
+      
+      <style jsx global>{`
+        /* Hide scrollbar but keep functionality */
+        .overflow-x-auto::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .overflow-x-auto {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Add scroll snap for better mobile experience */
+        @media (max-width: 640px) {
+          .tabs-list-container {
+            scroll-snap-type: x mandatory;
+            position: relative;
+          }
+          
+          [role="tab"] {
+            scroll-snap-align: start;
+            min-width: auto;
+          }
+        }
+        
+        /* Desktop enhancements - removed scrolling */
+        @media (min-width: 1024px) {
+          .tabs-list-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-start;
+            padding-bottom: 0.5rem;
+            overflow-x: visible !important; /* Remove horizontal scroll */
+            overflow: visible;
+            max-width: 100%;
+          }
+          
+          [role="tab"] {
+            transition: all 0.2s ease;
+            flex-shrink: 1;
+          }
+          
+          [role="tab"]:hover:not([data-state="active"]) {
+            background-color: rgba(124, 58, 237, 0.05);
+            transform: translateY(-1px);
+          }
+        }
+        
+        /* Better spacing for larger screens */
+        @media (min-width: 1280px) {
+          .tabs-list-container {
+            gap: 0.75rem;
+          }
+        }
+      `}</style>
     </div>
   );
 }
