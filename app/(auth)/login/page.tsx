@@ -20,7 +20,7 @@ const LoginForm = () => {
       reloadUserData(); // Reload user data on success
       router.push("/"); // Redirect to home page after login
     }
-  }, [state, reloadUserData, router]);
+  }, [state?.success, reloadUserData, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

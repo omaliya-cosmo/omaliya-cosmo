@@ -79,7 +79,7 @@ const CategoriesPage = () => {
           : "Get started by adding your first category"}
       </p>
       <button
-        onClick={() => router.push("/admin/categories/new")}
+        onClick={() => router.push("/admin/inventory/categories/new")}
         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center"
       >
         <FiPlus className="mr-2" />
@@ -98,7 +98,7 @@ const CategoriesPage = () => {
           </div>
           <div className="mt-4 md:mt-0">
             <button
-              onClick={() => router.push("/admin/categories/new")}
+              onClick={() => router.push("/admin/inventory/categories/new")}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm flex items-center"
             >
               <FiPlus className="mr-2" />

@@ -2,7 +2,17 @@ import { prisma } from "@/app/lib/prisma";
 
 export async function GET(request: Request) {
   try {
-    const customers = await prisma.customer.findMany();
+    const customers = await prisma.customer.findMany({
+      include: {
+        _count: {
+          select: {
+            reviews: true,
+            orders: true,
+          },
+        },
+      },
+    });
+
     return new Response(JSON.stringify({ customers }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

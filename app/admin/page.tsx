@@ -23,6 +23,7 @@ import {
   FiGift,
   FiStar,
   FiPercent,
+  FiSettings,
 } from "react-icons/fi";
 import Link from "next/link";
 import axios from "axios";
@@ -418,13 +419,6 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-              <button
-                className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                onClick={() => router.push("/admin/activity")}
-              >
-                View all activity
-                <FiChevronRight className="ml-1" />
-              </button>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
@@ -469,29 +463,6 @@ const Dashboard = () => {
                 <FiPercent className="mr-2 text-green-500" />
                 Active Promotions
               </h2>
-              <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg text-white">
-                  <h3 className="font-bold mb-1">Summer Sale!</h3>
-                  <p className="text-sm opacity-90">
-                    20% off on all skincare products
-                  </p>
-                  <div className="mt-2 text-xs">Ends in 5 days</div>
-                </div>
-                <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg text-white">
-                  <h3 className="font-bold mb-1">Bundle Deals</h3>
-                  <p className="text-sm opacity-90">
-                    Buy 2 Get 1 Free on makeup
-                  </p>
-                  <div className="mt-2 text-xs">Ongoing promotion</div>
-                </div>
-              </div>
-              <button
-                onClick={() => router.push("/admin/promotions")}
-                className="mt-4 w-full text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center justify-center"
-              >
-                <FiGift className="mr-1" />
-                Manage Promotions
-              </button>
             </div>
           </div>
 
@@ -505,7 +476,7 @@ const Dashboard = () => {
               <ActionButton
                 title="Add New Product"
                 icon={<FiPlus />}
-                onClick={() => router.push("/admin/products/new")}
+                onClick={() => router.push("/admin/inventory/products/new")}
                 color="blue"
               />
               <ActionButton
@@ -521,20 +492,15 @@ const Dashboard = () => {
                 color="green"
               />
               <ActionButton
-                title="Sales Report"
-                icon={<FiTrendingUp />}
-                onClick={() => router.push("/admin/reports")}
+                title="Settings"
+                icon={<FiSettings />}
+                onClick={() => router.push("/admin/settings")}
                 color="purple"
               />
             </div>
           </div>
         </>
       )}
-
-      <div className="mt-8 text-xs text-gray-500 flex justify-between items-center">
-        <div>Last login: Today at 9:42 AM • IP: 192.168.1.1</div>
-        <div>System Version: 1.0.3</div>
-      </div>
     </>
   );
 };

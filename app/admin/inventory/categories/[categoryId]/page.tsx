@@ -73,7 +73,7 @@ const UpdateCategory = () => {
       categorySchema.parse(formData);
 
       await axios.put(`/api/categories/${categoryId}`, formData);
-      router.push("/admin/categories");
+      router.push("/admin/inventory/categories");
     } catch (err: any) {
       console.error("Validation Error:", err);
       setError(err.errors ? err.errors[0].message : "An error occurred");

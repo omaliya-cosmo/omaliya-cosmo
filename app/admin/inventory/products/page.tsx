@@ -13,8 +13,7 @@ import {
   FiPackage,
 } from "react-icons/fi";
 import axios from "axios";
-
-import { Product, ProductCategory } from "@/types"; // Adjust the import path as necessary
+import { Product, ProductCategory } from "@prisma/client";
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,7 +33,6 @@ const ProductsPage = () => {
       .get("/api/products")
       .then((res) => {
         setProducts(res.data.products);
-        console.log(res.data.products);
         setLoading(false);
       })
       .catch((err) => {
@@ -149,7 +147,7 @@ const ProductsPage = () => {
           : "Get started by adding your first product to your inventory"}
       </p>
       <button
-        onClick={() => router.push("/admin/products/new")}
+        onClick={() => router.push("/admin/inventory/products/new")}
         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center"
       >
         <FiPlus className="mr-2" />
@@ -168,7 +166,7 @@ const ProductsPage = () => {
           </div>
           <div className="mt-4 md:mt-0">
             <button
-              onClick={() => router.push("/admin/products/new")}
+              onClick={() => router.push("/admin/inventory/products/new")}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm flex items-center"
             >
               <FiPlus className="mr-2" />
@@ -195,7 +193,7 @@ const ProductsPage = () => {
           </div>
 
           {/* Category filter */}
-          {/*<div className="w-full md:w-48">
+          <div className="w-full md:w-48">
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
@@ -203,12 +201,13 @@ const ProductsPage = () => {
             >
               <option value="">All Categories</option>
               {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                <option key={category.name} value={category.id}>
+                  {category.name.charAt(0).toUpperCase() +
+                    category.name.slice(1)}
                 </option>
               ))}
             </select>
-          </div>*/}
+          </div>
 
           {/* Reset filters */}
           <button
@@ -325,7 +324,7 @@ const ProductsPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-wrap max-w-120">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
                           {product.imageUrls && product.imageUrls.length > 0 ? (
@@ -347,12 +346,32 @@ const ProductsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        Rs {product.priceLKR.toFixed(2)}
+                        {product.discountPriceLKR != null ? (
+                          <span>Rs {product.discountPriceLKR.toFixed(2)}</span>
+                        ) : (
+                          <span>Rs {product.priceLKR.toFixed(2)}</span>
+                        )}
+                        <br />
+                        {product.discountPriceLKR != null && (
+                          <span className="line-through text-gray-600">
+                            Rs {product.priceLKR.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        $ {product.priceUSD.toFixed(2)}
+                        {product.discountPriceUSD != null ? (
+                          <span>$ {product.discountPriceUSD.toFixed(2)}</span>
+                        ) : (
+                          <span>$ {product.priceUSD.toFixed(2)}</span>
+                        )}
+                        <br />
+                        {product.discountPriceUSD != null && (
+                          <span className="line-through text-gray-600">
+                            $ {product.priceUSD.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -375,7 +394,7 @@ const ProductsPage = () => {
                       </Link>
                       <button
                         onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-900 inline-flex items-center"
+                        className="text-red-600 hover:text-red-900 inline-flex items-center cursor-pointer"
                       >
                         <FiTrash2 className="mr-1" size={16} />
                         Delete

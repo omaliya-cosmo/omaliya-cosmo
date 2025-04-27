@@ -40,14 +40,14 @@ export default function FeaturedProducts({
     threshold: 0.1,
   });
 
-  // Define the filter tabs
+  // Define the filter tabs with exact enum values from schema
   const filterTabs = [
     { id: "all", name: "All Products" },
-    { id: "new-arrivals", name: "New Arrivals" },
-    { id: "best-sellers", name: "Best Sellers" },
-    { id: "special-deals", name: "Special Deals" },
-    { id: "gift-sets", name: "Gift Sets" },
-    { id: "trending", name: "Trending Now" },
+    { id: "NEW_ARRIVALS", name: "New Arrivals" },
+    { id: "BEST_SELLERS", name: "Best Sellers" },
+    { id: "SPECIAL_DEALS", name: "Special Deals" },
+    { id: "GIFT_SETS", name: "Gift Sets" },
+    { id: "TRENDING_NOW", name: "Trending Now" },
   ];
 
   // Filter products based on active tag and search query
@@ -65,21 +65,18 @@ export default function FeaturedProducts({
 
       // Filter by tag
       if (activeTag !== "all") {
-        // Check if product has tags property and if it contains the active tag
-        if (!product.tags) return false;
-
-        // If tags is a string, convert to array first
-        const productTags =
-          typeof product.tags === "string"
-            ? JSON.parse(product.tags as string)
-            : product.tags;
-
+        // If product has no tags array, exclude it
         if (
-          !Array.isArray(productTags) ||
-          !productTags.includes(activeTag.replace(/-/g, " "))
+          !product.tags ||
+          !Array.isArray(product.tags) ||
+          product.tags.length === 0
         ) {
           return false;
         }
+
+        // Check if the product tags array includes the active tag
+        // The ProductTag is an enum in the schema, so we can compare directly
+        return product.tags.some((tag) => tag === activeTag);
       }
 
       return true;

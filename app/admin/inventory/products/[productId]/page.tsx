@@ -16,9 +16,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import axios from "axios";
-import { Product, ProductTag } from "@prisma/client";
-import { ProductCategory } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Product, ProductCategory, ProductTag } from "@prisma/client";
 
 // Import React Quill New instead of TipTap
 import dynamic from "next/dynamic";
@@ -621,7 +619,7 @@ const EditProduct = ({ params }: { params: { productId: string } }) => {
                           <img
                             src={url}
                             alt={`Product preview ${index + 1}`}
-                            className="h-full w-full object-contain"
+                            className="h-32 w-32 object-contain"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src =
                                 "https://via.placeholder.com/300?text=Image+Error";

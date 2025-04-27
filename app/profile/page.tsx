@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Review, ProductCategory } from "@prisma/client";
+import { Review, ProductCategory, CustomerAddress } from "@prisma/client";
 import { getCustomerFromToken } from "../actions";
 import Header from "@/components/layout/Header";
 import { useCart } from "../lib/hooks/CartContext";
@@ -43,6 +43,7 @@ import {
   BundleOffer,
   OrderStatus,
 } from "@prisma/client";
+import { logout } from "../(auth)/actions";
 
 interface OrderItem extends PrismaOrderItem {
   product: Product;
@@ -57,7 +58,7 @@ interface Order extends PrismaOrder {
 interface Customer extends PrismaCustomer {
   reviews: Review[];
   orders: Order[];
-  address: Address;
+  addresses: CustomerAddress[];
 }
 
 export default function ProfilePage() {
@@ -82,7 +83,7 @@ export default function ProfilePage() {
           return;
         }
         const response = await fetch(
-          `/api/customers/${userData.id}?orders=true&reviews=true&address=true`
+          `/api/customers/${userData.id}?orders=true&reviews=true&addresses=true`
         );
         const data = await response.json();
         console.log("order response", data);
@@ -144,8 +145,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    // Handle logout logic
-    router.push("/login");
+    logout();
   };
 
   return (
@@ -180,7 +180,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-200"
+                className="text-rose-500 cursor-pointer hover:text-rose-600 hover:bg-rose-50 border-rose-200"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
@@ -228,11 +228,11 @@ export default function ProfilePage() {
                 <MapPin className="h-4 w-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-muted-foreground">Address</p>
+                <p className="text-muted-foreground">Addresses</p>
                 <p className="font-medium">
-                  {userData?.address === null
+                  {userData?.addresses.length === null
                     ? "No Address Found"
-                    : "Address Saved"}
+                    : `${userData?.addresses.length} Addresses Saved`}
                 </p>
               </div>
             </div>

@@ -24,7 +24,7 @@ interface Order extends PrismaOrder {
   address: Address;
 }
 
-const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
+const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,12 +33,11 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const router = useRouter();
-  const status = params.orderStatus.toUpperCase() || "PROCESSING";
 
   const fetchOrders = () => {
     setLoading(true);
     axios
-      .get(`/api/orders?status=${status}`)
+      .get(`/api/orders`)
       .then((res) => {
         setOrders(res.data.orders);
         setLoading(false);
@@ -70,10 +69,14 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
   };
 
   const filteredOrders = orders
-    .filter((order) =>
-      (order.customer?.firstName ?? "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
+    .filter(
+      (order) =>
+        (order.address?.firstName ?? "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (order.address?.phoneNumber ?? "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (sortField === "order_date") {
@@ -95,25 +98,13 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
     }
   };
 
-  const titleMap: Record<string, string> = {
-    PENDING: "Pending Orders",
-    PROCESSING: "Processing Orders",
-    SHIPPED: "Shipped Orders",
-    CANCELED: "Canceled Orders",
-    DELIVERED: "Delivered Orders",
-  };
-
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {titleMap[status]}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage orders with status: {status}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
+            <p className="text-gray-600 mt-1">Manage orders every status</p>
           </div>
         </div>
 
@@ -121,7 +112,7 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
           <div className="relative flex-grow max-w-md">
             <input
               type="text"
-              placeholder="Search by customer name..."
+              placeholder="Search by customer / phone number..."
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -166,41 +157,37 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Items
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Phone/Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Total
                   </th>
-                  {status === "DELIVERED" && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Delivered At
-                    </th>
-                  )}
-                  {(status === "SHIPPED" || status === "PROCESSING") && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Tracking No
-                    </th>
-                  )}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Other
+                  </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 text-sm">
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {new Date(order.orderDate).toLocaleDateString()} <br />
                       {new Date(order.orderDate).toLocaleTimeString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {order.items.map((item) => (
                         <div key={item.id}>
                           {item.isBundle && item.bundle
@@ -211,28 +198,43 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                         </div>
                       ))}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap capitalize">
+                    <td className="px-4 py-3 whitespace-nowrap capitalize">
                       {order.address.firstName} {order.address.lastName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {order.address.phoneNumber || order.address.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       Rs {order.total.toFixed(2)}
                     </td>
-                    {status === "DELIVERED" && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.deliveredAt
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          order.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : order.status === "PROCESSING"
+                            ? "bg-blue-100 text-blue-800"
+                            : order.status === "SHIPPED"
+                            ? "bg-purple-100 text-purple-800"
+                            : order.status === "DELIVERED"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {order.status === "DELIVERED"
+                        ? order.deliveredAt
                           ? new Date(order.deliveredAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-                    )}
-                    {(status === "SHIPPED" || status === "PROCESSING") && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.trackingNumber || "N/A"}
-                      </td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                          : ""
+                        : order.status === "SHIPPED" ||
+                          order.status === "PROCESSING"
+                        ? order.trackingNumber || ""
+                        : ""}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
                       <button
                         onClick={() => router.push(`/admin/orders/${order.id}`)}
                         className="text-indigo-600 hover:text-indigo-900 flex items-center"
@@ -240,15 +242,16 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                         <FiEdit2 className="mr-1" size={16} />
                         View
                       </button>
-                      {status !== "DELIVERED" && status !== "CANCELED" && (
-                        <button
-                          onClick={() => handleDelete(order.id)}
-                          className="text-red-600 hover:text-red-900 flex items-center mt-2"
-                        >
-                          <FiTrash2 className="mr-1" size={16} />
-                          Delete
-                        </button>
-                      )}
+                      {order.status !== "DELIVERED" &&
+                        order.status !== "CANCELED" && (
+                          <button
+                            onClick={() => handleDelete(order.id)}
+                            className="text-red-600 hover:text-red-900 flex items-center mt-2"
+                          >
+                            <FiTrash2 className="mr-1" size={16} />
+                            Delete
+                          </button>
+                        )}
                     </td>
                   </tr>
                 ))}
@@ -261,4 +264,4 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
   );
 };
 
-export default StatusOrdersPage;
+export default OrdersPage;

@@ -221,3 +221,10 @@ enum OrderStatus {
   CANCELED
   DELIVERED
 }
+
+model ShippingRate {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  country  String  @unique
+  rateLKR  Float
+  rateUSD  Float
+}

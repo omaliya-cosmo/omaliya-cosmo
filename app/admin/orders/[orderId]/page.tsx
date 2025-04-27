@@ -18,7 +18,7 @@ interface OrderItem extends PrismaOrderItem {
 }
 
 interface Order extends PrismaOrder {
-  customer: Customer;
+  customer?: Customer;
   items: OrderItem[];
   address: Address;
 }
@@ -124,22 +124,32 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <p>
-              <span className="font-medium">Name:</span>{" "}
-              {order.customer.firstName} {order.customer.lastName}
+              <span className="font-bold">Name:</span> {order.address.firstName}{" "}
+              {order.address.lastName}
             </p>
             <p>
-              <span className="font-medium">Email:</span> {order.customer.email}
+              <span className="font-bold">Email:</span> {order.address.email}
             </p>
             <p>
-              <span className="font-medium">Phone:</span>{" "}
+              <span className="font-bold">Phone:</span>{" "}
               {order.address.phoneNumber}
             </p>
             <p>
-              <span className="font-medium">Address:</span>{" "}
+              <span className="font-bold">Address:</span>{" "}
               {order.address.addressLine1},{" "}
               {order.address.addressLine2 && `${order.address.addressLine2}, `}
               {order.address.city}, {order.address.state},{" "}
               {order.address.postalCode}, {order.address.country}
+            </p>
+            <p>
+              <span className="font-bold">Is Registered:</span>{" "}
+              {order.customer ? (
+                <span className="bg-blue-300 p-1 px-2 text-sm rounded-sm">
+                  Registered
+                </span>
+              ) : (
+                "No"
+              )}
             </p>
           </div>
         </section>
@@ -151,43 +161,42 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <p>
-              <span className="font-medium">Order ID:</span> {order.id}
+              <span className="font-bold">Order ID:</span> {order.id}
             </p>
             <p>
-              <span className="font-medium">Date:</span>{" "}
+              <span className="font-bold">Date:</span>{" "}
               {new Date(order.orderDate).toLocaleString()}
             </p>
             <p>
-              <span className="font-medium">Status:</span> {order.status}
+              <span className="font-bold">Status:</span> {order.status}
             </p>
             <p>
-              <span className="font-medium">Payment:</span>{" "}
-              {order.paymentMethod}
+              <span className="font-bold">Payment:</span> {order.paymentMethod}
             </p>
             <p>
-              <span className="font-medium">Notes:</span> {order.notes || "N/A"}
+              <span className="font-bold">Notes:</span> {order.notes || "N/A"}
             </p>
             <p>
-              <span className="font-medium">Subtotal:</span> {order.currency}{" "}
+              <span className="font-bold">Subtotal:</span> {order.currency}{" "}
               {order.subtotal.toFixed(2)}
             </p>
             <p>
-              <span className="font-medium">Shipping:</span> {order.currency}{" "}
+              <span className="font-bold">Shipping:</span> {order.currency}{" "}
               {order.shipping.toFixed(2)}
             </p>
             <p>
-              <span className="font-medium">Total:</span> {order.currency}{" "}
+              <span className="font-bold">Total:</span> {order.currency}{" "}
               {order.total.toFixed(2)}
             </p>
             {order.trackingNumber && (
               <p>
-                <span className="font-medium">Tracking No.:</span>{" "}
+                <span className="font-bold">Tracking No.:</span>{" "}
                 {order.trackingNumber}
               </p>
             )}
             {order.deliveredAt && (
               <p>
-                <span className="font-medium">Delivered At:</span>{" "}
+                <span className="font-bold">Delivered At:</span>{" "}
                 {new Date(order.deliveredAt).toLocaleString()}
               </p>
             )}
@@ -200,19 +209,21 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
               Fulfillment
             </h2>
-            <input
-              type="text"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              placeholder="Enter tracking number"
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <button
-              onClick={handleAccept}
-              className="mt-2 inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
-            >
-              Accept & Process
-            </button>
+            <div className="flex items-center">
+              <input
+                type="text"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="Enter tracking number"
+                className="basis-8/12 border rounded-l-lg px-4 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <button
+                onClick={handleAccept}
+                className="basis-4/12 bg-blue-600 hover:bg-blue-700 text-white px-5 py-4 rounded-r-lg transition"
+              >
+                Accept
+              </button>
+            </div>
           </section>
         )}
 
@@ -238,16 +249,6 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             </button>
           </div>
         )}
-
-        {/* Delete */}
-        <div className="pt-4">
-          <button
-            onClick={handleDelete}
-            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
-          >
-            Delete Order
-          </button>
-        </div>
 
         {/* Order Items */}
         <section className="space-y-2">
@@ -286,12 +287,19 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
                         </>
                       )}
                       {item.bundle && (
-                        <div>
-                          <div className="font-medium text-gray-800">
-                            {item.bundle.bundleName}
+                        <>
+                          <img
+                            src={item.bundle.imageUrl || ""}
+                            alt={item.bundle.bundleName}
+                            className="w-10 h-10 rounded"
+                          />
+                          <div>
+                            <div className="font-medium text-gray-800">
+                              {item.bundle.bundleName}
+                            </div>
+                            <div className="text-gray-500 text-xs">Bundle</div>
                           </div>
-                          <div className="text-gray-500 text-xs">Bundle</div>
-                        </div>
+                        </>
                       )}
                     </td>
                     <td className="px-6 py-4">{item.quantity}</td>
@@ -307,6 +315,15 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             </table>
           </div>
         </section>
+        {/* Delete */}
+        <div className="w-full flex justify-end">
+          <button
+            onClick={handleDelete}
+            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
+          >
+            Delete Order
+          </button>
+        </div>
       </div>
     </div>
   );

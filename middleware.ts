@@ -4,10 +4,9 @@ import { decrypt } from "@/app/lib/sessions";
 import { decryptAdminSession } from "@/app/lib/adminSession";
 
 // Define protected and public routes
-const protectedUserRoutes = [""];
+const protectedUserRoutes = ["/profile"];
 const publicUserRoutes = ["/login", "/register"];
 
-const protectedAdminRoutes = [, "/admin/profile"];
 const publicAdminRoutes = ["/admin/login"];
 
 export default async function middleware(req: NextRequest) {
@@ -56,40 +55,28 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Admin Authentication Logic
-  if (protectedAdminRoutes.includes(path) && !admin) {
+  if (
+    path.startsWith("/admin/") &&
+    !publicAdminRoutes.includes(path) &&
+    !admin
+  ) {
+    return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
+  }
+  if (path === "/admin" && !admin) {
     return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
   }
   if (publicAdminRoutes.includes(path) && admin) {
     return NextResponse.redirect(new URL("/admin", req.nextUrl));
   }
 
-  // Profile route testing logic
-  if (path.startsWith("/profile")) {
-    const isAuthenticated = checkAuthStatus(req);
-    if (!isAuthenticated) {
-      console.warn(
-        "Profile accessed without authentication - would normally redirect"
-      );
-    }
-  }
-
   return response;
-}
-
-// Helper function to check auth status (implement your actual auth check)
-function checkAuthStatus(request: NextRequest) {
-  // For testing, return true to allow access
-  return true;
-
-  // Later implement your actual auth check:
-  // const token = request.cookies.get('token')?.value;
-  // return !!token;
 }
 
 // Config to match all routes except static files and API routes
 export const config = {
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
-    "/profile/:path*", // Add this line if not already present
+    "/profile/:path*",
+    "/admin/:path*",
   ],
 };

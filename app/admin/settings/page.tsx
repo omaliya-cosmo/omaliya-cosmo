@@ -8,6 +8,7 @@ import {
   Product,
   ProductsOnBundles as PrismaProductsOnBundles,
   PromoCode,
+  ShippingRate,
 } from "@prisma/client";
 import { BundleOffer as PrismaBundleOffer } from "@prisma/client";
 
@@ -17,6 +18,7 @@ interface ProductsOnBundles extends PrismaProductsOnBundles {
 
 interface BundleOffer extends PrismaBundleOffer {
   products: ProductsOnBundles[];
+  stock: number; // Add stock field to interface
 }
 
 interface Videos {
@@ -52,6 +54,7 @@ const SettingsPage = () => {
     offerPriceUSD: "" as number | "",
     endDate: "",
     imageUrl: "",
+    stock: "" as number | "", // Add stock field to state
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -69,6 +72,13 @@ const SettingsPage = () => {
     string | null
   >(null);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
+  const [newShippingRate, setNewShippingRate] = useState({
+    country: "",
+    rateLKR: "" as number | "",
+    rateUSD: "" as number | "",
+  });
 
   const fetchPromoCodes = async () => {
     setLoading(true);
@@ -117,6 +127,18 @@ const SettingsPage = () => {
     }
   };
 
+  const fetchShippingRates = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get("/api/shippingrates");
+      setShippingRates(res.data);
+    } catch (error) {
+      setError("Failed to fetch shipping rates");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -125,6 +147,7 @@ const SettingsPage = () => {
           fetchBundleOffers(),
           fetchProducts(),
           fetchVideos(),
+          fetchShippingRates(),
         ]);
       } catch (error) {
         setError("Failed to fetch data");
@@ -267,6 +290,7 @@ const SettingsPage = () => {
         offerPriceUSD: Number(newBundle.offerPriceUSD),
         endDate: new Date(newBundle.endDate).toISOString(),
         imageUrl: newBundle.imageUrl,
+        stock: Number(newBundle.stock), // Add stock to bundle data
       };
 
       const res = await axios.post("/api/bundleoffers", bundleData);
@@ -283,6 +307,7 @@ const SettingsPage = () => {
           offerPriceUSD: "" as number | "",
           endDate: "",
           imageUrl: "",
+          stock: "" as number | "", // Reset stock field
         });
         setIsBundleModalOpen(false);
       }
@@ -364,6 +389,42 @@ const SettingsPage = () => {
     }
   };
 
+  const handleAddShippingRate = async () => {
+    if (
+      !newShippingRate.country ||
+      newShippingRate.rateLKR === "" ||
+      newShippingRate.rateUSD === ""
+    ) {
+      alert("Please fill in all shipping rate fields");
+      return;
+    }
+    try {
+      const res = await axios.post("/api/shippingrates", {
+        country: newShippingRate.country,
+        rateLKR: Number(newShippingRate.rateLKR),
+        rateUSD: Number(newShippingRate.rateUSD),
+      });
+      fetchShippingRates();
+      setNewShippingRate({ country: "", rateLKR: "", rateUSD: "" });
+      setIsShippingModalOpen(false);
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        alert("A shipping rate for this country already exists");
+      } else {
+        alert("Failed to add shipping rate");
+      }
+    }
+  };
+
+  const handleDeleteShippingRate = async (id: string) => {
+    try {
+      await axios.delete(`/api/shippingrates/${id}`);
+      setShippingRates(shippingRates.filter((rate) => rate.id !== id));
+    } catch (error) {
+      alert("Failed to delete shipping rate");
+    }
+  };
+
   return (
     <>
       {/* Promo Codes Section */}
@@ -407,7 +468,7 @@ const SettingsPage = () => {
                 </p>
                 <button
                   onClick={() => handleDeletePromoCode(promo.id)}
-                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center"
+                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center cursor-pointer"
                 >
                   <FiTrash2 className="mr-1" size={16} /> Delete
                 </button>
@@ -518,11 +579,14 @@ const SettingsPage = () => {
                   {bundle.offerPriceUSD}
                 </p>
                 <p className="text-sm text-gray-600">
+                  Stock: {bundle.stock || "N/A"}
+                </p>
+                <p className="text-sm text-gray-600">
                   Ends on: {new Date(bundle.endDate).toLocaleDateString()}
                 </p>
                 <button
                   onClick={() => handleDeleteBundleOffer(bundle.id)}
-                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center"
+                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center cursor-pointer"
                 >
                   <FiTrash2 className="mr-1" size={16} /> Delete
                 </button>
@@ -666,6 +730,18 @@ const SettingsPage = () => {
                   })
                 }
               />
+              <input
+                type="number"
+                placeholder="Stock"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={newBundle.stock}
+                onChange={(e) =>
+                  setNewBundle({
+                    ...newBundle,
+                    stock: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+              />
               <div className="col-span-1 sm:col-span-2">
                 <input
                   type="date"
@@ -750,13 +826,13 @@ const SettingsPage = () => {
                   href={video.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline break-all"
+                  className="text-sm text-blue-600 hover:underline break-all line-clamp-2"
                 >
                   {video.videoUrl}
                 </a>
                 <button
                   onClick={() => handleDeleteVideo(video.id)}
-                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center"
+                  className="mt-2 text-red-600 hover:text-red-900 inline-flex items-center cursor-pointer"
                 >
                   <FiTrash2 className="mr-1" size={16} /> Delete
                 </button>
@@ -905,6 +981,146 @@ const SettingsPage = () => {
               </button>
               <button
                 onClick={handleAddVideo}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shipping Rates Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Shipping Rates</h1>
+          <button
+            onClick={() => setIsShippingModalOpen(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm flex items-center"
+          >
+            <FiPlus className="mr-2" /> Add Shipping Rate
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-center py-6">Loading...</p>
+        ) : error ? (
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg">
+            <p className="font-medium">{error}</p>
+            <button
+              onClick={fetchShippingRates}
+              className="mt-2 text-sm text-red-600 underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : !shippingRates || shippingRates.length === 0 ? (
+          <p className="text-center py-6">No shipping rates found</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                    Country
+                  </th>
+                  <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                    Rate (LKR)
+                  </th>
+                  <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                    Rate (USD)
+                  </th>
+                  <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-right text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shippingRates.map((rate) => (
+                  <tr key={rate.id}>
+                    <td className="py-2 px-4 border-b border-gray-200">
+                      {rate.country}
+                    </td>
+                    <td className="py-2 px-4 border-b border-gray-200">
+                      {rate.rateLKR}
+                    </td>
+                    <td className="py-2 px-4 border-b border-gray-200">
+                      {rate.rateUSD}
+                    </td>
+                    <td className="py-2 px-4 border-b border-gray-200 text-right">
+                      <button
+                        onClick={() => handleDeleteShippingRate(rate.id)}
+                        className="text-red-600 hover:text-red-900 inline-flex items-center cursor-pointer"
+                      >
+                        <FiTrash2 className="mr-1" size={16} /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add Shipping Rate Modal */}
+      {isShippingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <h2 className="text-lg font-medium text-gray-800 mb-4">
+              Add New Shipping Rate
+            </h2>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Country"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={newShippingRate.country}
+                onChange={(e) =>
+                  setNewShippingRate({
+                    ...newShippingRate,
+                    country: e.target.value,
+                  })
+                }
+              />
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Rate (LKR)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={newShippingRate.rateLKR}
+                onChange={(e) =>
+                  setNewShippingRate({
+                    ...newShippingRate,
+                    rateLKR:
+                      e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+              />
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Rate (USD)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={newShippingRate.rateUSD}
+                onChange={(e) =>
+                  setNewShippingRate({
+                    ...newShippingRate,
+                    rateUSD:
+                      e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="flex justify-end mt-6 space-x-4">
+              <button
+                onClick={() => setIsShippingModalOpen(false)}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddShippingRate}
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
               >
                 Add

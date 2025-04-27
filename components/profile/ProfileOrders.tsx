@@ -59,6 +59,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Customer as PrismaCustomer,
+  Review,
+  Order as PrismaOrder,
+  Address,
+  CustomerAddress,
+  OrderItem as PrismaOrderItem,
+  Product,
+  BundleOffer,
+} from "@prisma/client";
 
 // Using types based on the provided schema
 type OrderStatus =
@@ -71,78 +81,23 @@ type PaymentMethod = "CASH_ON_DELIVERY" | "PAY_HERE" | "KOKO";
 type Currency = "LKR" | "USD";
 
 // Required type definitions based on the schema
-type Customer = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  registeredAt: Date;
-  address?: Address;
+
+interface Customer extends PrismaCustomer {
+  reviews: Review[];
   orders: Order[];
-};
+  addresses: CustomerAddress[];
+}
 
-type Address = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  email?: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state?: string;
-  postalCode: string;
-  country: string;
-};
-
-type Order = {
-  id: string;
-  customerId?: string;
-  orderDate: Date;
-  deliveredAt?: Date;
-  subtotal: number;
-  discountAmount: number;
-  shipping: number;
-  total: number;
-  currency: Currency;
-  status: OrderStatus;
-  notes?: string;
+interface Order extends PrismaOrder {
   items: OrderItem[];
-  trackingNumber?: string;
-  paymentMethod: PaymentMethod;
-  addressId: string;
   address: Address;
-};
+}
 
-type OrderItem = {
-  id: string;
-  orderId: string;
-  productId?: string;
+interface OrderItem extends PrismaOrderItem {
   product?: Product;
-  bundleId?: string;
   bundle?: BundleOffer;
-  quantity: number;
-  price: number;
   isBundle: boolean;
-};
-
-type Product = {
-  id: string;
-  name: string;
-  imageUrls?: string[];
-};
-
-type BundleOffer = {
-  id: string;
-  bundleName: string;
-  originalPriceLKR: number;
-  originalPriceUSD: number;
-  offerPriceLKR: number;
-  offerPriceUSD: number;
-  endDate: Date;
-  stock: number;
-  imageUrl?: string;
-};
+}
 
 interface ProfileOrdersProps {
   customer: Customer;

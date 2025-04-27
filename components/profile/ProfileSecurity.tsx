@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast, ToastContainer } from "react-toastify";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
+import axios from "axios";
 
 import {
   Card,
@@ -28,21 +29,13 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
+import { getCustomerFromToken } from "@/app/actions";
 
 // Validation schema for password change
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(
-        /[^A-Za-z0-9]/,
-        "Password must contain at least one special character"
-      ),
+    currentPassword: z.string().min(4, "Current password is required"),
+    newPassword: z.string().min(4, "Password must be at least 8 characters"),
     confirmNewPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmNewPassword, {
@@ -54,6 +47,7 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 const ProfileSecurity: React.FC = () => {
   const form = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
     defaultValues: {
       currentPassword: "",
       newPassword: "",
@@ -79,19 +73,9 @@ const ProfileSecurity: React.FC = () => {
     if (!values.newPassword) {
       form.setError("newPassword", { message: "New password is required" });
       valid = false;
-    } else if (values.newPassword.length < 8) {
+    } else if (values.newPassword.length < 4) {
       form.setError("newPassword", {
-        message: "Password must be at least 8 characters",
-      });
-      valid = false;
-    } else if (
-      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
-        values.newPassword
-      )
-    ) {
-      form.setError("newPassword", {
-        message:
-          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+        message: "Password must be at least 4 characters",
       });
       valid = false;
     }
@@ -111,43 +95,26 @@ const ProfileSecurity: React.FC = () => {
     return valid;
   };
 
-  const onSubmit = async (values: PasswordFormData) => {
-    if (!validateForm(values)) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      toast.success("Password updated successfully!");
-
-      form.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmNewPassword: "",
-      });
-    } catch (error) {
-      console.error("Failed to change password:", error);
-      toast.error("Failed to change password. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handlePasswordChange = async (data: PasswordFormData) => {
     setIsSubmitting(true);
 
     try {
+      const customerData = await getCustomerFromToken();
+
       // Validate password requirements
       if (!validateForm(data)) {
         setIsSubmitting(false);
         return;
       }
 
-      // Simulate API call to change password
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Make actual API call to change password using axios
+      const response = await axios.post(
+        `/api/customers/${customerData?.id}/password/change`,
+        {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        }
+      );
 
       // Success message
       toast.success("Password updated successfully!");
@@ -159,8 +126,11 @@ const ProfileSecurity: React.FC = () => {
         confirmNewPassword: "",
       });
     } catch (error) {
-      console.error("Failed to change password:", error);
-      toast.error("Failed to change password. Please try again.");
+      toast.error(
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Failed to change password. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -246,8 +216,7 @@ const ProfileSecurity: React.FC = () => {
                       </Button>
                     </div>
                     <FormDescription className="text-xs text-gray-500">
-                      Password should be at least 8 characters and include
-                      uppercase, lowercase, number, and special character.
+                      Password should be at least 4 characters.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

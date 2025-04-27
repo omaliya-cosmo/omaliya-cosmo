@@ -49,7 +49,7 @@ const AddCategory = () => {
       categorySchema.parse(formData); // Validate formData
 
       await axios.post("/api/categories", formData);
-      router.push("/admin/categories");
+      router.push("/admin/inventory/categories");
     } catch (err: any) {
       console.error("Validation Error:", err);
       setError(err.errors ? err.errors[0].message : "An error occurred");

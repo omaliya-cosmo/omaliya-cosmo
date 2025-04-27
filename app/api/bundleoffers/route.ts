@@ -1,20 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma"; // Adjust the import path as necessary
-import { z } from "zod";
+// Remove z import since we won't be using Zod
 
-// Zod schema for bundle offer validation
-const bundleOfferSchema = z.object({
-  bundleName: z.string().min(1, "Bundle name is required"),
-  productIds: z.array(z.string()).min(1, "At least one product is required"),
-  originalPriceLKR: z.number().positive("Original LKR price must be positive"),
-  originalPriceUSD: z.number().positive("Original USD price must be positive"),
-  offerPriceLKR: z.number().positive("Offer LKR price must be positive"),
-  offerPriceUSD: z.number().positive("Offer USD price must be positive"),
-  endDate: z.string().datetime("Invalid date format"),
-  imageUrl: z.string().url().optional(),
-});
+// Remove bundleOfferSchema definition
 
-// GET method to fetch all bundle offers
+// GET method remains unchanged
 export async function GET() {
   try {
     // Fetch all bundle offers from the database
@@ -47,26 +37,24 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Validate the input using Zod
-    const validatedData = bundleOfferSchema.parse(body);
-
-    // Create the bundle offer
+    // No validation - use the body directly
     const bundleOffer = await prisma.bundleOffer.create({
       data: {
-        bundleName: validatedData.bundleName,
-        originalPriceLKR: validatedData.originalPriceLKR,
-        originalPriceUSD: validatedData.originalPriceUSD,
-        offerPriceLKR: validatedData.offerPriceLKR,
-        offerPriceUSD: validatedData.offerPriceUSD,
-        endDate: new Date(validatedData.endDate),
-        imageUrl: validatedData.imageUrl,
+        bundleName: body.bundleName,
+        originalPriceLKR: body.originalPriceLKR,
+        originalPriceUSD: body.originalPriceUSD,
+        offerPriceLKR: body.offerPriceLKR,
+        offerPriceUSD: body.offerPriceUSD,
+        endDate: new Date(body.endDate),
+        imageUrl: body.imageUrl,
         products: {
-          create: validatedData.productIds.map((productId) => ({
+          create: body.productIds.map((productId: string) => ({
             product: {
               connect: { id: productId },
             },
           })),
         },
+        stock: body.stock,
       },
       include: {
         products: {
@@ -87,14 +75,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating bundle offer:", error);
 
-    // Handle Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
+    // Removed Zod-specific error handling
     return NextResponse.json(
       { error: "Failed to create bundle offer" },
       { status: 500 }

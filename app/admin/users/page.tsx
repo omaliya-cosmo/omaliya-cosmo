@@ -15,7 +15,14 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import axios from "axios";
-import { Customer } from "@prisma/client";
+import { Customer as PrismaCustomer } from "@prisma/client";
+
+interface Customer extends PrismaCustomer {
+  _count: {
+    orders: number;
+    reviews: number;
+  };
+}
 
 const UsersPage = () => {
   const [users, setUsers] = useState<Customer[]>([]);
@@ -33,6 +40,7 @@ const UsersPage = () => {
     setLoading(true);
     try {
       const res = await axios.get("/api/customers");
+      console.log("Fetched users:", res.data.customers[0]._count.orders);
 
       setUsers(res.data.customers);
     } catch (error) {
@@ -221,44 +229,36 @@ const UsersPage = () => {
                     User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone Number / Email
+                    Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Joined
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Orders Count
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reviews Count
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 capitalize">
-                        {user.firstName || ""} {user.lastName || ""}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
+                      {user.firstName || ""} {user.lastName || ""}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {formatDate(user.registeredAt.toString())}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(user.registeredAt.toString())}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button className="text-gray-400 hover:text-blue-600">
-                          <FiEdit2 size={16} />
-                        </button>
-                        <button className="text-gray-400 hover:text-red-600">
-                          <FiTrash2 size={16} />
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <FiMoreVertical size={16} />
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user._count.orders || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user._count.reviews || 0}
                     </td>
                   </tr>
                 ))}

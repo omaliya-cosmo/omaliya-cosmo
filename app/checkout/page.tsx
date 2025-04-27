@@ -25,6 +25,20 @@ interface PromoCodeData {
   discount: number; // This is the discount percentage (e.g. 10 means 10%)
 }
 
+// Interface for shipping rates from API
+interface ShippingRate {
+  id: string;
+  country: string;
+  rateLKR: number;
+  rateUSD: number;
+}
+
+// Default shipping rates to use as fallback if API call fails
+const defaultShippingRates: Record<string, { LKR: number; USD: number }> = {
+  Default: { LKR: 6000, USD: 20 },
+  "Sri Lanka": { LKR: 350, USD: 1 },
+};
+
 const checkoutSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
@@ -76,23 +90,6 @@ interface DisplayCartItem {
   category?: { name: string };
 }
 
-// Define shipping rates by country
-const shippingRates: Record<string, { LKR: number; USD: number }> = {
-  Default: { LKR: 6000, USD: 20 },
-  "Sri Lanka": { LKR: 350, USD: 1 },
-  "United States": { LKR: 4500, USD: 15 },
-  "United Kingdom": { LKR: 5000, USD: 17 },
-  Australia: { LKR: 5500, USD: 18 },
-  Canada: { LKR: 5000, USD: 17 },
-  Germany: { LKR: 5200, USD: 17.5 },
-  France: { LKR: 5200, USD: 17.5 },
-  Italy: { LKR: 5200, USD: 17.5 },
-  Spain: { LKR: 5200, USD: 17.5 },
-  Japan: { LKR: 6000, USD: 20 },
-  Singapore: { LKR: 4800, USD: 16 },
-  Malaysia: { LKR: 4500, USD: 15 },
-};
-
 export default function CheckoutPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
@@ -102,6 +99,12 @@ export default function CheckoutPage() {
   const { country, updateCountry } = useCountry();
   const [shippingCost, setShippingCost] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
+  const [shippingRates, setShippingRates] =
+    useState<Record<string, { LKR: number; USD: number }>>(
+      defaultShippingRates
+    );
+  const [loadingShippingRates, setLoadingShippingRates] =
+    useState<boolean>(true);
 
   const { refreshCart } = useCart();
 
@@ -172,6 +175,38 @@ export default function CheckoutPage() {
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    // Fetch shipping rates from API
+    async function fetchShippingRates() {
+      try {
+        setLoadingShippingRates(true);
+        const { data } = await axios.get("/api/shippingrates");
+
+        // Transform API response to match the format we need
+        const ratesObject: Record<string, { LKR: number; USD: number }> = {
+          Default: { LKR: 6000, USD: 20 }, // Always include a default
+        };
+
+        data.forEach((rate: ShippingRate) => {
+          ratesObject[rate.country] = {
+            LKR: rate.rateLKR,
+            USD: rate.rateUSD,
+          };
+        });
+
+        setShippingRates(ratesObject);
+      } catch (err) {
+        console.error("Error fetching shipping rates:", err);
+        // Fall back to default shipping rates
+        setShippingRates(defaultShippingRates);
+      } finally {
+        setLoadingShippingRates(false);
+      }
+    }
+
+    fetchShippingRates();
+  }, []);
+
+  useEffect(() => {
     fetchCartData();
   }, [country]);
 
@@ -192,7 +227,7 @@ export default function CheckoutPage() {
         discountAmount +
         (country === "LK" ? shippingRate.LKR : shippingRate.USD)
     );
-  }, [country, formData.country, subtotal, discount]);
+  }, [country, formData.country, subtotal, discount, shippingRates]);
 
   const fetchCartData = async () => {
     try {
@@ -412,7 +447,7 @@ export default function CheckoutPage() {
     );
   };
 
-  if (loading) {
+  if (loading || loadingShippingRates) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-col items-center justify-center py-16">
@@ -672,6 +707,7 @@ export default function CheckoutPage() {
                           required
                           className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
                         >
+                          <option value="">Select a country</option>
                           {Object.keys(shippingRates).map((country) => (
                             <option key={country} value={country}>
                               {country}
