@@ -12,6 +12,7 @@ import {
   FiCheck,
   FiThumbsUp,
   FiRefreshCw,
+  FiChevronRight,
 } from "react-icons/fi";
 import {
   Customer,
@@ -59,11 +60,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
     return () => document.removeEventListener("click", handleTabLinkClick);
   }, []);
 
-  // Handle scroll for sticky tabs
+  // Handle scroll for sticky tabs with improved mobile support
   useEffect(() => {
     const handleScroll = () => {
       if (tabsRef.current) {
-        setIsSticky(window.scrollY > tabsRef.current.offsetTop);
+        const offsetTop = tabsRef.current.offsetTop;
+        // Add offset for mobile to account for any headers
+        const mobileOffset = window.innerWidth < 640 ? 10 : 0;
+        setIsSticky(window.scrollY > (offsetTop - mobileOffset));
       }
     };
 
@@ -97,18 +101,43 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
     ];
   };
 
-  // Animation variants for tab content
+  // Animation variants for tab content with responsive adjustments
   const tabContentVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.4, ease: "easeOut" },
+      transition: { duration: 0.3, ease: "easeOut" },
     },
   };
 
+  // Add scroll indication for mobile tabs
+  const [showScrollHint, setShowScrollHint] = useState(true);
+
+  useEffect(() => {
+    // Hide scroll hint after a few seconds
+    const timer = setTimeout(() => setShowScrollHint(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Check if we're on a mobile device
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add resize listener
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
-    <div className="mt-16 border-t border-gray-200 pt-10">
+    <div className="mt-8 sm:mt-12 md:mt-16 border-t border-gray-200 pt-6 sm:pt-8 md:pt-10">
       {/* Tabs */}
       <div
         ref={tabsRef}
@@ -118,48 +147,79 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
         <div
           className={`${
             isSticky
-              ? "fixed top-0 left-0 right-0 bg-white shadow-md py-2 lg:absolute lg:shadow-none lg:py-0 lg:top-auto lg:left-auto lg:right-auto backdrop-blur-md bg-white/95"
+              ? "fixed top-0 left-0 right-0 bg-white shadow-md py-1 z-30 lg:absolute lg:shadow-none lg:py-0 lg:top-auto lg:left-auto lg:right-auto backdrop-blur-md bg-white/95"
               : ""
           }`}
         >
-          <nav className="-mb-px flex space-x-1 md:space-x-6 overflow-x-auto hide-scrollbar px-4 md:px-0">
-            {[
-              { id: "description", icon: <FiInfo />, label: "Description" },
-              { id: "reviews", icon: <FiStar />, label: "Reviews" },
-              { id: "guarantee", icon: <FiShield />, label: "Guarantee" },
-              { id: "faq", icon: <FiHelpCircle />, label: "FAQ" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm flex items-center 
-                  transition-all duration-300 relative
-                  ${
-                    activeTab === tab.id
-                      ? "border-indigo-600 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300"
-                  }
-                `}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-                {activeTab === tab.id && (
-                  <motion.span
-                    layoutId="activeTabIndicator"
-                    className="absolute inset-0 bg-indigo-50 rounded-t-lg -z-10"
-                    initial={false}
-                    transition={{ type: "spring", duration: 0.5 }}
-                  />
-                )}
-              </button>
-            ))}
-          </nav>
+          <div className="relative">
+            <nav className="-mb-px flex space-x-1 sm:space-x-2 md:space-x-6 overflow-x-auto hide-scrollbar px-3 sm:px-4 md:px-0 pb-1 scrollbar-thin">
+              {[
+                { id: "description", icon: <FiInfo />, label: "Description" },
+                { id: "reviews", icon: <FiStar />, label: "Reviews" },
+                { id: "guarantee", icon: <FiShield />, label: "Guarantee" },
+                { id: "faq", icon: <FiHelpCircle />, label: "FAQ" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    whitespace-nowrap py-3 sm:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center 
+                    transition-all duration-300 relative flex-shrink-0
+                    ${
+                      activeTab === tab.id
+                        ? "border-indigo-600 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300"
+                    }
+                  `}
+                >
+                  <span className="mr-1.5 sm:mr-2">{tab.icon}</span>
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <motion.span
+                      layoutId="activeTabIndicator"
+                      className="absolute inset-0 bg-indigo-50 rounded-t-lg -z-10"
+                      initial={false}
+                      transition={{ type: "spring", duration: 0.5 }}
+                    />
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            {/* Scroll hint for mobile */}
+            {showScrollHint && isMobile && (
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent flex items-center justify-center">
+                <motion.div
+                  animate={{ x: [-5, 5, -5] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                  <FiChevronRight className="text-gray-400" />
+                </motion.div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tab content with animations */}
-      <div className="pt-6">
+      {/* Tab content with responsive styling */}
+      <div className="pt-4 sm:pt-6">
+        <style jsx global>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          /* Improve touch targets on mobile */
+          @media (max-width: 640px) {
+            .accordion-button {
+              min-height: 48px;
+            }
+          }
+        `}</style>
+
         <AnimatePresence mode="wait">
           {activeTab === "description" && (
             <motion.div
