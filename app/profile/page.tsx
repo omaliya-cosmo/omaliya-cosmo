@@ -34,6 +34,7 @@ import { Review, ProductCategory, CustomerAddress } from "@prisma/client";
 import { getCustomerFromToken } from "../actions";
 import Header from "@/components/layout/Header";
 import { useCart } from "../lib/hooks/CartContext";
+import { useUser } from "@/app/lib/hooks/UserContext";
 import {
   Order as PrismaOrder,
   OrderItem as PrismaOrderItem,
@@ -73,6 +74,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<any>(null);
 
   const { refreshCart } = useCart(); // Assuming you have a CartContext to refresh cart data
+  const { reloadUserData } = useUser();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -146,6 +148,8 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     logout();
+    reloadUserData();
+    router.push("/");
   };
 
   return (

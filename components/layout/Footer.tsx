@@ -169,7 +169,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="/blog"
+                      href="/profile"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Profile
@@ -184,7 +184,7 @@ export default function Footer() {
                 <ul className="space-y-2">
                   <li>
                     <Link
-                      href="#"
+                      href="/about"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Shipping Policy
@@ -192,7 +192,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="#"
+                      href="/about"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Returns & Exchanges
@@ -200,7 +200,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="#"
+                      href="/about"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Privacy Policy
@@ -208,7 +208,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="#"
+                      href="/about"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Terms of Service
@@ -216,7 +216,7 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="/warranty"
+                      href="/about"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Warranty Information

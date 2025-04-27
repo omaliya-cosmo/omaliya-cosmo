@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useCountry } from "@/app/lib/hooks/useCountry";
 import { usePathname } from "next/navigation";
 import { ProductCategory, Product } from "@prisma/client";
+import { logout } from "@/app/(auth)/actions";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/app/lib/hooks/UserContext";
 
 interface HeaderProps {
   userData: any;
@@ -40,6 +43,8 @@ export default function Header({
   const [searchQuery, setSearchQuery] = useState("");
   const { country, updateCountry } = useCountry();
   const pathname = usePathname();
+  const { reloadUserData } = useUser();
+  const router = useRouter();
 
   // Change header style on scroll
   useEffect(() => {
@@ -61,6 +66,12 @@ export default function Header({
     // Implement search functionality
     console.log(`Searching for: ${searchQuery}`);
     // Navigate to search results page
+  };
+
+  const handleLogout = () => {
+    logout();
+    reloadUserData();
+    router.push("/");
   };
 
   return (
@@ -348,6 +359,14 @@ export default function Header({
                             </li>
                           ))
                         )}
+                        <div className="mt-3">
+                          <Link
+                            href="/bundles"
+                            className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                          >
+                            View all collections
+                          </Link>
+                        </div>
                       </ul>
                     </div>
 
@@ -762,7 +781,7 @@ function AccountMenu({ userData }) {
               </div>
             </Link>
             <Link
-              href="/orders"
+              href="/profile?tab=orders"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors"
             >
               <div className="flex items-center">
@@ -785,8 +804,8 @@ function AccountMenu({ userData }) {
             </Link>
 
             <div className="border-t border-gray-100 my-1"></div>
-            <Link
-              href="/api/auth/signout"
+            <Button
+              onClick={handleLogout}
               className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
               <div className="flex items-center">
@@ -806,7 +825,7 @@ function AccountMenu({ userData }) {
                 </svg>
                 Sign Out
               </div>
-            </Link>
+            </Button>
           </div>
         ) : (
           <div className="py-1">
@@ -1190,7 +1209,7 @@ function MobileMenu({
                     Your Profile
                   </Link>
                   <Link
-                    href="/orders"
+                    href="/profile?tab=orders"
                     className="flex items-center text-gray-700 hover:text-purple-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-50"
                   >
                     <svg
@@ -1211,8 +1230,8 @@ function MobileMenu({
                   </Link>
 
                   <div className="border-t border-gray-100 my-2"></div>
-                  <Link
-                    href="/api/auth/signout"
+                  <Button
+                    onClick={handleLogout}
                     className="flex items-center text-red-600 font-medium py-2 px-3 rounded-lg hover:bg-red-50"
                   >
                     <svg
@@ -1230,7 +1249,7 @@ function MobileMenu({
                       />
                     </svg>
                     Sign Out
-                  </Link>
+                  </Button>
                 </>
               ) : (
                 <>
