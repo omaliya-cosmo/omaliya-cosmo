@@ -52,11 +52,12 @@ export default function HeaderWrapper() {
   const isAdmin = pathname.startsWith("/admin");
   const isLogin =
     pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isPasswordReset = pathname.startsWith("/password-reset");
 
   // Return the Header component with all required props
   return (
     <>
-      {!isAdmin && !isLogin && (
+      {!isAdmin && !isLogin && !isPasswordReset && (
         <Header
           userData={userData}
           cartCount={cartCount}

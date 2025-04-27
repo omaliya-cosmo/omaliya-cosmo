@@ -122,7 +122,7 @@ const LoginForm = () => {
                   Password
                 </label>
                 <Link
-                  href="/forgot-password"
+                  href="/password-reset"
                   className="text-sm font-medium text-purple-600 hover:text-purple-500"
                 >
                   Forgot your password?
@@ -199,72 +199,15 @@ const LoginForm = () => {
           </div>
         </form>
 
-        {/* Social Login Options */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600 mb-4">Or continue with</p>
-          <div className="flex justify-center space-x-4">
-            <button className="bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-all">
-              <svg
-                className="w-6 h-6"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
-                  fill="#EA4335"
-                />
-                <path
-                  d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12.0001 24.0001C15.2401 24.0001 17.9651 22.935 19.9451 21.095L16.0801 18.095C15.0451 18.82 13.6751 19.25 12.0001 19.25C8.8701 19.25 6.21506 17.14 5.26506 14.295L1.27509 17.39C3.25009 21.31 7.31009 24.0001 12.0001 24.0001Z"
-                  fill="#34A853"
-                />
-              </svg>
-            </button>
-            <button className="bg-[#1877F2] p-2 rounded-full shadow-md hover:shadow-lg transition-all">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 320 512"
-              >
-                <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
-              </svg>
-            </button>
-            <button className="bg-black p-2 rounded-full shadow-md hover:shadow-lg transition-all">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 384 512"
-              >
-                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
         {/* Terms and Conditions */}
         <div className="text-center mt-6">
           <p className="text-xs text-gray-500">
             By signing in, you agree to the{" "}
-            <Link
-              href="/terms"
-              className="text-purple-600 hover:text-purple-500"
-            >
+            <Link href="#" className="text-purple-600 hover:text-purple-500">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link
-              href="/privacy"
-              className="text-purple-600 hover:text-purple-500"
-            >
+            <Link href="#" className="text-purple-600 hover:text-purple-500">
               Privacy Policy
             </Link>
           </p>

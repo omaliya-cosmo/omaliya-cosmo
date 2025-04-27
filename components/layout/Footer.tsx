@@ -11,6 +11,9 @@ export default function Footer() {
 
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
+  const isLogin =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isPasswordReset = pathname.startsWith("/password-reset");
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +36,7 @@ export default function Footer() {
 
   return (
     <>
-      {!isAdmin && (
+      {!isAdmin && !isLogin && !isPasswordReset && (
         <footer className="bg-gray-50 border-t border-gray-200 px-10">
           {/* Main Footer */}
           <div className="container mx-auto px-4 py-12 md:py-16">

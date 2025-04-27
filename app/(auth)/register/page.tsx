@@ -21,7 +21,7 @@ const RegisterForm = () => {
       reloadUserData(); // Reload user data on success
       router.push("/"); // Redirect to home page after login
     }
-  }, [state, reloadUserData, router]);
+  }, [state?.success, reloadUserData, router]);
 
   const checkPasswordStrength = (password: string) => {
     let strength = 0;
@@ -274,17 +274,11 @@ const RegisterForm = () => {
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-600">
               I agree to the{" "}
-              <Link
-                href="/terms"
-                className="text-purple-600 hover:text-purple-500"
-              >
+              <Link href="#" className="text-purple-600 hover:text-purple-500">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link
-                href="/privacy"
-                className="text-purple-600 hover:text-purple-500"
-              >
+              <Link href="#" className="text-purple-600 hover:text-purple-500">
                 Privacy Policy
               </Link>
             </label>

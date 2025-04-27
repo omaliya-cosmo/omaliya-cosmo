@@ -20,6 +20,7 @@ import Image from "next/image";
 import { logout } from "./login/actions";
 import { getAdminFromToken } from "../actions";
 import { Admin } from "@prisma/client";
+import { useUser } from "../lib/hooks/UserContext";
 
 export default function AdminLayout({
   children,
@@ -33,6 +34,7 @@ export default function AdminLayout({
   const [admin, setAdmin] = useState<any>(null);
   const [adminDetails, setAdminDetails] = useState<Admin>();
   const [loading, setLoading] = useState(true);
+  const { reloadUserData, userData, isLoading } = useUser();
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -126,6 +128,7 @@ export default function AdminLayout({
   ];
 
   const handleLogout = async () => {
+    reloadUserData();
     logout();
   };
 
