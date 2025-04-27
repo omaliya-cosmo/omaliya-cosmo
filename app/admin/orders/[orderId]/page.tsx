@@ -28,6 +28,7 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [contactMethod, setContactMethod] = useState<string>("");
 
   const router = useRouter();
 
@@ -36,6 +37,14 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
       try {
         const res = await axios.get(`/api/orders/${params.orderId}`);
         setOrder(res.data);
+
+        // Set default contact method to "phone" if available, otherwise "email"
+        if (res.data.address.phoneNumber) {
+          setContactMethod("phone");
+        } else if (res.data.address.email) {
+          setContactMethod("email");
+        }
+
         setLoading(false);
       } catch (err) {
         setError("Failed to fetch order details");
@@ -55,10 +64,18 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
     try {
       await axios.put(`/api/orders/${order?.id}`, {
         trackingNumber,
+        contactMethod,
         status: "PROCESSING",
       });
       setOrder((prev) =>
-        prev ? { ...prev, trackingNumber, status: "PROCESSING" } : prev
+        prev
+          ? {
+              ...prev,
+              trackingNumber,
+              status: "PROCESSING",
+              contactMethod,
+            }
+          : prev
       );
       alert("Order accepted successfully.");
     } catch (err) {
@@ -209,17 +226,29 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
               Fulfillment
             </h2>
-            <div className="flex items-center">
+            <div className="flex">
               <input
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 placeholder="Enter tracking number"
-                className="basis-8/12 border rounded-l-lg px-4 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="basis-6/12 border rounded-l-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
+              <select
+                value={contactMethod}
+                onChange={(e) => setContactMethod(e.target.value)}
+                className="basis-3/12 border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                {order.address.email && (
+                  <option value="email">Send via Email</option>
+                )}
+                {order.address.phoneNumber && (
+                  <option value="phone">Send via Phone</option>
+                )}
+              </select>
               <button
                 onClick={handleAccept}
-                className="basis-4/12 bg-blue-600 hover:bg-blue-700 text-white px-5 py-4 rounded-r-lg transition"
+                className="basis-3/12 bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-r-lg transition"
               >
                 Accept
               </button>
