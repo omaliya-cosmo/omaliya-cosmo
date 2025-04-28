@@ -731,6 +731,15 @@ export default function Header({
 }
 
 function AccountMenu({ userData }) {
+  const { reloadUserData } = useUser();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    reloadUserData();
+    router.push("/");
+  };
+
   return (
     <div className="relative group">
       <button className="text-gray-700 hover:text-purple-600 p-1 rounded-full group-hover:bg-purple-50 transition-colors">
@@ -804,7 +813,7 @@ function AccountMenu({ userData }) {
             </Link>
 
             <div className="border-t border-gray-100 my-1"></div>
-            <Button
+            <button
               onClick={handleLogout}
               className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
@@ -825,7 +834,7 @@ function AccountMenu({ userData }) {
                 </svg>
                 Sign Out
               </div>
-            </Button>
+            </button>
           </div>
         ) : (
           <div className="py-1">
@@ -892,6 +901,15 @@ function MobileMenu({
   bundles,
 }: any) {
   const [expandedCategory, setExpandedCategory] = useState(null);
+
+  const { reloadUserData } = useUser();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    reloadUserData();
+    router.push("/");
+  };
 
   return (
     <div
@@ -1230,7 +1248,7 @@ function MobileMenu({
                   </Link>
 
                   <div className="border-t border-gray-100 my-2"></div>
-                  <Button
+                  <button
                     onClick={handleLogout}
                     className="flex items-center text-red-600 font-medium py-2 px-3 rounded-lg hover:bg-red-50"
                   >
@@ -1249,7 +1267,7 @@ function MobileMenu({
                       />
                     </svg>
                     Sign Out
-                  </Button>
+                  </button>
                 </>
               ) : (
                 <>
