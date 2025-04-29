@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -393,4 +393,19 @@ const OrderConfirmationPage = () => {
   );
 };
 
-export default OrderConfirmationPage;
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500">Loading your order confirmation...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <OrderConfirmationPage />
+    </Suspense>
+  );
+}
