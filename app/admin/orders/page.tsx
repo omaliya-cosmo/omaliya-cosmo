@@ -50,7 +50,7 @@ const OrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [status]);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this order?")) return;
