@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileSecurity from "@/components/profile/ProfileSecurity";
 import ProfileAddresses from "@/components/profile/ProfileAddresses";
@@ -62,7 +62,7 @@ interface Customer extends PrismaCustomer {
   addresses: CustomerAddress[];
 }
 
-export default function ProfilePage() {
+function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("security");
   const router = useRouter();
@@ -338,5 +338,22 @@ export default function ProfilePage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ProfilePage />
+    </Suspense>
   );
 }
