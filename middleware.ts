@@ -3,50 +3,39 @@ import { cookies } from "next/headers";
 import { decrypt } from "@/app/lib/sessions";
 import { decryptAdminSession } from "@/app/lib/adminSession";
 
-// Define protected and public routes
 const protectedUserRoutes = ["/profile"];
 const publicUserRoutes = ["/login", "/register"];
-
 const publicAdminRoutes = ["/admin/login"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const response = NextResponse.next();
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
 
-  // Retrieve session cookies
   const sessionCookie = cookieStore.get("session")?.value;
   const adminCookie = cookieStore.get("admin_session")?.value;
 
-  // Decrypt user session
   const session = sessionCookie ? await decrypt(sessionCookie) : null;
   const user = session?.customerId;
 
-  // Decrypt admin session
   const adminSession = adminCookie
     ? await decryptAdminSession(adminCookie)
     : null;
   const admin = adminSession?.adminId;
 
-  // Check for existing country cookie
   let country = cookieStore.get("user_country")?.value;
 
+  // ✅ Use Vercel Edge Geo location
   if (!country) {
-    try {
-      const geoResponse = await fetch("http://ip-api.com/json");
-      const data = await geoResponse.json();
-      country = data.countryCode || "US";
-    } catch (error) {
-      country = "US"; // Default fallback
-    }
+    country = req.geo?.country || "US";
 
-    response.cookies.set("user_country", country || "US", {
+    response.cookies.set("user_country", country, {
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
   }
 
-  // User Authentication Logic
+  // User route protection
   if (protectedUserRoutes.includes(path) && !user) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
@@ -54,7 +43,7 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
-  // Admin Authentication Logic
+  // Admin route protection
   if (
     path.startsWith("/admin/") &&
     !publicAdminRoutes.includes(path) &&
@@ -72,7 +61,6 @@ export default async function middleware(req: NextRequest) {
   return response;
 }
 
-// Config to match all routes except static files and API routes
 export const config = {
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
