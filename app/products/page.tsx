@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import ProductsHeader from "@/components/products/ProductsHeader";
 import ProductFilterSidebar from "@/components/products/ProductFilterSidebar";
 import ProductGrid from "@/components/products/ProductGrid";
@@ -52,7 +52,7 @@ interface Filters {
   tags?: string[];
 }
 
-export default function ProductsPage() {
+function ProductsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -622,5 +622,22 @@ export default function ProductsPage() {
         </motion.div>
       </div>
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ProductsPage />
+    </Suspense>
   );
 }
