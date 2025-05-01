@@ -14,7 +14,7 @@ import {
   Review,
   Product as PrismaProduct,
 } from "@prisma/client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -72,11 +72,10 @@ function ProductsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const { country, updateCountry } = useCountry();
   const pageSize = 12;
-
-  // New state variables for header props
 
   const { refreshCart } = useCart();
 
@@ -302,6 +301,11 @@ function ProductsPage() {
     transition: { duration: 0.6 },
   };
 
+  // Toggle mobile filter visibility
+  const toggleMobileFilter = () => {
+    setIsMobileFilterOpen(!isMobileFilterOpen);
+  };
+
   return (
     <main className="bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -455,22 +459,135 @@ function ProductsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
-            {/* Filter sidebar with subtle animations */}
-            <motion.aside
-              className="lg:w-1/4"
-              {...fadeIn}
-              transition={{ duration: 0.5, delay: 0.3 }}
+          {/* Mobile filter toggle button */}
+          <div className="lg:hidden mb-4">
+            <button
+              onClick={toggleMobileFilter}
+              className="w-full py-3 px-4 flex items-center justify-between bg-white rounded-lg shadow-sm border border-purple-100 text-gray-700 font-medium transition-colors hover:bg-purple-50"
             >
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-purple-100/50 p-4">
-                <ProductFilterSidebar
-                  currentFilters={filters}
-                  onFilterChange={handleFilterChange}
-                  productCount={filteredProducts.length}
-                  country={country}
-                />
+              <div className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2 text-purple-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Filters ({filteredProducts.length} products)
               </div>
-            </motion.aside>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${
+                  isMobileFilterOpen ? "rotate-180" : ""
+                }`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
+            {/* Filter sidebar - desktop visible, mobile collapsible */}
+            <AnimatePresence>
+              {(isMobileFilterOpen || window.innerWidth >= 1024) && (
+                <motion.aside
+                  className={`lg:w-1/4 ${
+                    isMobileFilterOpen
+                      ? "fixed inset-0 z-40 lg:relative lg:z-0"
+                      : "hidden lg:block"
+                  }`}
+                  initial={{ opacity: 0, height: 0, y: -20 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* Overlay for mobile */}
+                  {isMobileFilterOpen && (
+                    <motion.div
+                      className="fixed inset-0 bg-black/50 lg:hidden"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={toggleMobileFilter}
+                    />
+                  )}
+
+                  {/* Actual filter panel */}
+                  <motion.div
+                    className={`${
+                      isMobileFilterOpen
+                        ? "fixed top-0 right-0 h-full w-[80%] max-w-sm z-50 overflow-y-auto"
+                        : "relative"
+                    } 
+                      bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-purple-100/50 p-4 lg:shadow-sm
+                    `}
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "tween", duration: 0.3 }}
+                  >
+                    {/* Mobile filter header */}
+                    {isMobileFilterOpen && (
+                      <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4 lg:hidden">
+                        <h3 className="font-bold text-lg text-gray-800 flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-2 text-purple-600"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Filters
+                        </h3>
+                        <button
+                          onClick={toggleMobileFilter}
+                          className="text-gray-500 hover:text-gray-700"
+                          aria-label="Close filters"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    <ProductFilterSidebar
+                      currentFilters={filters}
+                      onFilterChange={handleFilterChange}
+                      productCount={filteredProducts.length}
+                      country={country}
+                    />
+                  </motion.div>
+                </motion.aside>
+              )}
+            </AnimatePresence>
 
             {/* Main product content with animations */}
             <motion.div
