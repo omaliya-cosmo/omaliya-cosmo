@@ -14,6 +14,7 @@ import {
   FiPackage,
   FiX,
   FiTrash2,
+  FiMessageCircle,
 } from "react-icons/fi";
 import axios from "axios";
 import { Product, ProductCategory, ProductTag } from "@prisma/client";
@@ -250,6 +251,17 @@ const EditProduct = ({ params }: { params: { productId: string } }) => {
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
+            <button
+              onClick={() =>
+                router.push(
+                  `/admin/inventory/products/${params.productId}/reviews`
+                )
+              }
+              className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-md shadow-sm flex items-center"
+            >
+              <FiMessageCircle className="mr-2" />
+              Manage Reviews
+            </button>
             <button
               onClick={() => router.push("/admin/inventory/products")}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm"

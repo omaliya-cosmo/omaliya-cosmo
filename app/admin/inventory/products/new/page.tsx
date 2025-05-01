@@ -192,7 +192,7 @@ const AddProduct = () => {
           <div>
             <div className="flex items-center text-sm text-gray-500 mb-2">
               <button
-                onClick={() => router.push("/admin/products")}
+                onClick={() => router.push("/admin/inventory/products")}
                 className="hover:text-blue-600 flex items-center"
               >
                 <FiArrowLeft className="mr-1" />

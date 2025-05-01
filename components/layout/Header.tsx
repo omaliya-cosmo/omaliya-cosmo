@@ -61,7 +61,7 @@ export default function Header({
     setIsMenuOpen(false);
   }, [pathname]);
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: any) => {
     e.preventDefault();
     // Implement search functionality
     console.log(`Searching for: ${searchQuery}`);

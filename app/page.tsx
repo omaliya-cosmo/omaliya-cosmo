@@ -13,7 +13,7 @@ import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BenefitsBanner from "@/components/home/BenefitsBanner";
 import Testimonials from "@/components/home/Testimonials";
 import FeaturedBundles from "@/components/home/FeaturedBundles";
-import SocialMediaFeed from "@/components/home/SocialMediaFeed"; // Import the new component
+import SocialMediaFeed from "@/components/home/SocialMediaFeed";
 import { useCart } from "./lib/hooks/CartContext";
 import {
   BundleOffer as PrismaBundleOffer,
@@ -48,36 +48,13 @@ export default function Home() {
   const { refreshCart } = useCart();
 
   useEffect(() => {
-    // Fetch products data
+    // Fetch all homepage data in a single request
     axios
-      .get("/api/products?reviews=true&category=true")
+      .get("/api/homepage?reviews=true&category=true")
       .then((res) => {
         setProducts(res.data.products);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-
-    // Fetch categories data
-    axios
-      .get("/api/categories")
-      .then((res) => {
         setCategories(res.data.categories);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-
-    // Fetch bundle offers data
-    axios
-      .get("/api/bundleoffers")
-      .then((res) => {
-        console.log("bundle", res.data);
-        setBundleoffers(res.data);
+        setBundleoffers(res.data.bundleOffers);
         setLoading(false);
       })
       .catch((err) => {

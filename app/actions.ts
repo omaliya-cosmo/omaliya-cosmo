@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { decrypt } from "@/app/lib/sessions";
 import { decryptAdminSession } from "@/app/lib/adminSession";
-import { prisma } from "./lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 
 // Function to get customer data by token
 export async function getCustomerFromToken() {
@@ -56,5 +56,43 @@ export async function getAdminFromToken() {
   } catch (error) {
     console.error("Error fetching admin from database:", error);
     return null;
+  }
+}
+
+// Function to get homepage data
+export async function getHomePageData() {
+  try {
+    // Fetch all data concurrently for better performance
+    const [products, categories, bundleOffers] = await Promise.all([
+      prisma.product.findMany({
+        include: {
+          reviews: true,
+          category: true,
+        },
+      }),
+      prisma.productCategory.findMany(),
+      prisma.bundleOffer.findMany({
+        include: {
+          products: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      products,
+      categories,
+      bundleOffers,
+    };
+  } catch (error) {
+    console.error("Error fetching homepage data:", error);
+    throw new Error("Failed to fetch homepage data");
   }
 }

@@ -20,23 +20,20 @@ export default function HeaderWrapper() {
   const { cartCount } = useCart();
   const { userData, reloadUserData, isLoading } = useUser();
 
-  // Fetch products, categories and bundles for the header navigation
+  // Fetch all header data in a single API call
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch products (limit to a few for the header)
-        const productsResponse = await axios.get("/api/products");
-        setProducts(productsResponse.data.products || []);
+        // Use the new consolidated header API endpoint
+        const response = await axios.get("/api/header");
+        const data = response.data;
 
-        // Fetch categories
-        const categoriesResponse = await axios.get("/api/categories");
-        setCategories(categoriesResponse.data.categories || []);
-
-        // Fetch bundles
-        const bundlesResponse = await axios.get("/api/bundleoffers");
-        setBundles(bundlesResponse.data || []);
+        // Extract data from the response
+        setProducts(data.products || []);
+        setCategories(data.categories || []);
+        setBundles(data.bundles || []);
 
         setLoading(false);
       } catch (err) {
