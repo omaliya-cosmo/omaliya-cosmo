@@ -25,11 +25,10 @@ export default async function middleware(req: NextRequest) {
 
   let country = cookieStore.get("user_country")?.value;
 
-  // ✅ Use Vercel Edge Geo location
   if (!country) {
-    country = (req as any).geo?.country || "US";
+    country = (req as any).geo?.country || "LK";
 
-    response.cookies.set("user_country", country || "LK", {
+    response.cookies.set("user_country", country, {
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
