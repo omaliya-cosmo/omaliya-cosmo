@@ -283,27 +283,29 @@ const CartPage = () => {
     <div className="max-w-6xl mx-auto px-4 py-10">
       <ToastContainer />
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white">
+        <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-4 md:px-8">
+          <h1 className="text-2xl md:text-4xl font-bold text-white">
             Your Shopping Cart
           </h1>
-          <p className="text-purple-200 mt-2">
+          <p className="text-purple-200 mt-2 text-sm md:text-base">
             Review your items before checkout
           </p>
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500">Loading your cart...</p>
+            <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 text-sm md:text-base">
+              Loading your cart...
+            </p>
           </div>
         ) : cartItems.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="mb-8">
-              <div className="w-32 h-32 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
+              <div className="w-24 h-24 md:w-32 md:h-32 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-16 w-16 text-purple-500"
+                  className="h-12 w-12 md:h-16 md:w-16 text-purple-500"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -317,22 +319,22 @@ const CartPage = () => {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800">
               Your cart is empty
             </h2>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm md:text-base">
               Discover our collection of beauty products and add your favorites
               to your cart.
             </p>
             <Link
               href="/products"
-              className="inline-block bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-150"
+              className="inline-block bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-150 text-sm md:text-base"
             >
               Explore Products
             </Link>
           </div>
         ) : (
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-8">
             <div className="mb-10">
               <div className="hidden md:grid grid-cols-12 gap-6 text-sm font-semibold text-gray-500 mb-4 px-4 border-b pb-2">
                 <div className="col-span-6">Product</div>
@@ -348,7 +350,7 @@ const CartPage = () => {
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
                     <div className="col-span-12 md:col-span-6 flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-colors">
+                      <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center group-hover:bg-purple-50 transition-colors">
                         {item.isBundle ? (
                           // Bundle image
                           item.details?.imageUrl ? (
@@ -419,18 +421,18 @@ const CartPage = () => {
                               : `/products/${item.productId}`
                           }
                         >
-                          <h3 className="font-semibold text-gray-800 text-lg mb-1 group-hover:text-purple-700 transition-colors">
+                          <h3 className="font-semibold text-gray-800 text-base md:text-lg mb-1 group-hover:text-purple-700 transition-colors">
                             {item.isBundle
                               ? item.details?.bundleName || "Bundle"
                               : item.details?.name || "Product"}
                           </h3>
                         </Link>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500">
+                        <div className="flex items-center space-x-2 text-xs md:text-sm">
+                          <span className="text-gray-500">
                             #{item.productId.substring(0, 8)}
                           </span>
                           <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-gray-500">
                             {item.isBundle
                               ? "Bundle"
                               : item.details?.category?.name || "Cosmetics"}
@@ -606,26 +608,26 @@ const CartPage = () => {
               ))}
             </div>
 
-            <div className="grid md:grid-cols-5 gap-8 items-start">
+            <div className="grid md:grid-cols-5 gap-4 md:gap-8 items-start">
               <div className="md:col-span-3">
-                <div className="bg-purple-50 p-6 rounded-xl mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                <div className="bg-purple-50 p-4 md:p-6 rounded-xl mb-6">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-3">
                     Have a promo code?
                   </h3>
-                  <div className="flex">
+                  <div className="flex flex-col md:flex-row">
                     <input
                       type="text"
                       placeholder="Enter code"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
-                      className="flex-grow px-4 py-2 bg-white border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-grow px-4 py-2 bg-white border border-gray-200 rounded-t-lg md:rounded-l-lg md:rounded-t-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                     />
                     <button
-                      className={`px-4 py-2 bg-purple-600 text-white font-medium rounded-r-lg ${
+                      className={`px-4 py-2 bg-purple-600 text-white font-medium rounded-b-lg md:rounded-r-lg md:rounded-b-none ${
                         applyingPromo
                           ? "opacity-70 cursor-wait"
                           : "hover:bg-purple-700"
-                      } transition-colors`}
+                      } transition-colors text-sm`}
                       onClick={applyPromoCode}
                       disabled={applyingPromo || !promoCode.trim()}
                     >
@@ -684,12 +686,12 @@ const CartPage = () => {
               </div>
 
               <div className="md:col-span-2">
-                <div className="bg-white border border-gray-100 rounded-xl shadow-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                <div className="bg-white border border-gray-100 rounded-xl shadow-lg p-4 md:p-6">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-4">
                     Order Summary
                   </h3>
 
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-3 mb-4 text-sm md:text-base">
                     <div className="flex justify-between text-gray-600">
                       <span>
                         Subtotal (
@@ -733,10 +735,10 @@ const CartPage = () => {
 
                   <div className="border-t border-gray-200 pt-4 mb-6">
                     <div className="flex justify-between">
-                      <span className="text-lg font-bold text-gray-800">
+                      <span className="text-base md:text-lg font-bold text-gray-800">
                         Total
                       </span>
-                      <span className="text-lg font-bold text-purple-700">
+                      <span className="text-base md:text-lg font-bold text-purple-700">
                         {country === "LK"
                           ? `Rs ${total.toLocaleString("en-US", {
                               minimumFractionDigits: 0,
@@ -748,19 +750,19 @@ const CartPage = () => {
                             })}`}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs md:text-sm text-gray-500 mt-1">
                       Delivery expected within a few business days.
                     </p>
                   </div>
 
                   <Link
                     href="/checkout"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 md:py-3 px-4 rounded-md transition duration-200 flex items-center justify-center text-sm md:text-base"
                   >
                     <span>Proceed to Checkout</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 ml-2"
+                      className="h-4 w-4 md:h-5 md:w-5 ml-2"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -773,44 +775,44 @@ const CartPage = () => {
                   </Link>
 
                   <div className="mt-4 flex items-center justify-center space-x-2">
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-gray-500 text-xs md:text-sm">
                       Secure payment
                     </span>
                     <div className="flex space-x-1">
                       <img
                         src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/VISA-logo_aehekz.png"
                         alt="Visa"
-                        className="h-5 w-8 object-contain"
+                        className="h-4 w-6 md:h-5 md:w-8 object-contain"
                       />
                       <img
                         src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/MAINLogo-HD_H_21.01.05_navu1g.webp"
                         alt="KOKO"
-                        className="h-5 w-8 object-contain"
+                        className="h-4 w-6 md:h-5 md:w-8 object-contain"
                       />
                       <img
                         src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/American-Express-Color_ga7hmr.png"
                         alt="American Express"
-                        className="h-5 w-8 object-contain"
+                        className="h-4 w-6 md:h-5 md:w-8 object-contain"
                       />
                       <img
                         src="https://res.cloudinary.com/omaliya/image/upload/v1745201618/mastercard-logo_p8qlfa.png"
                         alt="Mastercard"
-                        className="h-5 w-8 object-contain"
+                        className="h-4 w-6 md:h-5 md:w-8 object-contain"
                       />
                       <img
                         src="https://res.cloudinary.com/omaliya/image/upload/v1745201618/PayHere-Logo_brngkl.png"
                         alt="PayHere"
-                        className="h-5 w-8 object-contain"
+                        className="h-4 w-6 md:h-5 md:w-8 object-contain"
                       />
                     </div>
                   </div>
 
                   {error && (
-                    <div className="mt-4 bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
+                    <div className="mt-4 bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-xs md:text-sm">
                       <div className="flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 mr-2 flex-shrink-0"
+                          className="h-4 w-4 md:h-5 md:w-5 mr-2 flex-shrink-0"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"

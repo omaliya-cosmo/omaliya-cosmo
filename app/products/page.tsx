@@ -449,18 +449,22 @@ function ProductsPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {/* Category Tabs - Flexbox layout */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div className="w-full md:w-auto">
-              <CategoryTabsFilter
-                currentCategory={filters.category}
-                onCategoryChange={handleCategoryChange}
-              />
+          {/* Category Tabs - With mobile-friendly scrollable container */}
+          <div className="mb-6 relative">
+            <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+              <div className="flex items-center whitespace-nowrap min-w-max">
+                <CategoryTabsFilter
+                  currentCategory={filters.category}
+                  onCategoryChange={handleCategoryChange}
+                />
+              </div>
             </div>
+            {/* Add scroll indicators when overflow is present */}
+            <div className="hidden sm:hidden absolute right-0 top-1/2 transform -translate-y-1/2 bg-gradient-to-l from-white/90 via-white/70 to-transparent w-8 h-full pointer-events-none"></div>
           </div>
 
           {/* Mobile filter toggle button */}
-          <div className="lg:hidden mb-4">
+          <div className="lg:hidden mb-4 px-4">
             <button
               onClick={toggleMobileFilter}
               className="w-full py-3 px-4 flex items-center justify-between bg-white rounded-lg shadow-sm border border-purple-100 text-gray-700 font-medium transition-colors hover:bg-purple-50"
@@ -527,7 +531,7 @@ function ProductsPage() {
                   <motion.div
                     className={`${
                       isMobileFilterOpen
-                        ? "fixed top-0 right-0 h-full w-[80%] max-w-sm z-50 overflow-y-auto"
+                        ? "fixed top-0 right-0 h-full w-[80%] max-w-sm z-50 overflow-y-auto mt-24"
                         : "relative"
                     } 
                       bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-purple-100/50 p-4 lg:shadow-sm

@@ -205,7 +205,7 @@ export default function BundlesPage() {
         </div>
 
         {/* Filters and Sorting */}
-        <div className="container mx-auto px-24 py-8">
+        <div className="container mx-auto px-12 md:px-24 py-8">
           {/* Sorting controls */}
           <div className="flex justify-end mb-6">
             <div className="w-64">

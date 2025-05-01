@@ -6,14 +6,17 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 
 // Dynamically import globe component with no SSR
-const World = dynamic(() => import("@/components/ui/globe").then(mod => mod.World), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[600px] w-full items-center justify-center">
-      <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
-    </div>
-  )
-});
+const World = dynamic(
+  () => import("@/components/ui/globe").then((mod) => mod.World),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[600px] w-full items-center justify-center">
+        <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+      </div>
+    ),
+  }
+);
 
 export default function AboutPage() {
   // Globe data state with expanded connections and volume indicators
@@ -28,7 +31,7 @@ export default function AboutPage() {
       arcAlt: 0.4,
       color: "#9333ea", // purple-600
       volume: 27500,
-      name: "Japan"
+      name: "Japan",
     },
     {
       order: 2,
@@ -39,7 +42,7 @@ export default function AboutPage() {
       arcAlt: 0.8,
       color: "#db2777", // pink-600
       volume: 35000,
-      name: "United States"
+      name: "United States",
     },
     {
       order: 3,
@@ -50,7 +53,7 @@ export default function AboutPage() {
       arcAlt: 0.6,
       color: "#4f46e5", // indigo-600
       volume: 18000,
-      name: "United Kingdom"
+      name: "United Kingdom",
     },
     {
       order: 4,
@@ -61,7 +64,7 @@ export default function AboutPage() {
       arcAlt: 0.3,
       color: "#c026d3", // fuchsia-600
       volume: 12500,
-      name: "UAE"
+      name: "UAE",
     },
     {
       order: 5,
@@ -72,7 +75,7 @@ export default function AboutPage() {
       arcAlt: 0.5,
       color: "#f97316", // orange-500
       volume: 8500,
-      name: "Australia"
+      name: "Australia",
     },
     {
       order: 6,
@@ -83,7 +86,7 @@ export default function AboutPage() {
       arcAlt: 0.2,
       color: "#ec4899", // pink-500
       volume: 42000,
-      name: "India"
+      name: "India",
     },
     // Secondary markets
     {
@@ -95,7 +98,7 @@ export default function AboutPage() {
       arcAlt: 0.75,
       color: "#8b5cf6", // violet-500
       volume: 7200,
-      name: "Canada"
+      name: "Canada",
     },
     {
       order: 8,
@@ -106,18 +109,18 @@ export default function AboutPage() {
       arcAlt: 0.4,
       color: "#06b6d4", // cyan-500
       volume: 15000,
-      name: "China"
+      name: "China",
     },
     {
       order: 9,
       startLat: 7.8731,
       startLng: 80.7718, // Sri Lanka
-      endLat: 60.1282, 
+      endLat: 60.1282,
       endLng: 18.6435, // Sweden
       arcAlt: 0.6,
       color: "#14b8a6", // teal-500
       volume: 5800,
-      name: "Sweden"
+      name: "Sweden",
     },
     {
       order: 10,
@@ -128,18 +131,18 @@ export default function AboutPage() {
       arcAlt: 0.85,
       color: "#f43f5e", // rose-500
       volume: 4900,
-      name: "Mexico"
+      name: "Mexico",
     },
     {
       order: 11,
       startLat: 7.8731,
       startLng: 80.7718, // Sri Lanka
-      endLat: -14.2350,
+      endLat: -14.235,
       endLng: -51.9253, // Brazil
       arcAlt: 0.75,
       color: "#0ea5e9", // sky-500
       volume: 6700,
-      name: "Brazil"
+      name: "Brazil",
     },
     {
       order: 12,
@@ -150,29 +153,29 @@ export default function AboutPage() {
       arcAlt: 0.7,
       color: "#a855f7", // purple-500
       volume: 3500,
-      name: "Colombia"
+      name: "Colombia",
     },
     {
       order: 13,
       startLat: 7.8731,
       startLng: 80.7718, // Sri Lanka
-      endLat: 61.5240,
+      endLat: 61.524,
       endLng: 105.3188, // Russia
       arcAlt: 0.5,
       color: "#d946ef", // fuchsia-500
       volume: 2900,
-      name: "Russia"
+      name: "Russia",
     },
     {
       order: 14,
       startLat: 7.8731,
       startLng: 80.7718, // Sri Lanka
-      endLat: -30.5595, 
+      endLat: -30.5595,
       endLng: 22.9375, // South Africa
       arcAlt: 0.4,
       color: "#10b981", // emerald-500
       volume: 3800,
-      name: "South Africa"
+      name: "South Africa",
     },
     // Growing markets
     {
@@ -180,11 +183,11 @@ export default function AboutPage() {
       startLat: 7.8731,
       startLng: 80.7718, // Sri Lanka
       endLat: -40.9006,
-      endLng: 174.8860, // New Zealand
+      endLng: 174.886, // New Zealand
       arcAlt: 0.5,
       color: "#f59e0b", // amber-500
       volume: 2200,
-      name: "New Zealand"
+      name: "New Zealand",
     },
     {
       order: 16,
@@ -195,8 +198,8 @@ export default function AboutPage() {
       arcAlt: 0.25,
       color: "#ef4444", // red-500
       volume: 5100,
-      name: "Singapore"
-    }
+      name: "Singapore",
+    },
   ]);
 
   // Enhanced globe configuration with richer visual effects
@@ -219,7 +222,7 @@ export default function AboutPage() {
     rings: 3,
     maxRings: 5,
     autoRotate: true,
-    autoRotateSpeed: 0.7 // slightly slower for smoother rotation
+    autoRotateSpeed: 0.7, // slightly slower for smoother rotation
   };
 
   // Fetch necessary data for header
@@ -693,8 +696,8 @@ export default function AboutPage() {
                 <h3 className="font-bold text-gray-800">Annual Growth</h3>
               </div>
               <p className="text-gray-600 mb-4">
-                Year over year, our global customer base continues to grow as
-                we expand to new markets.
+                Year over year, our global customer base continues to grow as we
+                expand to new markets.
               </p>
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-500">YoY Growth</div>
@@ -722,7 +725,7 @@ export default function AboutPage() {
                   name: "Jessica M.",
                   location: "United States",
                   image:
-                    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+                    "https://res.cloudinary.com/omaliya/image/upload/v1746123546/istockphoto-986662114-612x612_dnytym_lqiocl.jpg",
                   stars: 5,
                 },
                 {
@@ -731,7 +734,7 @@ export default function AboutPage() {
                   name: "Priya S.",
                   location: "India",
                   image:
-                    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+                    "https://res.cloudinary.com/omaliya/image/upload/v1746123546/istockphoto-986662114-612x612_dnytym_lqiocl.jpg",
                   stars: 5,
                 },
               ].map((testimonial, idx) => (
@@ -799,8 +802,8 @@ export default function AboutPage() {
             Join Our Beauty Journey
           </h2>
           <p className="text-2xl text-white/90 mb-10 max-w-3xl mx-auto font-light reveal">
-            Discover the difference of Omaliya Cosmo products and become part
-            of our growing community.
+            Discover the difference of Omaliya Cosmo products and become part of
+            our growing community.
           </p>
           <div className="flex flex-wrap justify-center gap-4 reveal">
             <Link

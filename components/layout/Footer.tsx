@@ -357,7 +357,7 @@ export default function Footer() {
             <div className="container mx-auto px-4">
               <div className="flex flex-wrap justify-center items-center gap-4">
                 <span className="text-gray-500 text-sm">We accept:</span>
-                <div className="flex space-x-4">
+                <div className="flex flex-wrap space-x-4">
                   <img
                     src="https://res.cloudinary.com/omaliya/image/upload/v1745201619/VISA-logo_aehekz.png"
                     alt="Visa"

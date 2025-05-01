@@ -249,7 +249,7 @@ export default function BundleDetailPage() {
           }}
         />
 
-        <div className="container mx-auto px-24 relative z-10">
+        <div className="container mx-auto px-12 md:px-24 relative z-10">
           {/* Breadcrumbs */}
           <Breadcrumb className="">
             <BreadcrumbItem>
@@ -275,7 +275,7 @@ export default function BundleDetailPage() {
         </div>
       </section>
 
-      <div className="container mx-auto px-24 py-8 -mt-6">
+      <div className="container mx-auto px-12 md:px-24 py-8 -mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
           {/* Left column: Bundle image */}
           <motion.div
@@ -381,7 +381,7 @@ export default function BundleDetailPage() {
 
             {/* Pricing section */}
             <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg border border-purple-100/50 shadow-sm">
-              <div className="flex items-baseline">
+              <div className="flex items-baseline flex-wrap">
                 <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-700">
                   {country === "LK" ? "Rs." : "$"}
                   {(country === "LK"
