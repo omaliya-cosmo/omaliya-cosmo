@@ -1,10 +1,227 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamically import globe component with no SSR
+const World = dynamic(() => import("@/components/ui/globe").then(mod => mod.World), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[600px] w-full items-center justify-center">
+      <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
+    </div>
+  )
+});
 
 export default function AboutPage() {
+  // Globe data state with expanded connections and volume indicators
+  const [globeData, setGlobeData] = useState([
+    // Major markets
+    {
+      order: 1,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 36.2048,
+      endLng: 138.2529, // Japan
+      arcAlt: 0.4,
+      color: "#9333ea", // purple-600
+      volume: 27500,
+      name: "Japan"
+    },
+    {
+      order: 2,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 37.0902,
+      endLng: -95.7129, // USA
+      arcAlt: 0.8,
+      color: "#db2777", // pink-600
+      volume: 35000,
+      name: "United States"
+    },
+    {
+      order: 3,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 51.5074,
+      endLng: -0.1278, // UK
+      arcAlt: 0.6,
+      color: "#4f46e5", // indigo-600
+      volume: 18000,
+      name: "United Kingdom"
+    },
+    {
+      order: 4,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 25.2744,
+      endLng: 55.3047, // UAE
+      arcAlt: 0.3,
+      color: "#c026d3", // fuchsia-600
+      volume: 12500,
+      name: "UAE"
+    },
+    {
+      order: 5,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: -25.2744,
+      endLng: 133.7751, // Australia
+      arcAlt: 0.5,
+      color: "#f97316", // orange-500
+      volume: 8500,
+      name: "Australia"
+    },
+    {
+      order: 6,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 20.5937,
+      endLng: 78.9629, // India
+      arcAlt: 0.2,
+      color: "#ec4899", // pink-500
+      volume: 42000,
+      name: "India"
+    },
+    // Secondary markets
+    {
+      order: 7,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 56.1304,
+      endLng: -106.3468, // Canada
+      arcAlt: 0.75,
+      color: "#8b5cf6", // violet-500
+      volume: 7200,
+      name: "Canada"
+    },
+    {
+      order: 8,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 35.8617,
+      endLng: 104.1954, // China
+      arcAlt: 0.4,
+      color: "#06b6d4", // cyan-500
+      volume: 15000,
+      name: "China"
+    },
+    {
+      order: 9,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 60.1282, 
+      endLng: 18.6435, // Sweden
+      arcAlt: 0.6,
+      color: "#14b8a6", // teal-500
+      volume: 5800,
+      name: "Sweden"
+    },
+    {
+      order: 10,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 23.6345,
+      endLng: -102.5528, // Mexico
+      arcAlt: 0.85,
+      color: "#f43f5e", // rose-500
+      volume: 4900,
+      name: "Mexico"
+    },
+    {
+      order: 11,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: -14.2350,
+      endLng: -51.9253, // Brazil
+      arcAlt: 0.75,
+      color: "#0ea5e9", // sky-500
+      volume: 6700,
+      name: "Brazil"
+    },
+    {
+      order: 12,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 4.5709,
+      endLng: -74.2973, // Colombia
+      arcAlt: 0.7,
+      color: "#a855f7", // purple-500
+      volume: 3500,
+      name: "Colombia"
+    },
+    {
+      order: 13,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 61.5240,
+      endLng: 105.3188, // Russia
+      arcAlt: 0.5,
+      color: "#d946ef", // fuchsia-500
+      volume: 2900,
+      name: "Russia"
+    },
+    {
+      order: 14,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: -30.5595, 
+      endLng: 22.9375, // South Africa
+      arcAlt: 0.4,
+      color: "#10b981", // emerald-500
+      volume: 3800,
+      name: "South Africa"
+    },
+    // Growing markets
+    {
+      order: 15,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: -40.9006,
+      endLng: 174.8860, // New Zealand
+      arcAlt: 0.5,
+      color: "#f59e0b", // amber-500
+      volume: 2200,
+      name: "New Zealand"
+    },
+    {
+      order: 16,
+      startLat: 7.8731,
+      startLng: 80.7718, // Sri Lanka
+      endLat: 1.3521,
+      endLng: 103.8198, // Singapore
+      arcAlt: 0.25,
+      color: "#ef4444", // red-500
+      volume: 5100,
+      name: "Singapore"
+    }
+  ]);
+
+  // Enhanced globe configuration with richer visual effects
+  const globeConfig = {
+    pointSize: 2.5,
+    globeColor: "#0f172a", // slate-900, richer darker base
+    showAtmosphere: true,
+    atmosphereColor: "#c4b5fd", // violet-300, gives a magical glow
+    atmosphereAltitude: 0.2,
+    emissive: "#2d1d5a", // deep purple emissive
+    emissiveIntensity: 0.2,
+    shininess: 0.9,
+    polygonColor: "rgba(255,255,255,0.7)",
+    ambientLight: "#ffffff",
+    directionalLeftLight: "#f0abfc", // fuchsia-300, gives warm side light
+    directionalTopLight: "#818cf8", // indigo-300, cool top light
+    pointLight: "#ffffff",
+    arcTime: 3000, // slower animation for more fluid motion
+    arcLength: 0.9,
+    rings: 3,
+    maxRings: 5,
+    autoRotate: true,
+    autoRotateSpeed: 0.7 // slightly slower for smoother rotation
+  };
+
   // Fetch necessary data for header
   useEffect(() => {
     // Simple scroll reveal animation
@@ -286,7 +503,7 @@ export default function AboutPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   />
                 </svg>
               </div>
@@ -356,326 +573,36 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 px-4 bg-gradient-to-b from-purple-50 to-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center text-gray-800 mb-16 reveal">
-            What Our Customers Say
-          </h2>
-          <div className="grid md:grid-cols-3 gap-10">
-            {[
-              {
-                text: "Omaliya's products have completely elevated my self-care routine. I've never felt more refreshed!",
-                name: "Nadeesha K.",
-                location: "Colombo",
-              },
-              {
-                text: "I love that these products are eco-friendly and genuinely effective. I've seen such a positive change!",
-                name: "Tharindu S.",
-                location: "Kandy",
-              },
-              {
-                text: "Finally found products that suit me perfectly. Thank you for understanding real needs!",
-                name: "Dilani R.",
-                location: "Galle",
-              },
-            ].map((testimonial, index) => (
-              <div
-                key={index}
-                className="bg-white p-8 rounded-2xl shadow-lg reveal"
-              >
-                <div className="flex items-center mb-6">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg
-                      key={star}
-                      className="w-5 h-5 text-yellow-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-6 italic">
-                  "{testimonial.text}"
-                </p>
-                <div>
-                  <p className="font-semibold text-gray-800">
-                    {testimonial.name}
-                  </p>
-                  <p className="text-purple-600 text-sm">
-                    {testimonial.location}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Advanced Customer World Map Section */}
+      <section className="py-24 px-4 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('/images/dot-pattern.png')] bg-repeat opacity-5"></div>
         </div>
-      </section>
 
-      {/* Customer World Map Section */}
-      <section className="py-24 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto relative">
           <div className="text-center mb-16">
+            <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium mb-4 reveal">
+              Global Impact
+            </span>
             <h2 className="text-4xl font-bold text-gray-800 mb-4 reveal">
               Our Global Community
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto reveal">
-              Omaliya Cosmo products are loved by customers around the world.
-              Explore our growing global footprint.
+              Omaliya Cosmo products are loved by customers across continents,
+              creating beautiful experiences worldwide.
             </p>
           </div>
 
-          <div className="relative bg-gradient-to-b from-purple-50 to-pink-50 p-8 rounded-3xl shadow-lg overflow-hidden reveal">
-            {/* Decorative elements */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-200 rounded-full opacity-30 blur-2xl"></div>
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-pink-200 rounded-full opacity-30 blur-2xl"></div>
-
-            {/* World Map SVG */}
-            <div className="relative h-[500px] w-full">
-              <svg
-                viewBox="0 0 1000 500"
-                className="w-full h-full"
-                style={{
-                  filter: "drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))",
-                }}
-              >
-                <path
-                  d="M181.7,102.4c-2.8,0.4-5.6,0.7-8.5,0.9c-3.2,4.7-8.5,6.5-14.1,4.4c-5.2,0.7-9.8,2.2-8.9,8.9 c-4.9,0.4-4.4,5.5-6.3,8.5c-3.2,0.5-4.1,2.2-3.5,5.6c-1.4,2.5-5.4,0.8-6.4,4.1c-3.6,0.9-6.9-0.4-10.2-1.4c-3.9-1.1-7.4-3.4-11.7-3 c-7.6,0.7-14.1,5.4-21.9,5.1c-0.6,3-2.8,4.5-5.5,5.5c-1.5,0.6-3,1.1-4.6,1.7c-1.2,0.4-2.4,0.8-3.2,1.8c-1.2,1.5-0.4,3.5,0,5.1 c0.3,1,0.7,2,1.3,2.9c3.6,5,3.1,11.2,4.8,16.9c6.1,1.4,11.2-2.7,17-3c1.4,7.5,11.1,8.1,14.4,14.3c1,1.9,0.1,4-0.7,5.8 c-0.1,0.2-0.2,0.4-0.3,0.6c-1.8,3.9-3.6,7.8-5.4,11.7c-0.2,0.8-0.5,1.5-0.9,2.3c-0.9,1.8-2.1,3.4-3.7,4.7c-3.1,2.5-5.5,5.6-8.4,8.3 c-1.4,1.3-2.8,2.6-4.3,3.8c-0.5,0.4-1,0.7-1.6,1c-1.9,1.1-4.1,1.2-6.3,1.4h-0.1c-2.7,0.2-5.3,0.8-7.6,2.3c-1.5,1-2.6,2.3-3.3,3.9 c-1,2-1,4.3-1.5,6.4c-0.5,2.1-1.6,4.1-3.5,5c-1,0.5-2.1,0.7-3.2,0.7c-3.5,0.1-7.1-1.2-9.7-3.4c-1.3-1.1-2.3-2.4-3.5-3.5 c-1.6-1.5-3.5-2.7-5.6-3.6c-0.9-0.4-1.8-0.7-2.7-0.7c-2.4,0-4.2,2.1-5.8,3.8c-2.4,2.7-4.7,5.4-7.1,8.1c-1.1,1.3-2.2,2.6-3.3,3.9 c-0.4,0.5-0.9,1.1-1.5,1.5c-0.6,0.4-1.3,0.7-2,0.9c-3.5,0.8-7.3-0.3-10-2.6c-1.4-1.2-2.5-2.6-3.6-4c-0.8-1-1.6-2-2.4-2.9 c-0.9-1-2-1.8-3.2-2.4c-2-0.9-4.3-0.8-6.4-0.3c-3.1,0.7-6,2.4-8.8,3.9c-0.1,1.6,0.2,3.3,0.8,4.8c1.4,3.3,4.4,5.6,7.5,7.3 c3.1,1.7,6.5,2.9,9.8,4.2c6.9,2.7,13.7,5.7,20.1,9.3c3.2,1.8,6.2,3.8,9,6c5.6,4.5,10,10,14.3,15.6c0.9,1.2,1.8,2.4,3,3.3 c0.2,0.2,0.4,0.3,0.6,0.4c1.6,1,3.7,0.6,5-0.7c0.7-0.7,1.2-1.5,1.6-2.4c1.2-2.5,1.9-5.2,2.8-7.8c0.2-0.5,0.3-1,0.6-1.5 c0.9-1.9,3.5-2.6,5.4-1.9c2,0.7,3.5,2.2,5.2,3.4c3.3,2.3,7.3,3.6,11.3,3.7c1,0,2,0,2.9-0.3c0.9-0.3,1.7-0.8,2.4-1.4 c5.5-5.1,4.3-15.5,11.7-18.5"
-                  fill="#e2e8f0"
-                  stroke="#cbd5e1"
-                  strokeWidth="1"
-                />
-                {/* More path elements for world map would go here */}
-
-                {/* Customer location markers */}
-                <circle
-                  cx="200"
-                  cy="150"
-                  r="8"
-                  fill="#c084fc"
-                  className="animate-ping"
-                  style={{ animationDuration: "3s" }}
-                />
-                <circle
-                  cx="450"
-                  cy="180"
-                  r="10"
-                  fill="#db2777"
-                  className="animate-ping"
-                  style={{ animationDuration: "2.5s" }}
-                />
-                <circle
-                  cx="350"
-                  cy="240"
-                  r="7"
-                  fill="#8b5cf6"
-                  className="animate-ping"
-                  style={{ animationDuration: "3.5s" }}
-                />
-                <circle
-                  cx="710"
-                  cy="210"
-                  r="9"
-                  fill="#ec4899"
-                  className="animate-ping"
-                  style={{ animationDuration: "4s" }}
-                />
-                <circle
-                  cx="850"
-                  cy="180"
-                  r="8"
-                  fill="#8b5cf6"
-                  className="animate-ping"
-                  style={{ animationDuration: "2.8s" }}
-                />
-                <circle
-                  cx="640"
-                  cy="310"
-                  r="6"
-                  fill="#db2777"
-                  className="animate-ping"
-                  style={{ animationDuration: "3.2s" }}
-                />
-                <circle
-                  cx="500"
-                  cy="150"
-                  r="7"
-                  fill="#c084fc"
-                  className="animate-ping"
-                  style={{ animationDuration: "2.7s" }}
-                />
-
-                {/* Add static circles underneath the animated ones */}
-                <circle cx="200" cy="150" r="5" fill="#c084fc" />
-                <circle cx="450" cy="180" r="5" fill="#db2777" />
-                <circle cx="350" cy="240" r="5" fill="#8b5cf6" />
-                <circle cx="710" cy="210" r="5" fill="#ec4899" />
-                <circle cx="850" cy="180" r="5" fill="#8b5cf6" />
-                <circle cx="640" cy="310" r="5" fill="#db2777" />
-                <circle cx="500" cy="150" r="5" fill="#c084fc" />
-
-                {/* Country labels */}
-                <text
-                  x="200"
-                  y="140"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  USA
-                </text>
-                <text
-                  x="450"
-                  y="170"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  UK
-                </text>
-                <text
-                  x="320"
-                  y="220"
-                  fontSize="24"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  Sri Lanka
-                </text>
-                <text
-                  x="710"
-                  y="200"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  India
-                </text>
-                <text
-                  x="850"
-                  y="170"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  Japan
-                </text>
-                <text
-                  x="640"
-                  y="300"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  Australia
-                </text>
-                <text
-                  x="500"
-                  y="140"
-                  fontSize="12"
-                  fill="#4b5563"
-                  fontWeight="500"
-                >
-                  France
-                </text>
-              </svg>
-            </div>
-
-            {/* Customer Word Cloud */}
-            <div className="mt-12 relative h-[180px] reveal">
-              <h3 className="text-2xl font-semibold mb-6 text-center text-gray-800">
-                What customers around the world say about us
-              </h3>
-              <div className="absolute w-full h-full flex items-center justify-center">
-                <span
-                  className="text-5xl text-purple-600 font-bold absolute"
-                  style={{
-                    left: "25%",
-                    top: "20%",
-                    transform: "rotate(-5deg)",
-                  }}
-                >
-                  Radiant
-                </span>
-                <span
-                  className="text-4xl text-pink-500 font-bold absolute"
-                  style={{ left: "60%", top: "40%", transform: "rotate(3deg)" }}
-                >
-                  Natural
-                </span>
-                <span
-                  className="text-3xl text-violet-500 font-bold absolute"
-                  style={{ left: "15%", top: "65%", transform: "rotate(2deg)" }}
-                >
-                  Hydrating
-                </span>
-                <span
-                  className="text-2xl text-fuchsia-500 font-bold absolute"
-                  style={{
-                    left: "45%",
-                    top: "15%",
-                    transform: "rotate(-3deg)",
-                  }}
-                >
-                  Gentle
-                </span>
-                <span
-                  className="text-4xl text-purple-500 font-bold absolute"
-                  style={{ left: "75%", top: "25%", transform: "rotate(4deg)" }}
-                >
-                  Effective
-                </span>
-                <span
-                  className="text-3xl text-pink-600 font-bold absolute"
-                  style={{
-                    left: "35%",
-                    top: "60%",
-                    transform: "rotate(-2deg)",
-                  }}
-                >
-                  Luxurious
-                </span>
-                <span
-                  className="text-2xl text-violet-600 font-bold absolute"
-                  style={{ left: "65%", top: "65%", transform: "rotate(5deg)" }}
-                >
-                  Transformative
-                </span>
-              </div>
-            </div>
+          {/* 3D Globe Visualization */}
+          <div className="relative h-[600px] mb-16 reveal perspective-1000">
+            <World globeConfig={globeConfig} data={globeData} />
           </div>
 
-          {/* Global statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
-            {[
-              {
-                number: "20+",
-                label: "Countries",
-                icon: "M3 21.5l2.75-3.22 2.75 3.22L11.25 17l2.75 4.5 2.75-4.5 2.75 4.5 2.75-4.5",
-              },
-              {
-                number: "100K+",
-                label: "Happy Customers",
-                icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-              },
-              {
-                number: "5+",
-                label: "Distribution Centers",
-                icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-              },
-              {
-                number: "24/7",
-                label: "Global Support",
-                icon: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z",
-              },
-            ].map((stat, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl shadow-md p-6 text-center transform transition-all hover:scale-105 hover:shadow-lg reveal"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full mb-4">
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 reveal">
+            <div className="bg-white rounded-xl p-6 shadow-md border border-purple-100 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-6 w-6 text-purple-600"
@@ -687,16 +614,171 @@ export default function AboutPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d={stat.icon}
+                      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
                 </div>
-                <p className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                  {stat.number}
-                </p>
-                <p className="text-gray-700 font-medium">{stat.label}</p>
+                <h3 className="font-bold text-gray-800">Global Reach</h3>
               </div>
-            ))}
+              <p className="text-gray-600 mb-4">
+                Our products are available in over 20 countries, bringing the
+                best of Sri Lankan beauty to the world.
+              </p>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">Countries</div>
+                <div className="text-lg font-bold text-purple-600">20+</div>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  style={{ width: "75%" }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-md border border-purple-100 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-pink-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-800">Customer Base</h3>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Our growing community includes customers from diverse
+                backgrounds across continents.
+              </p>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">Active Customers</div>
+                <div className="text-lg font-bold text-pink-600">100K+</div>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                <div
+                  className="h-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-full"
+                  style={{ width: "85%" }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-md border border-purple-100 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-indigo-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-800">Annual Growth</h3>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Year over year, our global customer base continues to grow as
+                we expand to new markets.
+              </p>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">YoY Growth</div>
+                <div className="text-lg font-bold text-indigo-600">42%</div>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full mt-2">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full"
+                  style={{ width: "65%" }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Testimonials By Region */}
+          <div className="mt-16 reveal">
+            <h3 className="text-2xl font-bold text-center text-gray-800 mb-8">
+              Voices From Around The World
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                {
+                  quote:
+                    "The natural ingredients in these products have transformed my skincare routine completely!",
+                  name: "Jessica M.",
+                  location: "United States",
+                  image:
+                    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+                  stars: 5,
+                },
+                {
+                  quote:
+                    "Finally found products that work perfectly with my sensitive skin. The quality is unmatched!",
+                  name: "Priya S.",
+                  location: "India",
+                  image:
+                    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80",
+                  stars: 5,
+                },
+              ].map((testimonial, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-xl overflow-hidden shadow-md border border-purple-100 flex flex-col md:flex-row"
+                >
+                  <div className="md:w-1/3 relative h-48 md:h-auto">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-600 opacity-90"></div>
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{
+                        backgroundImage: `url(${testimonial.image})`,
+                        opacity: 0.35,
+                      }}
+                    ></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                      <p className="font-bold">{testimonial.name}</p>
+                      <p className="text-sm text-white/90">
+                        {testimonial.location}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div className="mb-4">
+                      <div className="flex mb-3">
+                        {Array(testimonial.stars)
+                          .fill(0)
+                          .map((_, i) => (
+                            <svg
+                              key={i}
+                              className="w-5 h-5 text-yellow-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                      </div>
+                      <p className="text-gray-600 italic">
+                        "‍{testimonial.quote}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -717,8 +799,8 @@ export default function AboutPage() {
             Join Our Beauty Journey
           </h2>
           <p className="text-2xl text-white/90 mb-10 max-w-3xl mx-auto font-light reveal">
-            Discover the difference of Omaliya Cosmo products and become part of
-            our growing community.
+            Discover the difference of Omaliya Cosmo products and become part
+            of our growing community.
           </p>
           <div className="flex flex-wrap justify-center gap-4 reveal">
             <Link
