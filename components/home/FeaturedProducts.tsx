@@ -271,16 +271,10 @@ export default function FeaturedProducts({
           </p>
         </motion.div>
 
-        {/* Combined Filter, Search, and Link Controls in One Line */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex flex-col md:flex-row items-center justify-between w-full mb-8 gap-4 py-2 px-4 rounded-lg"
-        >
-          {/* Tag filters */}
-          <div className="flex overflow-x-auto hide-scrollbar py-1 md:py-0 min-w-0">
-            <div className="flex space-x-2">
+        {/* Tag filters - Improved mobile responsiveness */}
+        <div className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="w-full md:w-auto overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <div className="flex space-x-2 py-1 min-w-max">
               {filterTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -299,9 +293,9 @@ export default function FeaturedProducts({
           </div>
 
           {/* Search and All Products Link side by side */}
-          <div className="flex items-center gap-2 md:ml-auto shrink-0">
+          <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
             {/* Search input */}
-            <div className="relative w-full md:w-64">
+            <div className="relative flex-grow md:flex-grow-0 md:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
                   className="w-5 h-5 text-gray-400"
@@ -352,7 +346,7 @@ export default function FeaturedProducts({
             {/* Link to all products */}
             <Link
               href="/products"
-              className="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors whitespace-nowrap px-3 py-2"
+              className="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium transition-colors whitespace-nowrap px-3 py-2 shrink-0"
             >
               All Products
               <svg
@@ -371,7 +365,7 @@ export default function FeaturedProducts({
               </svg>
             </Link>
           </div>
-        </motion.div>
+        </div>
 
         {/* Loading State */}
         {loading && (
