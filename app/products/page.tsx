@@ -445,7 +445,7 @@ function ProductsPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {/* Category Tabs and Search Bar - Flexbox layout */}
+          {/* Category Tabs - Flexbox layout */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="w-full md:w-auto">
               <CategoryTabsFilter
@@ -453,59 +453,6 @@ function ProductsPage() {
                 onCategoryChange={handleCategoryChange}
               />
             </div>
-
-            <motion.div
-              className="w-full md:w-80 lg:w-96 mx-auto md:mx-0 md:ml-auto"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.25 }}
-            >
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-purple-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="w-full pl-11 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-100 hover:border-purple-200 focus:border-purple-300 rounded-xl shadow-sm transition-colors outline-none focus:ring-2 focus:ring-purple-200 placeholder-gray-400"
-                  value={filters.search}
-                  onChange={(e) =>
-                    handleFilterChange({ search: e.target.value })
-                  }
-                />
-                {filters.search && (
-                  <button
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center"
-                    onClick={() => handleFilterChange({ search: "" })}
-                    aria-label="Clear search"
-                  >
-                    <svg
-                      className="w-4 h-4 text-gray-400 hover:text-purple-500"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </motion.div>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8 px-4 md:px-8">
@@ -532,40 +479,96 @@ function ProductsPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
             >
               {/* Sorting and product count */}
-              <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-purple-100/50 relative z-20">
-                <p className="text-gray-700">
-                  {filteredProducts.length > 0 ? (
-                    <>
-                      Showing{" "}
-                      <span className="font-medium text-purple-700">
-                        {(currentPage - 1) * pageSize + 1}
-                      </span>{" "}
-                      -{" "}
-                      <span className="font-medium text-purple-700">
-                        {Math.min(
-                          currentPage * pageSize,
-                          filteredProducts.length
-                        )}
-                      </span>{" "}
-                      of{" "}
-                      <span className="font-medium text-purple-700">
-                        {filteredProducts.length}
-                      </span>{" "}
-                      products
-                    </>
-                  ) : (
-                    <span className="font-medium">No products found</span>
-                  )}
-                </p>
+              <div className="mb-6 bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-purple-100/50 relative z-20">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                  <p className="text-gray-700">
+                    {filteredProducts.length > 0 ? (
+                      <>
+                        Showing{" "}
+                        <span className="font-medium text-purple-700">
+                          {(currentPage - 1) * pageSize + 1}
+                        </span>{" "}
+                        -{" "}
+                        <span className="font-medium text-purple-700">
+                          {Math.min(
+                            currentPage * pageSize,
+                            filteredProducts.length
+                          )}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-medium text-purple-700">
+                          {filteredProducts.length}
+                        </span>{" "}
+                        products
+                      </>
+                    ) : (
+                      <span className="font-medium">No products found</span>
+                    )}
+                  </p>
 
-                <div className="z-30 relative">
-                  <ProductsSorting
-                    currentSort={sort}
-                    viewMode={viewMode}
-                    onSortChange={setSort}
-                    onViewModeChange={setViewMode}
-                  />
+                  <div className="z-30 relative">
+                    <ProductsSorting
+                      currentSort={sort}
+                      viewMode={viewMode}
+                      onSortChange={setSort}
+                      onViewModeChange={setViewMode}
+                    />
+                  </div>
                 </div>
+
+                {/* Search bar moved here */}
+                <motion.div
+                  className="w-full"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.25 }}
+                >
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg
+                        className="w-5 h-5 text-purple-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      className="w-full pl-11 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-100 hover:border-purple-200 focus:border-purple-300 rounded-xl shadow-sm transition-colors outline-none focus:ring-2 focus:ring-purple-200 placeholder-gray-400"
+                      value={filters.search}
+                      onChange={(e) =>
+                        handleFilterChange({ search: e.target.value })
+                      }
+                    />
+                    {filters.search && (
+                      <button
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center"
+                        onClick={() => handleFilterChange({ search: "" })}
+                        aria-label="Clear search"
+                      >
+                        <svg
+                          className="w-4 h-4 text-gray-400 hover:text-purple-500"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
               </div>
 
               {/* Products grid or empty state */}
@@ -627,16 +630,18 @@ function ProductsPage() {
 
 export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500">Loading products...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500">Loading products...</p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ProductsPage />
     </Suspense>
   );
