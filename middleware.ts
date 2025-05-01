@@ -10,7 +10,7 @@ const publicAdminRoutes = ["/admin/login"];
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const response = NextResponse.next();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const sessionCookie = cookieStore.get("session")?.value;
   const adminCookie = cookieStore.get("admin_session")?.value;
@@ -27,9 +27,9 @@ export default async function middleware(req: NextRequest) {
 
   // ✅ Use Vercel Edge Geo location
   if (!country) {
-    country = req.geo?.country || "US";
+    country = (req as any).geo?.country || "US";
 
-    response.cookies.set("user_country", country, {
+    response.cookies.set("user_country", country || "LK", {
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
