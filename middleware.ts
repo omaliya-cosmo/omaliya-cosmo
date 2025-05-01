@@ -28,7 +28,7 @@ export default async function middleware(req: NextRequest) {
   if (!country) {
     country = (req as any).geo?.country || "LK";
 
-    response.cookies.set("user_country", country, {
+    response.cookies.set("user_country", country || "LK", {
       path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
