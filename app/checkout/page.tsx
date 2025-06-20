@@ -1087,13 +1087,28 @@ export default function CheckoutPage() {
                             <strong>Bank:</strong> Bank of Ceylon
                           </p>
                           <p>
-                            <strong>Account Name:</strong> Omaliya Cosmetics
+                            <strong>Account Name:</strong> K L P H Lekamge
                           </p>
                           <p>
-                            <strong>Account Number:</strong> 123456789
+                            <strong>Account Number:</strong> 84422146
                           </p>
                           <p>
-                            <strong>Branch:</strong> Colombo
+                            <strong>Branch:</strong> Vishaka Branch
+                          </p>
+                        </div>
+                        <hr className="my-2" />
+                        <div className="text-sm text-gray-700 space-y-1">
+                          <p>
+                            <strong>Bank:</strong> HNB
+                          </p>
+                          <p>
+                            <strong>Account Name:</strong> K L P H Lekamge
+                          </p>
+                          <p>
+                            <strong>Account Number:</strong> 085020343368
+                          </p>
+                          <p>
+                            <strong>Branch:</strong> Battaramulla
                           </p>
                         </div>
                       </div>
