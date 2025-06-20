@@ -11,6 +11,12 @@ import {
   BundleOffer,
   Address,
 } from "@prisma/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface OrderItem extends PrismaOrderItem {
   product?: Product;
@@ -29,6 +35,7 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
   const [error, setError] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [contactMethod, setContactMethod] = useState<string>("");
+  const [isPaymentSlipOpen, setIsPaymentSlipOpen] = useState(false);
 
   const router = useRouter();
 
@@ -117,6 +124,14 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
     }
   };
 
+  const handleOpenPaymentSlip = () => {
+    setIsPaymentSlipOpen(true);
+  };
+
+  const handleClosePaymentSlip = () => {
+    setIsPaymentSlipOpen(false);
+  };
+
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>;
   }
@@ -188,7 +203,15 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
               <span className="font-bold">Status:</span> {order.status}
             </p>
             <p>
-              <span className="font-bold">Payment:</span> {order.paymentMethod}
+              <span className="font-bold">Payment:</span> {order.paymentMethod}{" "}
+              {order.paymentMethod === "BANK_TRANSFER" && order.paymentSlip && (
+                <button
+                  onClick={() => setIsPaymentSlipOpen(true)}
+                  className="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 text-xs rounded-md transition"
+                >
+                  View Payment Slip
+                </button>
+              )}
             </p>
             <p>
               <span className="font-bold">Notes:</span> {order.notes || "N/A"}
@@ -354,6 +377,24 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
           </button>
         </div>
       </div>
+
+      {/* Payment Slip Dialog */}
+      <Dialog open={isPaymentSlipOpen} onOpenChange={setIsPaymentSlipOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Payment Slip</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center">
+            {order.paymentSlip && (
+              <img
+                src={order.paymentSlip}
+                alt="Payment Slip"
+                className="max-h-[80vh] max-w-full object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

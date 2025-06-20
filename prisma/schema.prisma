@@ -130,6 +130,7 @@ model Order {
   items          OrderItem[]  
   trackingNumber String?      @map("tracking_number")
   paymentMethod  PaymentMethod
+  paymentSlip    String?      // Payment slip reference or image URL
   addressId      String        @unique @db.ObjectId @map("address_id")
   address        Address       @relation(fields: [addressId], references: [id])
 }
@@ -139,6 +140,7 @@ enum PaymentMethod {
   CASH_ON_DELIVERY
   PAY_HERE
   KOKO
+  BANK_TRANSFER
 }
 
 // Enum for currencies

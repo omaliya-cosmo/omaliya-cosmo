@@ -20,49 +20,69 @@ class InvalidTotalError extends Error {
 }
 
 // Validation schema for the request body
-const checkoutRequestSchema = z.object({
-  addressDetails: z.object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    email: z
-      .string()
-      .email("Please enter a valid email address")
-      .optional()
-      .or(z.literal("")),
-    phoneNumber: z
-      .string()
-      .min(10, "Phone number must be at least 10 digits")
-      .regex(/^\d+$/, "Phone number must contain only digits")
-      .optional()
-      .or(z.literal("")),
-    addressLine1: z.string().min(1, "Address is required"),
-    addressLine2: z.string().optional(),
-    city: z.string().min(1, "City is required"),
-    state: z.string().optional(),
-    postalCode: z.string().min(1, "Postal code is required"),
-    country: z.string().min(1, "Country is required"),
-    setDefault: z.boolean().optional().default(false),
-  }),
-  items: z.array(
-    z
-      .object({
-        productId: z.string().optional(),
-        bundleId: z.string().optional(),
-        quantity: z.number().positive(),
-        isBundle: z.boolean().default(false),
-      })
-      .refine((data) => data.productId || data.bundleId, {
-        message: "Either productId or bundleId must be provided",
-      })
-  ),
-  paymentMethod: z.enum(["PAY_HERE", "KOKO", "CASH_ON_DELIVERY"]),
-  currency: z.enum(["LKR", "USD"]),
-  subtotal: z.number(),
-  shipping: z.number(),
-  discountAmount: z.number(),
-  total: z.number(),
-  notes: z.string().optional(),
-});
+const checkoutRequestSchema = z
+  .object({
+    addressDetails: z.object({
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      email: z
+        .string()
+        .email("Please enter a valid email address")
+        .optional()
+        .or(z.literal("")),
+      phoneNumber: z
+        .string()
+        .min(10, "Phone number must be at least 10 digits")
+        .regex(/^\d+$/, "Phone number must contain only digits")
+        .optional()
+        .or(z.literal("")),
+      addressLine1: z.string().min(1, "Address is required"),
+      addressLine2: z.string().optional(),
+      city: z.string().min(1, "City is required"),
+      state: z.string().optional(),
+      postalCode: z.string().min(1, "Postal code is required"),
+      country: z.string().min(1, "Country is required"),
+      setDefault: z.boolean().optional().default(false),
+    }),
+    items: z.array(
+      z
+        .object({
+          productId: z.string().optional(),
+          bundleId: z.string().optional(),
+          quantity: z.number().positive(),
+          isBundle: z.boolean().default(false),
+        })
+        .refine((data) => data.productId || data.bundleId, {
+          message: "Either productId or bundleId must be provided",
+        })
+    ),
+    paymentMethod: z.enum([
+      "PAY_HERE",
+      "KOKO",
+      "CASH_ON_DELIVERY",
+      "BANK_TRANSFER",
+    ]),
+    currency: z.enum(["LKR", "USD"]),
+    subtotal: z.number(),
+    shipping: z.number(),
+    discountAmount: z.number(),
+    total: z.number(),
+    notes: z.string().optional(),
+    paymentSlip: z.string().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      // If payment method is BANK_TRANSFER, paymentSlip is required
+      if (data.paymentMethod === "BANK_TRANSFER") {
+        return !!data.paymentSlip;
+      }
+      return true;
+    },
+    {
+      message: "Payment slip is required for Bank Transfer",
+      path: ["paymentSlip"],
+    }
+  );
 
 export async function POST(request: Request) {
   try {
@@ -217,9 +237,7 @@ export async function POST(request: Request) {
 
         if (Math.abs(calculatedTotal - validatedData.total) > 0.01) {
           throw new InvalidTotalError();
-        }
-
-        // Create the order with optional customerId
+        } // Create the order with optional customerId
         const order = await tx.order.create({
           data: {
             customerId: customer?.id,
@@ -231,6 +249,7 @@ export async function POST(request: Request) {
             currency: validatedData.currency,
             paymentMethod: validatedData.paymentMethod,
             notes: validatedData.notes,
+            paymentSlip: validatedData.paymentSlip || null, // Include payment slip URL for bank transfers
             items: {
               create: orderItems.map((item) => ({
                 productId: item.productId,

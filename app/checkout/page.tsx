@@ -60,8 +60,14 @@ const checkoutSchema = z
     state: z.string().min(1, "State is required"),
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
-    paymentMethod: z.enum(["PAY_HERE", "KOKO", "CASH_ON_DELIVERY"]),
+    paymentMethod: z.enum([
+      "PAY_HERE",
+      "KOKO",
+      "CASH_ON_DELIVERY",
+      "BANK_TRANSFER",
+    ]),
     notes: z.string().optional(),
+    paymentSlip: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -72,6 +78,19 @@ const checkoutSchema = z
     {
       message: "Either a valid email or phone number must be provided",
       path: ["email"], // Only one path is allowed; Zod doesn't highlight multiple fields well
+    }
+  )
+  .refine(
+    (data) => {
+      // If payment method is BANK_TRANSFER, paymentSlip is required
+      if (data.paymentMethod === "BANK_TRANSFER") {
+        return !!data.paymentSlip;
+      }
+      return true;
+    },
+    {
+      message: "Payment slip is required for Bank Transfer",
+      path: ["paymentSlip"],
     }
   );
 
@@ -120,8 +139,9 @@ export default function CheckoutPage() {
     city: string;
     postalCode: string;
     country: string;
-    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY";
+    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
     saveAddress: boolean;
+    paymentSlip?: string;
   }>({
     firstName: "",
     lastName: "",
@@ -136,7 +156,12 @@ export default function CheckoutPage() {
     country: "",
     paymentMethod: "CASH_ON_DELIVERY",
     saveAddress: false,
+    paymentSlip: undefined,
   });
+
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCustomerData() {
@@ -306,12 +331,29 @@ export default function CheckoutPage() {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       setProcessingOrder(true);
       setError(null);
+
+      // If payment method is bank transfer and no slip is uploaded yet
+      if (formData.paymentMethod === "BANK_TRANSFER" && !formData.paymentSlip) {
+        if (!paymentFile) {
+          setError("Please upload a payment slip for bank transfer");
+          toast.error("Please upload a payment slip for bank transfer");
+          setProcessingOrder(false);
+          return;
+        }
+
+        // Upload the payment slip
+        const paymentSlipUrl = await uploadPaymentSlip();
+        if (!paymentSlipUrl) {
+          setError("Failed to upload payment slip. Please try again.");
+          setProcessingOrder(false);
+          return;
+        }
+      }
 
       const validatedData = checkoutSchema.safeParse(formData);
 
@@ -325,7 +367,6 @@ export default function CheckoutPage() {
         toast.error(errorMessage);
         return;
       }
-
       const orderData = {
         addressDetails: {
           firstName: validatedData.data.firstName,
@@ -354,6 +395,7 @@ export default function CheckoutPage() {
         discountAmount: (subtotal * discount) / 100, // Calculate discount amount based on percentage
         total: total,
         notes: validatedData.data.notes || "",
+        paymentSlip: formData.paymentSlip || null, // Add payment slip URL
       };
 
       const response = await axios.post("/api/checkout", orderData);
@@ -362,6 +404,7 @@ export default function CheckoutPage() {
         // Clear cart cookie
         document.cookie =
           "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        Cookies.remove("promoCodeDiscount");
         setCartItems([]);
         await refreshCart(); // Refresh cart context
         toast.success("Order placed successfully!");
@@ -380,6 +423,52 @@ export default function CheckoutPage() {
       }
     } finally {
       setProcessingOrder(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setPaymentFile(files[0]);
+      setUploadError(null);
+    }
+  };
+
+  const uploadPaymentSlip = async () => {
+    if (!paymentFile) {
+      setUploadError("Please select a file to upload");
+      return null;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadError(null);
+
+      const formData = new FormData();
+      formData.append("file", paymentFile);
+      formData.append("upload_preset", "omaliya"); // Cloudinary upload preset
+
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/omaliya/image/upload",
+        formData
+      );
+
+      if (response.data && response.data.secure_url) {
+        // Set the payment slip URL in formData
+        setFormData((prev) => ({
+          ...prev,
+          paymentSlip: response.data.secure_url,
+        }));
+        return response.data.secure_url;
+      } else {
+        throw new Error("Failed to upload payment slip");
+      }
+    } catch (error) {
+      console.error("Error uploading payment slip:", error);
+      setUploadError("Failed to upload payment slip. Please try again.");
+      return null;
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -876,7 +965,6 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               </div>
-
               {/* Payment method */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold mb-4">Payment Method</h2>
@@ -908,6 +996,32 @@ export default function CheckoutPage() {
                     </svg>
                   </label>
 
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="BANK_TRANSFER"
+                      checked={formData.paymentMethod === "BANK_TRANSFER"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">Bank Transfer</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"
+                      />
+                    </svg>
+                  </label>
+                  {/* 
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
                     <input
                       type="radio"
@@ -960,7 +1074,88 @@ export default function CheckoutPage() {
                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
-                  </label>
+                  </label> */}
+
+                  {formData.paymentMethod === "BANK_TRANSFER" && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <div className="mb-3">
+                        <h3 className="text-sm font-medium mb-2">
+                          Bank Account Details:
+                        </h3>
+                        <div className="text-sm text-gray-700 space-y-1">
+                          <p>
+                            <strong>Bank:</strong> Bank of Ceylon
+                          </p>
+                          <p>
+                            <strong>Account Name:</strong> Omaliya Cosmetics
+                          </p>
+                          <p>
+                            <strong>Account Number:</strong> 123456789
+                          </p>
+                          <p>
+                            <strong>Branch:</strong> Colombo
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-800 mb-1">
+                          Upload Payment Slip
+                        </label>
+                        <div className="mt-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-md file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-purple-50 file:text-purple-700
+                              hover:file:bg-purple-100"
+                          />
+                          {paymentFile && (
+                            <span className="text-xs text-green-600 mt-1 block">
+                              Selected file: {paymentFile.name}
+                            </span>
+                          )}
+                          {uploadError && (
+                            <span className="text-xs text-red-600 mt-1 block">
+                              {uploadError}
+                            </span>
+                          )}
+                          {isUploading && (
+                            <div className="flex items-center mt-2">
+                              <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                              <span className="text-xs text-purple-600">
+                                Uploading...
+                              </span>
+                            </div>
+                          )}
+                          {formData.paymentSlip && (
+                            <div className="mt-2">
+                              <span className="text-xs text-green-600 block">
+                                Payment slip uploaded successfully!
+                              </span>
+                              <div className="mt-2 w-32 h-32 relative border border-gray-200 rounded-md overflow-hidden">
+                                <Image
+                                  src={formData.paymentSlip}
+                                  alt="Payment Slip"
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 italic">
+                        Please upload a clear image of your bank transfer
+                        receipt. Your order will be confirmed once the payment
+                        is verified.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

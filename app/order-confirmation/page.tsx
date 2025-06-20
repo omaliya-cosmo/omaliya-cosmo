@@ -237,8 +237,20 @@ const OrderConfirmationPage = () => {
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-800">
                         {orderDetails.currency === "LKR"
-                          ? `Rs ${(item.price * item.quantity).toFixed(2)}`
-                          : `$${(item.price * item.quantity).toFixed(2)}`}
+                          ? `Rs ${(item.price * item.quantity).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}`
+                          : `$${(item.price * item.quantity).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}`}
                       </p>
                     </div>
                   </div>
@@ -261,14 +273,16 @@ const OrderConfirmationPage = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium text-gray-800">
-                      {orderDetails?.currency} {orderDetails?.subtotal}
+                      {orderDetails?.currency}{" "}
+                      {orderDetails?.subtotal?.toLocaleString()}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
                     <span className="font-medium text-green-600">
-                      {orderDetails?.currency} {orderDetails?.shipping}
+                      {orderDetails?.currency}{" "}
+                      {orderDetails?.shipping?.toLocaleString()}
                     </span>
                   </div>
 
@@ -276,7 +290,8 @@ const OrderConfirmationPage = () => {
                     <div className="flex justify-between">
                       <span className="font-medium text-gray-800">Total</span>
                       <span className="font-bold text-purple-700">
-                        {orderDetails?.currency} {orderDetails?.total}
+                        {orderDetails?.currency}{" "}
+                        {orderDetails?.total?.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -395,16 +410,20 @@ const OrderConfirmationPage = () => {
 
 export default function Page() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-3xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500">Loading your order confirmation...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500">
+                Loading your order confirmation...
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <OrderConfirmationPage />
     </Suspense>
   );

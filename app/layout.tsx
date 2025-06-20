@@ -19,9 +19,28 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Omaliya | Sri Lanka's Favorite Online Store",
+  title: "Omaliya | Karseell Products & Beauty Care in Sri Lanka",
   description:
-    "Shop the latest trends, exclusive deals, and premium products at Omaliya. Your one-stop online shop in Sri Lanka.",
+    "Shop premium Karseell Products, Beauty and Skin care essentials in Sri Lanka. Discover trusted cosmetics, skincare solutions, and beauty accessories with island-wide delivery.",
+  keywords:
+    "Karseell, beauty products, skin care, cosmetics, Sri Lanka, online shopping, beauty essentials",
+  openGraph: {
+    title: "Omaliya | Premium Beauty & Skin Care Products",
+    description:
+      "Explore Karseell and premium beauty products at Omaliya. Sri Lanka's trusted online store for quality skin care and cosmetics.",
+    type: "website",
+    url: "https://omaliya.lk",
+    siteName: "Omaliya Cosmetics",
+    images: [
+      {
+        url: "https://res.cloudinary.com/omaliya/image/upload/v1750397118/ss_notjww.png", // Replace with actual image path
+        width: 1200,
+        height: 630,
+        alt: "Omaliya Cosmetics",
+      },
+    ],
+  },
+  robots: "index, follow",
 };
 
 export default function RootLayout({

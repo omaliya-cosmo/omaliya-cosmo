@@ -93,6 +93,19 @@ const CartPage = () => {
         return;
       }
 
+      // Calculate subtotal directly from the API response before setting state
+      const calculatedSubtotal = cartItemsFromApi.reduce((sum, item) => {
+        const price = item.isBundle
+          ? country === "LK"
+            ? item.details?.offerPriceLKR || 0
+            : item.details?.offerPriceUSD || 0
+          : country === "LK"
+          ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
+          : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
+
+        return sum + price * item.quantity;
+      }, 0);
+
       // Directly use the cart items from API with details
       setCartItems(cartItemsFromApi);
 
@@ -103,15 +116,16 @@ const CartPage = () => {
           const promoCodeData: PromoCodeData = JSON.parse(promoCodeCookie);
           setDiscount(promoCodeData.discount || 0);
           setPromoCode(promoCodeData.code || "");
-          const discountAmount = (subtotal * promoCodeData.discount) / 100;
+          const discountAmount =
+            (calculatedSubtotal * promoCodeData.discount) / 100;
           setDiscountAmount(discountAmount);
-          setTotal(subtotal - discountAmount);
+          setTotal(calculatedSubtotal - discountAmount);
         } catch (err) {
           console.error("Failed to parse promo code cookie:", err);
-          setTotal(subtotal);
+          setTotal(calculatedSubtotal); // Use calculated subtotal instead of state-based subtotal
         }
       } else {
-        setTotal(subtotal);
+        setTotal(calculatedSubtotal); // Use calculated subtotal instead of state-based subtotal
       }
     } catch (err: any) {
       console.error("Error fetching cart:", err);

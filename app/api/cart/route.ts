@@ -56,6 +56,11 @@ export async function GET(req: NextRequest) {
                 priceUSD: true,
                 discountPriceUSD: true,
                 stock: true,
+                category: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             })
           : [],
