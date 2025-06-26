@@ -609,50 +609,55 @@ const ProfileAddresses: React.FC = () => {
             <DialogTrigger asChild>
               <Button
                 onClick={openAddDialog}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4" />
                 Add New Address
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Add Address</DialogTitle>
-                <DialogDescription>
+            <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[600px] p-4 sm:p-6 h-[90vh] sm:h-auto overflow-hidden">
+              <DialogHeader className="mb-2 sm:mb-4">
+                <DialogTitle className="text-xl">Add Address</DialogTitle>
+                <DialogDescription className="text-sm">
                   Fill in the details of your address.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...addForm}>
-                <form onSubmit={addForm.handleSubmit(handleAddAddress)}>
-                  <ScrollArea className="max-h-[70vh]">
-                    {renderAddressForm("add")}
-                  </ScrollArea>
-                  <DialogFooter className="pt-4 mt-4">
-                    <DialogClose asChild>
-                      <Button type="button" variant="outline">
-                        Cancel
+              <div className="flex flex-col overflow-hidden h-full">
+                <Form {...addForm}>
+                  <form
+                    onSubmit={addForm.handleSubmit(handleAddAddress)}
+                    className="flex flex-col h-full"
+                  >
+                    <div className="overflow-y-auto flex-1 -mr-4 pr-4">
+                      {renderAddressForm("add")}
+                    </div>
+                    <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-4 mt-4 border-t">
+                      <DialogClose asChild>
+                        <Button type="button" variant="outline" className="w-full sm:w-auto">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="gap-2 w-full sm:w-auto"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4" />
+                            Add Address
+                          </>
+                        )}
                       </Button>
-                    </DialogClose>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Adding...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4" />
-                          Add Address
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -757,48 +762,49 @@ const ProfileAddresses: React.FC = () => {
                                 Edit
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[600px]">
-                              <DialogHeader>
-                                <DialogTitle>Edit Address</DialogTitle>
-                                <DialogDescription>
+                            <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[600px] p-4 sm:p-6 h-[90vh] sm:h-auto overflow-hidden">
+                              <DialogHeader className="mb-2 sm:mb-4">
+                                <DialogTitle className="text-xl">Edit Address</DialogTitle>
+                                <DialogDescription className="text-sm">
                                   Update the details of your address.
                                 </DialogDescription>
                               </DialogHeader>
-                              <Form {...editForm}>
-                                <form
-                                  onSubmit={editForm.handleSubmit(
-                                    handleUpdateAddress
-                                  )}
-                                >
-                                  <ScrollArea className="max-h-[60vh]">
-                                    {renderAddressForm("edit")}
-                                  </ScrollArea>
-                                  <DialogFooter className="pt-4 mt-4">
-                                    <DialogClose asChild>
-                                      <Button type="button" variant="outline">
-                                        Cancel
+                              <div className="flex flex-col overflow-hidden h-full">
+                                <Form {...editForm}>
+                                  <form
+                                    onSubmit={editForm.handleSubmit(handleUpdateAddress)}
+                                    className="flex flex-col h-full"
+                                  >
+                                    <div className="overflow-y-auto flex-1 -mr-4 pr-4">
+                                      {renderAddressForm("edit")}
+                                    </div>
+                                    <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-4 mt-4 border-t">
+                                      <DialogClose asChild>
+                                        <Button type="button" variant="outline" className="w-full sm:w-auto">
+                                          Cancel
+                                        </Button>
+                                      </DialogClose>
+                                      <Button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="gap-2 w-full sm:w-auto"
+                                      >
+                                        {isSubmitting ? (
+                                          <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Saving...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Check className="h-4 w-4" />
+                                            Save Changes
+                                          </>
+                                        )}
                                       </Button>
-                                    </DialogClose>
-                                    <Button
-                                      type="submit"
-                                      disabled={isSubmitting}
-                                      className="gap-2"
-                                    >
-                                      {isSubmitting ? (
-                                        <>
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Saving...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Check className="h-4 w-4" />
-                                          Save Changes
-                                        </>
-                                      )}
-                                    </Button>
-                                  </DialogFooter>
-                                </form>
-                              </Form>
+                                    </DialogFooter>
+                                  </form>
+                                </Form>
+                              </div>
                             </DialogContent>
                           </Dialog>
 

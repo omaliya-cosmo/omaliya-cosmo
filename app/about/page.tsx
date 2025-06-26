@@ -353,60 +353,7 @@ export default function AboutPage() {
                 staying true to our values. At Omaliya, every product tells a
                 story, and we’re proud to be part of yours.
               </p>
-              <div className="mt-10 flex items-center p-4 rounded-xl bg-white shadow-lg max-w-md reveal">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-r from-purple-400 to-pink-400 flex-shrink-0">
-                  {/* Replace with actual founder image */}
-                  <Image
-                    src="https://res.cloudinary.com/omaliya/image/upload/v1745603277/454006821_7680864805347803_4495142905038263634_n_qgrldy.jpg"
-                    alt="Kasun Shaluka, Founder"
-                    width={64}
-                    height={64}
-                    className="object-cover"
-                  />
-                </div>
-                <div className="ml-4">
-                  <p className="font-semibold text-gray-800">Jane Smith</p>
-                  <p className="text-purple-600 font-medium">Founder & Owner</p>
-                  <div className="flex mt-2 space-x-2">
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-purple-600 transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z" />
-                      </svg>
-                    </a>
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-purple-600 transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6.066 9.645c.183 4.04-2.83 8.544-8.164 8.544-1.622 0-3.131-.476-4.402-1.291 1.524.18 3.045-.244 4.252-1.189-1.256-.023-2.317-.854-2.684-1.995.451.086.895.061 1.298-.049-1.381-.278-2.335-1.522-2.304-2.853.388.215.83.344 1.301.359-1.279-.855-1.641-2.544-.889-3.835 1.416 1.738 3.533 2.881 5.92 3.001-.419-1.796.944-3.527 2.799-3.527.825 0 1.572.349 2.096.907.654-.128 1.27-.368 1.824-.697-.215.671-.67 1.233-1.263 1.589.581-.07 1.135-.224 1.649-.453-.384.578-.87 1.084-1.433 1.489z" />
-                      </svg>
-                    </a>
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-purple-600 transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2 16h-2v-6h2v6zm-1-6.891c-.607 0-1.1-.496-1.1-1.109 0-.612.492-1.109 1.1-1.109s1.1.497 1.1 1.109c0 .613-.493 1.109-1.1 1.109zm8 6.891h-1.998v-2.861c0-1.881-2.002-1.722-2.002 0v2.861h-2v-6h2v1.093c.872-1.616 4-1.736 4 1.548v3.359z" />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
+                
             </div>
             <div className="order-1 md:order-2">
               <div className="relative reveal">
@@ -537,12 +484,7 @@ export default function AboutPage() {
 
           <div className="grid md:grid-cols-4 gap-10">
             {[
-              {
-                name: "Kasun Shaluka",
-                position: "Founder / Owner",
-                image:
-                  "https://res.cloudinary.com/omaliya/image/upload/v1745603277/454006821_7680864805347803_4495142905038263634_n_qgrldy.jpg",
-              },
+            
               {
                 name: "Pamodani Hansika",
                 position: "Co-Owner",
