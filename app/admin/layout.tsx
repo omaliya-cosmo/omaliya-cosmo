@@ -247,16 +247,18 @@ export default function AdminLayout({
       </li>
     );
   };
-
   return (
     <>
       {!isLoginPage && (
         <div className="flex h-screen bg-gray-50">
           {!sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-gray-600 bg-opacity-50 z-20 lg:hidden"
+            <button
+              className="fixed top-4 left-4 p-2 rounded-md bg-white shadow-md z-30 lg:hidden"
               onClick={toggleSidebar}
-            ></div>
+              aria-label="Open sidebar"
+            >
+              <FiMenu size={20} />
+            </button>
           )}
 
           <div

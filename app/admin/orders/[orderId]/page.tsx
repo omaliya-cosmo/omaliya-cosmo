@@ -145,28 +145,30 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen p-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-8 space-y-8">
-        <h1 className="text-3xl font-bold text-gray-800">Order Details</h1>
+    <div className="bg-gray-50 min-h-screen p-2 sm:p-4 md:p-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+          Order Details
+        </h1>
 
         {/* Customer Details */}
         <section className="space-y-2">
-          <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 border-b pb-2">
             Customer Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm sm:text-base">
+            <p className="break-words">
               <span className="font-bold">Name:</span> {order.address.firstName}{" "}
               {order.address.lastName}
             </p>
-            <p>
+            <p className="break-words">
               <span className="font-bold">Email:</span> {order.address.email}
             </p>
-            <p>
+            <p className="break-words">
               <span className="font-bold">Phone:</span>{" "}
               {order.address.phoneNumber}
             </p>
-            <p>
+            <p className="break-words col-span-1 md:col-span-2">
               <span className="font-bold">Address:</span>{" "}
               {order.address.addressLine1},{" "}
               {order.address.addressLine2 && `${order.address.addressLine2}, `}
@@ -188,11 +190,11 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
 
         {/* Order Details */}
         <section className="space-y-2">
-          <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 border-b pb-2">
             Order Information
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base">
+            <p className="break-words">
               <span className="font-bold">Order ID:</span> {order.id}
             </p>
             <p>
@@ -202,18 +204,18 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
             <p>
               <span className="font-bold">Status:</span> {order.status}
             </p>
-            <p>
+            <p className="flex flex-wrap items-center gap-2">
               <span className="font-bold">Payment:</span> {order.paymentMethod}{" "}
               {order.paymentMethod === "BANK_TRANSFER" && order.paymentSlip && (
                 <button
                   onClick={() => setIsPaymentSlipOpen(true)}
-                  className="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 text-xs rounded-md transition"
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 text-xs rounded-md transition"
                 >
                   View Payment Slip
                 </button>
               )}
             </p>
-            <p>
+            <p className="col-span-1 sm:col-span-2">
               <span className="font-bold">Notes:</span> {order.notes || "N/A"}
             </p>
             <p>
@@ -229,7 +231,7 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
               {order.total.toFixed(2)}
             </p>
             {order.trackingNumber && (
-              <p>
+              <p className="break-words col-span-1 sm:col-span-2">
                 <span className="font-bold">Tracking No.:</span>{" "}
                 {order.trackingNumber}
               </p>
@@ -246,21 +248,21 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
         {/* Tracking Input for Pending */}
         {order.status === "PENDING" && (
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 border-b pb-2">
               Fulfillment
             </h2>
-            <div className="flex">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
               <input
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 placeholder="Enter tracking number"
-                className="basis-6/12 border rounded-l-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full sm:basis-6/12 border rounded-lg sm:rounded-l-lg sm:rounded-r-none px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <select
                 value={contactMethod}
                 onChange={(e) => setContactMethod(e.target.value)}
-                className="basis-3/12 border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full sm:basis-3/12 border rounded-lg sm:rounded-none px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 {order.address.email && (
                   <option value="email">Send via Email</option>
@@ -271,7 +273,7 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
               </select>
               <button
                 onClick={handleAccept}
-                className="basis-3/12 bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-r-lg transition"
+                className="w-full sm:basis-3/12 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg sm:rounded-l-none sm:rounded-r-lg transition"
               >
                 Accept
               </button>
@@ -281,10 +283,10 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
 
         {/* Status Update */}
         {order.status === "PROCESSING" && (
-          <div>
+          <div className="flex justify-center sm:justify-start">
             <button
               onClick={() => handleStatusUpdate("SHIPPED")}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition"
             >
               Mark as Shipped
             </button>
@@ -292,10 +294,10 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
         )}
 
         {order.status === "SHIPPED" && (
-          <div>
+          <div className="flex justify-center sm:justify-start">
             <button
               onClick={() => handleStatusUpdate("DELIVERED")}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition"
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition"
             >
               Mark as Delivered
             </button>
@@ -304,10 +306,12 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
 
         {/* Order Items */}
         <section className="space-y-2">
-          <h2 className="text-xl font-semibold text-gray-700 border-b pb-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 border-b pb-2">
             Items
           </h2>
-          <div className="overflow-x-auto">
+
+          {/* Desktop View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="min-w-full text-sm text-left text-gray-600">
               <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                 <tr>
@@ -366,12 +370,75 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile View - Card Layout */}
+          <div className="sm:hidden space-y-4">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="border rounded-lg p-3 space-y-2 bg-white shadow-sm"
+              >
+                <div className="flex items-center space-x-3">
+                  {item.product && (
+                    <>
+                      <img
+                        src={item.product.imageUrls[0]}
+                        alt={item.product.name}
+                        className="w-12 h-12 rounded"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-800">
+                          {item.product.name}
+                        </div>
+                        <div className="text-gray-500 text-xs line-clamp-1">
+                          {item.product.description}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {item.bundle && (
+                    <>
+                      <img
+                        src={item.bundle.imageUrl || ""}
+                        alt={item.bundle.bundleName}
+                        className="w-12 h-12 rounded"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-800">
+                          {item.bundle.bundleName}
+                        </div>
+                        <div className="text-gray-500 text-xs">Bundle</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 text-sm pt-2 border-t">
+                  <div>
+                    <span className="text-gray-500">Quantity:</span>
+                    <p className="font-medium">{item.quantity}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Price:</span>
+                    <p className="font-medium">
+                      {order.currency} {item.price.toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Total:</span>
+                    <p className="font-medium">
+                      {order.currency} {(item.price * item.quantity).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
         {/* Delete */}
-        <div className="w-full flex justify-end">
+        <div className="w-full flex justify-center sm:justify-end">
           <button
             onClick={handleDelete}
-            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
+            className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
           >
             Delete Order
           </button>
@@ -380,16 +447,16 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
 
       {/* Payment Slip Dialog */}
       <Dialog open={isPaymentSlipOpen} onOpenChange={setIsPaymentSlipOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[90vw] max-w-3xl p-3 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Payment Slip</DialogTitle>
+            <DialogTitle className="text-center">Payment Slip</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center overflow-auto">
             {order.paymentSlip && (
               <img
                 src={order.paymentSlip}
                 alt="Payment Slip"
-                className="max-h-[80vh] max-w-full object-contain"
+                className="max-h-[70vh] max-w-full object-contain"
               />
             )}
           </div>

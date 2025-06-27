@@ -290,7 +290,30 @@ export async function POST(request: Request) {
               });
             }
           })
-        );
+        ); // Send notification to the shop owner about the new order
+        try {
+          const orderUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/orders/${order.id}`;
+
+          // Prepare notification message for the shop owner
+          const ownerMessage = `New order #${order.id} received from ${validatedData.addressDetails.firstName} ${validatedData.addressDetails.lastName}. Amount: ${validatedData.currency} ${validatedData.total}. View details: ${orderUrl}`;
+
+          // Use the specific shop owner phone number (removing the + sign as required by notify.lk)
+          const ownerPhone = "94756794690"; // Removed the + sign from +94756794690
+
+          const ownerNotifyUrl = `https://app.notify.lk/api/v1/send?user_id=${
+            process.env.NOTIFY_USER_ID
+          }&api_key=${process.env.NOTIFY_API_KEY}&sender_id=${
+            process.env.NOTIFY_SENDER_ID
+          }&to=${ownerPhone}&message=${encodeURIComponent(ownerMessage)}`;
+
+          await fetch(ownerNotifyUrl);
+        } catch (notificationError) {
+          // Log error but don't fail the order process
+          console.error(
+            "Failed to send owner notification:",
+            notificationError
+          );
+        }
 
         return NextResponse.json(
           {
