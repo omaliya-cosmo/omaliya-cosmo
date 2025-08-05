@@ -408,7 +408,7 @@ export default function CheckoutPage() {
             // Call OnePay API to create payment link
             const onePayData = {
               orderId: response.data.order.id,
-              amount: total,
+              amount: parseFloat(total.toFixed(2)), // Format to 2 decimal places to avoid floating point issues
               currency: country === "LK" ? "LKR" : "USD",
               firstName: validatedData.data.firstName,
               lastName: validatedData.data.lastName,
@@ -418,8 +418,11 @@ export default function CheckoutPage() {
               redirectUrl: `${window.location.origin}/order-confirmation?orderId=${response.data.order.id}`,
               additionalData: response.data.order.id, // Pass orderId as additionalData for callback
             };
+            
+            console.log("Sending OnePay request:", onePayData);
 
             const onePayResponse = await axios.post("/api/onepay", onePayData);
+            console.log("OnePay response:", onePayResponse.data);
             
             if (onePayResponse.data.success && onePayResponse.data.data.gateway?.redirect_url) {
               // Clear cart before redirecting
@@ -430,7 +433,8 @@ export default function CheckoutPage() {
               // Redirect to OnePay payment gateway
               window.location.href = onePayResponse.data.data.gateway.redirect_url;
             } else {
-              throw new Error("Failed to generate payment link");
+              console.error("OnePay error response:", onePayResponse.data);
+              throw new Error("Failed to generate payment link: " + (onePayResponse.data.error || "Unknown error"));
             }
           } catch (onePayErr) {
             console.error("OnePay integration error:", onePayErr);

@@ -32,18 +32,22 @@ export async function POST(request: Request) {
     const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
     
     // Prepare OnePay request payload
+    // Create a truncated reference (OnePay has 21 char limit)
+    // Use last 12 chars of orderId to ensure uniqueness
+    const truncatedReference = validatedData.orderId.slice(-12);
+    
     const payload = {
       currency: validatedData.currency,
       app_id: APP_ID,
       hash: hash,
       amount: validatedData.amount,
-      reference: validatedData.orderId,
+      reference: truncatedReference,
       customer_first_name: validatedData.firstName,
       customer_last_name: validatedData.lastName,
       customer_phone_number: validatedData.phoneNumber || "",
       customer_email: validatedData.email || "",
       transaction_redirect_url: validatedData.redirectUrl,
-      additionalData: validatedData.additionalData || validatedData.orderId,
+      additionalData: validatedData.orderId, // Keep full orderId in additionalData for callback
     };
     
     // Make request to OnePay API

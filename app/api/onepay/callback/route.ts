@@ -32,6 +32,7 @@ export async function POST(request: Request) {
     console.log("OnePay callback received:", body);
     
     if (!body || !body.transaction_id || body.status === undefined || !body.additional_data) {
+      console.error("OnePay callback missing required fields:", body);
       return NextResponse.json({
         success: false,
         error: "Invalid callback data"
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     }
     
     const orderId = body.additional_data;
+    console.log(`OnePay payment ${body.status === 1 ? 'SUCCESS' : 'FAILED'} for order ID: ${orderId}, transaction ID: ${body.transaction_id}`);
     const transactionId = body.transaction_id;
     const isSuccess = body.status === 1;
     
