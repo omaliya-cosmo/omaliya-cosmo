@@ -18,6 +18,7 @@ import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
 import { z } from "zod";
 import { useCart } from "../lib/hooks/CartContext";
+import Script from "next/script";
 
 // Define the structure for promo code cookie data
 interface PromoCodeData {
@@ -61,7 +62,7 @@ const checkoutSchema = z
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
     paymentMethod: z.enum([
-      "PAY_HERE",
+      "ONEPAY",
       "KOKO",
       "CASH_ON_DELIVERY",
       "BANK_TRANSFER",
@@ -139,7 +140,7 @@ export default function CheckoutPage() {
     city: string;
     postalCode: string;
     country: string;
-    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
+    paymentMethod: "ONEPAY" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
     saveAddress: boolean;
     paymentSlip?: string;
   }>({
@@ -154,7 +155,7 @@ export default function CheckoutPage() {
     city: "",
     postalCode: "",
     country: "",
-    paymentMethod: "CASH_ON_DELIVERY",
+    paymentMethod: "ONEPAY",
     saveAddress: false,
     paymentSlip: undefined,
   });
@@ -401,14 +402,50 @@ export default function CheckoutPage() {
       const response = await axios.post("/api/checkout", orderData);
 
       if (response.data.success) {
-        // Clear cart cookie
-        document.cookie =
-          "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        Cookies.remove("promoCodeDiscount");
-        setCartItems([]);
-        await refreshCart(); // Refresh cart context
-        toast.success("Order placed successfully!");
-        router.push(`/order-confirmation?orderId=${response.data.order.id}`);
+        // If payment method is ONEPAY, redirect to OnePay payment gateway
+        if (validatedData.data.paymentMethod === "ONEPAY") {
+          try {
+            // Call OnePay API to create payment link
+            const onePayData = {
+              orderId: response.data.order.id,
+              amount: total,
+              currency: country === "LK" ? "LKR" : "USD",
+              firstName: validatedData.data.firstName,
+              lastName: validatedData.data.lastName,
+              email: validatedData.data.email || "",
+              phoneNumber: validatedData.data.phoneNumber || "",
+              // Make sure the callback URL is absolute
+              redirectUrl: `${window.location.origin}/order-confirmation?orderId=${response.data.order.id}`,
+              additionalData: response.data.order.id, // Pass orderId as additionalData for callback
+            };
+
+            const onePayResponse = await axios.post("/api/onepay", onePayData);
+            
+            if (onePayResponse.data.success && onePayResponse.data.data.gateway?.redirect_url) {
+              // Clear cart before redirecting
+              document.cookie = "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+              Cookies.remove("promoCodeDiscount");
+              await refreshCart(); // Refresh cart context
+              
+              // Redirect to OnePay payment gateway
+              window.location.href = onePayResponse.data.data.gateway.redirect_url;
+            } else {
+              throw new Error("Failed to generate payment link");
+            }
+          } catch (onePayErr) {
+            console.error("OnePay integration error:", onePayErr);
+            throw new Error("Payment gateway error. Please try again.");
+          }
+        } else {
+          // For other payment methods, proceed as normal
+          document.cookie =
+            "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          Cookies.remove("promoCodeDiscount");
+          setCartItems([]);
+          await refreshCart(); // Refresh cart context
+          toast.success("Order placed successfully!");
+          router.push(`/order-confirmation?orderId=${response.data.order.id}`);
+        }
       } else {
         throw new Error(response.data.error || "Failed to place order");
       }
@@ -597,6 +634,7 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <ToastContainer />
+      <Script src="https://storage.googleapis.com/onepayjs/onepayjs.js" strategy="lazyOnload" />
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-8">
@@ -1021,18 +1059,16 @@ export default function CheckoutPage() {
                       />
                     </svg>
                   </label>
-                  {/* 
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="PAY_HERE"
-                      checked={formData.paymentMethod === "PAY_HERE"}
+                      value="ONEPAY"
+                      checked={formData.paymentMethod === "ONEPAY"}
                       onChange={handleInputChange}
                       className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      disabled
                     />
-                    <span className="flex-1">Pay Here</span>
+                    <span className="flex-1">OnePay (Credit/Debit Card)</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-6 w-6 text-gray-400"
@@ -1074,7 +1110,7 @@ export default function CheckoutPage() {
                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
-                  </label> */}
+                  </label>
 
                   {formData.paymentMethod === "BANK_TRANSFER" && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">

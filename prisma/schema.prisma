@@ -138,7 +138,7 @@ model Order {
 // Enum for payment methods
 enum PaymentMethod {
   CASH_ON_DELIVERY
-  PAY_HERE
+  ONEPAY
   KOKO
   BANK_TRANSFER
 }
