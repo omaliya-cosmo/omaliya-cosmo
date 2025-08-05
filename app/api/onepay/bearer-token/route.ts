@@ -46,14 +46,6 @@ export async function POST(request: Request) {
     const hashInput = `${APP_ID}${validatedData.currency}${amount}${HASH_SALT}`;
     const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
-    // Log the hash calculation for debugging
-    console.log("OnePay Hash Calculation:", {
-      input: `${APP_ID?.substring(0, 4)}...${
-        validatedData.currency
-      }${amount}${HASH_SALT?.substring(0, 4)}...`,
-      output: hash,
-    });
-
     // Construct payload according to OnePay API documentation
     const payload = {
       app_id: APP_ID,
@@ -81,23 +73,14 @@ export async function POST(request: Request) {
       },
     });
 
-    // Make the API call to OnePay - attempting with API key approach
-    // Based on test results, the API might be expecting a specific header format
-    const token = APP_TOKEN || "";
-
-    console.log("OnePay Auth Debug:", {
-      tokenLength: token.length,
-      firstFiveChars: token.substring(0, 5),
-      lastFiveChars: token.substring(token.length - 5),
-    });
-
-    // Try with "api_key" parameter which is commonly used in payment gateways
+    // Based on API testing results, we need to send the token in a specific format
+    // The 401 errors suggest OnePay is expecting a different authentication method
+    // Try with a Bearer token (the expected format for most modern APIs)
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // Try with Bearer prefix
-        "X-API-KEY": token, // Also try as an API key
+        Authorization: `Bearer ${APP_TOKEN}`,
       },
       body: JSON.stringify(payload),
     });
@@ -115,14 +98,19 @@ export async function POST(request: Request) {
         {
           success: false,
           error: "Invalid response from payment gateway",
-          details: responseText.substring(0, 100) + "...", // First 100 chars for debugging
+          details: responseText.substring(0, 300),
+          statusCode: response.status,
+          statusText: response.statusText,
         },
         { status: 500 }
       );
     }
 
     // Handle response based on status code
-    if (response.ok && responseData.status === 200) {
+    if (
+      response.ok &&
+      (responseData.status === 200 || responseData.status === "200")
+    ) {
       // Success case
       console.log("OnePay payment link created successfully");
       return NextResponse.json({
@@ -133,6 +121,7 @@ export async function POST(request: Request) {
       // Error case - log details
       console.error("OnePay API error:", {
         status: response.status,
+        statusText: response.statusText,
         responseData,
       });
 

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Format reference to be between 10-21 characters
+    // Format reference to be between 10-21 characters (critical for OnePay)
     const reference = `OM${validatedData.orderId.slice(-15)}`;
 
     // Make sure amount is a whole number for the hash calculation
@@ -46,65 +46,64 @@ export async function POST(request: Request) {
     const hashInput = `${APP_ID}${validatedData.currency}${amount}${HASH_SALT}`;
     const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
-    // Log the hash calculation for debugging
-    console.log("OnePay Hash Calculation:", {
-      input: `${APP_ID?.substring(0, 4)}...${
-        validatedData.currency
-      }${amount}${HASH_SALT?.substring(0, 4)}...`,
-      output: hash,
-    });
+    // Construct form data for OnePay (using URLSearchParams for x-www-form-urlencoded)
+    const formData = new URLSearchParams();
+    formData.append("app_id", APP_ID || "");
+    formData.append("hash", hash);
+    formData.append("currency", validatedData.currency);
+    formData.append("amount", amount.toString());
+    formData.append("reference", reference);
+    formData.append(
+      "customer_first_name",
+      validatedData.firstName.substring(0, 50)
+    );
+    formData.append(
+      "customer_last_name",
+      validatedData.lastName.substring(0, 50)
+    );
 
-    // Construct payload according to OnePay API documentation
-    const payload = {
-      app_id: APP_ID,
-      hash: hash,
-      currency: validatedData.currency,
-      amount: amount,
-      reference: reference,
-      customer_first_name: validatedData.firstName.substring(0, 50),
-      customer_last_name: validatedData.lastName.substring(0, 50),
-      customer_phone_number: (validatedData.phoneNumber || "").substring(0, 15),
-      customer_email: (validatedData.email || "").substring(0, 100),
-      transaction_redirect_url: validatedData.redirectUrl,
-      additional_data: validatedData.orderId,
-    };
+    if (validatedData.phoneNumber) {
+      formData.append(
+        "customer_phone_number",
+        validatedData.phoneNumber.substring(0, 15)
+      );
+    }
 
-    // Log the request for debugging
-    console.log("OnePay Request:", {
+    if (validatedData.email) {
+      formData.append("customer_email", validatedData.email.substring(0, 100));
+    }
+
+    formData.append("transaction_redirect_url", validatedData.redirectUrl);
+    formData.append("additional_data", validatedData.orderId);
+
+    // Log the request for debugging (mask sensitive data)
+    console.log("OnePay Request (form-data):", {
       url: API_URL,
-      payload: {
-        ...payload,
-        app_id: payload.app_id
-          ? payload.app_id.substring(0, 4) + "..."
-          : "missing",
-        hash: payload.hash.substring(0, 10) + "...",
-      },
+      app_id: APP_ID ? APP_ID.substring(0, 4) + "..." : "missing",
+      hash: hash.substring(0, 10) + "...",
+      reference,
+      amount,
+      currency: validatedData.currency,
     });
 
-    // Make the API call to OnePay - attempting with API key approach
-    // Based on test results, the API might be expecting a specific header format
-    const token = APP_TOKEN || "";
+    // Create basic auth string (username:password format)
+    // Some APIs use the app_id as username and token as password
+    const basicAuth = Buffer.from(`${APP_ID}:${APP_TOKEN}`).toString("base64");
 
-    console.log("OnePay Auth Debug:", {
-      tokenLength: token.length,
-      firstFiveChars: token.substring(0, 5),
-      lastFiveChars: token.substring(token.length - 5),
-    });
-
-    // Try with "api_key" parameter which is commonly used in payment gateways
+    // Make the API call to OnePay with form data and multiple authentication methods
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // Try with Bearer prefix
-        "X-API-KEY": token, // Also try as an API key
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${basicAuth}`,
+        "X-API-TOKEN": APP_TOKEN || "",
       },
-      body: JSON.stringify(payload),
+      body: formData.toString(),
     });
 
     // Get raw response for debugging
     const responseText = await response.text();
-    console.log("OnePay Raw Response:", responseText);
+    console.log("OnePay Form-Data Raw Response:", responseText);
 
     let responseData;
     try {
@@ -115,24 +114,29 @@ export async function POST(request: Request) {
         {
           success: false,
           error: "Invalid response from payment gateway",
-          details: responseText.substring(0, 100) + "...", // First 100 chars for debugging
+          details: responseText.substring(0, 300), // Include more content for debugging
+          statusCode: response.status,
         },
         { status: 500 }
       );
     }
 
     // Handle response based on status code
-    if (response.ok && responseData.status === 200) {
+    if (
+      response.ok &&
+      (responseData.status === 200 || responseData.status === "200")
+    ) {
       // Success case
-      console.log("OnePay payment link created successfully");
+      console.log("OnePay form-data payment link created successfully");
       return NextResponse.json({
         success: true,
         data: responseData.data,
       });
     } else {
       // Error case - log details
-      console.error("OnePay API error:", {
+      console.error("OnePay form-data API error:", {
         status: response.status,
+        statusText: response.statusText,
         responseData,
       });
 
@@ -147,7 +151,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error("OnePay integration error:", error);
+    console.error("OnePay form-data integration error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

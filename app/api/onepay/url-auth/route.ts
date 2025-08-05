@@ -46,14 +46,6 @@ export async function POST(request: Request) {
     const hashInput = `${APP_ID}${validatedData.currency}${amount}${HASH_SALT}`;
     const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
-    // Log the hash calculation for debugging
-    console.log("OnePay Hash Calculation:", {
-      input: `${APP_ID?.substring(0, 4)}...${
-        validatedData.currency
-      }${amount}${HASH_SALT?.substring(0, 4)}...`,
-      output: hash,
-    });
-
     // Construct payload according to OnePay API documentation
     const payload = {
       app_id: APP_ID,
@@ -70,7 +62,7 @@ export async function POST(request: Request) {
     };
 
     // Log the request for debugging
-    console.log("OnePay Request:", {
+    console.log("OnePay URL Auth Request:", {
       url: API_URL,
       payload: {
         ...payload,
@@ -81,30 +73,23 @@ export async function POST(request: Request) {
       },
     });
 
-    // Make the API call to OnePay - attempting with API key approach
-    // Based on test results, the API might be expecting a specific header format
-    const token = APP_TOKEN || "";
+    // Add token to URL as a query parameter
+    const apiUrlWithAuth = `${API_URL}?token=${encodeURIComponent(
+      APP_TOKEN || ""
+    )}`;
 
-    console.log("OnePay Auth Debug:", {
-      tokenLength: token.length,
-      firstFiveChars: token.substring(0, 5),
-      lastFiveChars: token.substring(token.length - 5),
-    });
-
-    // Try with "api_key" parameter which is commonly used in payment gateways
-    const response = await fetch(API_URL, {
+    // Make the API call to OnePay
+    const response = await fetch(apiUrlWithAuth, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // Try with Bearer prefix
-        "X-API-KEY": token, // Also try as an API key
       },
       body: JSON.stringify(payload),
     });
 
     // Get raw response for debugging
     const responseText = await response.text();
-    console.log("OnePay Raw Response:", responseText);
+    console.log("OnePay URL Auth Raw Response:", responseText);
 
     let responseData;
     try {
@@ -115,24 +100,28 @@ export async function POST(request: Request) {
         {
           success: false,
           error: "Invalid response from payment gateway",
-          details: responseText.substring(0, 100) + "...", // First 100 chars for debugging
+          details: responseText.substring(0, 300),
         },
         { status: 500 }
       );
     }
 
     // Handle response based on status code
-    if (response.ok && responseData.status === 200) {
+    if (
+      response.ok &&
+      (responseData.status === 200 || responseData.status === "200")
+    ) {
       // Success case
-      console.log("OnePay payment link created successfully");
+      console.log("OnePay URL auth payment link created successfully");
       return NextResponse.json({
         success: true,
         data: responseData.data,
       });
     } else {
       // Error case - log details
-      console.error("OnePay API error:", {
+      console.error("OnePay URL auth API error:", {
         status: response.status,
+        statusText: response.statusText,
         responseData,
       });
 
@@ -147,7 +136,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error("OnePay integration error:", error);
+    console.error("OnePay URL auth integration error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

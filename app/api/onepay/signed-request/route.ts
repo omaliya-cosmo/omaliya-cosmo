@@ -46,14 +46,6 @@ export async function POST(request: Request) {
     const hashInput = `${APP_ID}${validatedData.currency}${amount}${HASH_SALT}`;
     const hash = crypto.createHash("sha256").update(hashInput).digest("hex");
 
-    // Log the hash calculation for debugging
-    console.log("OnePay Hash Calculation:", {
-      input: `${APP_ID?.substring(0, 4)}...${
-        validatedData.currency
-      }${amount}${HASH_SALT?.substring(0, 4)}...`,
-      output: hash,
-    });
-
     // Construct payload according to OnePay API documentation
     const payload = {
       app_id: APP_ID,
@@ -69,9 +61,22 @@ export async function POST(request: Request) {
       additional_data: validatedData.orderId,
     };
 
+    // Generate timestamp for signed request
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+
+    // Create signature using a combination of timestamp and token
+    // This is a common approach for API authentication
+    const signatureInput = `${timestamp}${APP_TOKEN}${APP_ID}`;
+    const signature = crypto
+      .createHash("sha256")
+      .update(signatureInput)
+      .digest("hex");
+
     // Log the request for debugging
-    console.log("OnePay Request:", {
+    console.log("OnePay Signed Request:", {
       url: API_URL,
+      timestamp,
+      signature: signature.substring(0, 10) + "...",
       payload: {
         ...payload,
         app_id: payload.app_id
@@ -81,30 +86,22 @@ export async function POST(request: Request) {
       },
     });
 
-    // Make the API call to OnePay - attempting with API key approach
-    // Based on test results, the API might be expecting a specific header format
-    const token = APP_TOKEN || "";
-
-    console.log("OnePay Auth Debug:", {
-      tokenLength: token.length,
-      firstFiveChars: token.substring(0, 5),
-      lastFiveChars: token.substring(token.length - 5),
-    });
-
-    // Try with "api_key" parameter which is commonly used in payment gateways
+    // Make the API call with timestamp-based signature approach
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // Try with Bearer prefix
-        "X-API-KEY": token, // Also try as an API key
+        "X-Timestamp": timestamp,
+        "X-Signature": signature,
+        "X-App-ID": APP_ID || "",
+        Authorization: APP_TOKEN || "", // Keep plain token as fallback
       },
       body: JSON.stringify(payload),
     });
 
     // Get raw response for debugging
     const responseText = await response.text();
-    console.log("OnePay Raw Response:", responseText);
+    console.log("OnePay Signed Raw Response:", responseText);
 
     let responseData;
     try {
@@ -115,16 +112,21 @@ export async function POST(request: Request) {
         {
           success: false,
           error: "Invalid response from payment gateway",
-          details: responseText.substring(0, 100) + "...", // First 100 chars for debugging
+          details: responseText.substring(0, 300),
+          statusCode: response.status,
+          statusText: response.statusText,
         },
         { status: 500 }
       );
     }
 
     // Handle response based on status code
-    if (response.ok && responseData.status === 200) {
+    if (
+      response.ok &&
+      (responseData.status === 200 || responseData.status === "200")
+    ) {
       // Success case
-      console.log("OnePay payment link created successfully");
+      console.log("OnePay signed request payment link created successfully");
       return NextResponse.json({
         success: true,
         data: responseData.data,
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
       // Error case - log details
       console.error("OnePay API error:", {
         status: response.status,
+        statusText: response.statusText,
         responseData,
       });
 

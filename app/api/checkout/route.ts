@@ -298,7 +298,7 @@ export async function POST(request: Request) {
           const ownerMessage = `New order #${order.id} received from ${validatedData.addressDetails.firstName} ${validatedData.addressDetails.lastName}. Amount: ${validatedData.currency} ${validatedData.total}. View details: ${orderUrl}`;
 
           // Use the specific shop owner phone number (removing the + sign as required by notify.lk)
-          const ownerPhone = "94756794690"; // Removed the + sign from +94756794690
+          const ownerPhone = "94774820783"; // Removed the + sign from +94756794690
 
           const ownerNotifyUrl = `https://app.notify.lk/api/v1/send?user_id=${
             process.env.NOTIFY_USER_ID

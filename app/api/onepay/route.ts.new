@@ -3,9 +3,9 @@ import { z } from "zod";
 import crypto from "crypto";
 
 // OnePay API configuration
-const APP_ID = process.env.ONEPAY_APP_ID?.trim();
-const APP_TOKEN = process.env.ONEPAY_APP_TOKEN?.trim();
-const HASH_SALT = process.env.ONEPAY_HASH_SALT?.trim();
+const APP_ID = process.env.ONEPAY_APP_ID;
+const APP_TOKEN = process.env.ONEPAY_APP_TOKEN;
+const HASH_SALT = process.env.ONEPAY_HASH_SALT;
 const API_URL = "https://api.onepay.lk/v3/checkout/link/";
 
 // Validation schema for OnePay request
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Validate the input data
     const body = await request.json();
     const validatedData = onePayRequestSchema.parse(body);
-
+    
     // Ensure the order ID is valid
     if (!validatedData.orderId || validatedData.orderId.length < 5) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     // Make sure amount is a whole number for the hash calculation
     const amount = Math.round(validatedData.amount);
-
+    
     // Calculate hash per OnePay documentation
     // app_id + currency + amount + hash_salt
     const hashInput = `${APP_ID}${validatedData.currency}${amount}${HASH_SALT}`;
@@ -48,10 +48,8 @@ export async function POST(request: Request) {
 
     // Log the hash calculation for debugging
     console.log("OnePay Hash Calculation:", {
-      input: `${APP_ID?.substring(0, 4)}...${
-        validatedData.currency
-      }${amount}${HASH_SALT?.substring(0, 4)}...`,
-      output: hash,
+      input: `${APP_ID?.substring(0, 4)}...${validatedData.currency}${amount}${HASH_SALT?.substring(0, 4)}...`,
+      output: hash
     });
 
     // Construct payload according to OnePay API documentation
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
       customer_phone_number: (validatedData.phoneNumber || "").substring(0, 15),
       customer_email: (validatedData.email || "").substring(0, 100),
       transaction_redirect_url: validatedData.redirectUrl,
-      additional_data: validatedData.orderId,
+      additional_data: validatedData.orderId
     };
 
     // Log the request for debugging
@@ -74,48 +72,36 @@ export async function POST(request: Request) {
       url: API_URL,
       payload: {
         ...payload,
-        app_id: payload.app_id
-          ? payload.app_id.substring(0, 4) + "..."
-          : "missing",
-        hash: payload.hash.substring(0, 10) + "...",
-      },
+        app_id: payload.app_id ? payload.app_id.substring(0, 4) + "..." : "missing",
+        hash: payload.hash.substring(0, 10) + "..."
+      }
     });
 
-    // Make the API call to OnePay - attempting with API key approach
-    // Based on test results, the API might be expecting a specific header format
-    const token = APP_TOKEN || "";
-
-    console.log("OnePay Auth Debug:", {
-      tokenLength: token.length,
-      firstFiveChars: token.substring(0, 5),
-      lastFiveChars: token.substring(token.length - 5),
-    });
-
-    // Try with "api_key" parameter which is commonly used in payment gateways
+    // Make the API call to OnePay
+    // Based on our testing, we'll use plain token (no Bearer prefix)
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // Try with Bearer prefix
-        "X-API-KEY": token, // Also try as an API key
+        "Authorization": APP_TOKEN || ""
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     // Get raw response for debugging
     const responseText = await response.text();
     console.log("OnePay Raw Response:", responseText);
-
+    
     let responseData;
     try {
       responseData = JSON.parse(responseText);
     } catch (error) {
       console.error("Failed to parse OnePay response:", error);
       return NextResponse.json(
-        {
-          success: false,
+        { 
+          success: false, 
           error: "Invalid response from payment gateway",
-          details: responseText.substring(0, 100) + "...", // First 100 chars for debugging
+          details: responseText.substring(0, 100) + "..."  // First 100 chars for debugging
         },
         { status: 500 }
       );
@@ -127,44 +113,44 @@ export async function POST(request: Request) {
       console.log("OnePay payment link created successfully");
       return NextResponse.json({
         success: true,
-        data: responseData.data,
+        data: responseData.data
       });
     } else {
       // Error case - log details
       console.error("OnePay API error:", {
         status: response.status,
-        responseData,
+        responseData
       });
-
+      
       return NextResponse.json(
         {
           success: false,
           error: responseData.message || "Failed to create payment link",
           details: responseData,
-          code: response.status,
+          code: response.status
         },
         { status: response.status }
       );
     }
   } catch (error) {
     console.error("OnePay integration error:", error);
-
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
           success: false,
           error: "Validation error",
-          details: error.errors,
+          details: error.errors
         },
         { status: 400 }
       );
     }
-
+    
     return NextResponse.json(
       {
         success: false,
         error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }
     );

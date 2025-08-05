@@ -418,23 +418,140 @@ export default function CheckoutPage() {
               redirectUrl: `${window.location.origin}/order-confirmation?orderId=${response.data.order.id}`,
               additionalData: response.data.order.id, // Pass orderId as additionalData for callback
             };
-            
+
             console.log("Sending OnePay request:", onePayData);
 
-            const onePayResponse = await axios.post("/api/onepay", onePayData);
-            console.log("OnePay response:", onePayResponse.data);
-            
-            if (onePayResponse.data.success && onePayResponse.data.data.gateway?.redirect_url) {
-              // Clear cart before redirecting
-              document.cookie = "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-              Cookies.remove("promoCodeDiscount");
-              await refreshCart(); // Refresh cart context
-              
-              // Redirect to OnePay payment gateway
-              window.location.href = onePayResponse.data.data.gateway.redirect_url;
-            } else {
-              console.error("OnePay error response:", onePayResponse.data);
-              throw new Error("Failed to generate payment link: " + (onePayResponse.data.error || "Unknown error"));
+            // Try different OnePay endpoints - starting with main endpoint
+            try {
+              // First try the main OnePay endpoint
+              let onePayResponse = await axios.post("/api/onepay", onePayData);
+              console.log("OnePay main response:", onePayResponse.data);
+
+              // If the main endpoint fails, try the bearer token endpoint
+              if (!onePayResponse.data.success) {
+                console.log(
+                  "Main endpoint failed, trying bearer token endpoint..."
+                );
+                onePayResponse = await axios.post(
+                  "/api/onepay/bearer-token",
+                  onePayData
+                );
+                console.log(
+                  "OnePay bearer token response:",
+                  onePayResponse.data
+                );
+              }
+
+              // If bearer token fails, try the signed-request endpoint
+              if (!onePayResponse.data.success) {
+                console.log(
+                  "Bearer token failed, trying signed request endpoint..."
+                );
+                onePayResponse = await axios.post(
+                  "/api/onepay/signed-request",
+                  onePayData
+                );
+                console.log(
+                  "OnePay signed request response:",
+                  onePayResponse.data
+                );
+              }
+
+              // If signed-request fails, try the form-data endpoint
+              if (!onePayResponse.data.success) {
+                console.log(
+                  "Signed request failed, trying form-data endpoint..."
+                );
+                onePayResponse = await axios.post(
+                  "/api/onepay/form-data",
+                  onePayData
+                );
+                console.log("OnePay form-data response:", onePayResponse.data);
+              }
+
+              // If the form-data endpoint fails, try the url-auth endpoint
+              if (!onePayResponse.data.success) {
+                console.log(
+                  "Form-data endpoint failed, trying url-auth endpoint..."
+                );
+                onePayResponse = await axios.post(
+                  "/api/onepay/url-auth",
+                  onePayData
+                );
+                console.log("OnePay url-auth response:", onePayResponse.data);
+              }
+
+              // If the url-auth endpoint fails, try the doc-format endpoint as last resort
+              if (!onePayResponse.data.success) {
+                console.log(
+                  "URL auth failed, trying documentation format endpoint..."
+                );
+                onePayResponse = await axios.post(
+                  "/api/onepay/doc-format",
+                  onePayData
+                );
+                console.log("OnePay doc-format response:", onePayResponse.data);
+              }
+
+              if (
+                onePayResponse.data.success &&
+                onePayResponse.data.data.gateway?.redirect_url
+              ) {
+                // Clear cart before redirecting
+                document.cookie =
+                  "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                Cookies.remove("promoCodeDiscount");
+                await refreshCart(); // Refresh cart context
+
+                // Redirect to OnePay payment gateway
+                window.location.href =
+                  onePayResponse.data.data.gateway.redirect_url;
+              } else {
+                console.error("OnePay error response:", {
+                  errorMessage: onePayResponse.data.error,
+                  details: onePayResponse.data.details,
+                  fullResponse: onePayResponse.data,
+                });
+
+                // Show a more specific error message to the user
+                setLoading(false);
+                toast.error(
+                  `Payment gateway error: ${
+                    onePayResponse.data.error ||
+                    "Failed to generate payment link. Please try again or contact customer support."
+                  }`
+                );
+
+                throw new Error(
+                  "Failed to generate payment link: " +
+                    (onePayResponse.data.error || "Unknown error")
+                );
+              }
+            } catch (apiError) {
+              console.error("OnePay API request failed:", apiError);
+              setLoading(false);
+
+              // Handle Axios errors with more detail
+              if (axios.isAxiosError(apiError) && apiError.response) {
+                console.error("OnePay API response error:", {
+                  status: apiError.response.status,
+                  statusText: apiError.response.statusText,
+                  data: apiError.response.data,
+                });
+
+                toast.error(
+                  `Payment gateway error (${apiError.response.status}): ${
+                    apiError.response.data?.error ||
+                    "Failed to connect to payment gateway."
+                  }`
+                );
+              } else {
+                toast.error(
+                  "Network error when connecting to payment gateway. Please check your connection and try again."
+                );
+              }
+
+              throw apiError;
             }
           } catch (onePayErr) {
             console.error("OnePay integration error:", onePayErr);
@@ -638,7 +755,10 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <ToastContainer />
-      <Script src="https://storage.googleapis.com/onepayjs/onepayjs.js" strategy="lazyOnload" />
+      <Script
+        src="https://storage.googleapis.com/onepayjs/onepayjs.js"
+        strategy="lazyOnload"
+      />
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-purple-800 py-6 px-8">
