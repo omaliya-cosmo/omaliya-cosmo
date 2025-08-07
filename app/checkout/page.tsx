@@ -215,6 +215,11 @@ export default function CheckoutPage() {
               }. Please try again.`
             );
             break;
+          case "payment_status_unknown":
+            toast.error(
+              "Payment status could not be determined. Please check your order status or contact support."
+            );
+            break;
           case "order_not_found":
             toast.error("Order not found. Please contact support.");
             break;
@@ -228,6 +233,9 @@ export default function CheckoutPage() {
             break;
           case "invalid_callback":
             toast.error("Invalid payment callback. Please contact support.");
+            break;
+          case "processing_failed":
+            toast.error("Payment processing failed. Please try again or contact support.");
             break;
           default:
             toast.error("Payment processing error. Please try again.");

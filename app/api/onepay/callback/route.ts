@@ -133,87 +133,94 @@ export async function GET(request: NextRequest) {
     searchParams: Object.fromEntries(searchParams.entries())
   });
   
-  // If no parameters, assume success and find the most recent order
+  // If no parameters, we need to be careful - don't assume success
   if (!transaction_id && !status) {
-    console.log("⚠️ No parameters in GET callback - assuming successful payment");
+    console.log("⚠️ No parameters in GET callback - cannot determine payment status");
     
-    try {
-      // Find the most recent PENDING_PAYMENT OnePay order
-      const order = await prisma.order.findFirst({
-        where: {
-          status: "PENDING_PAYMENT",
-          paymentMethod: "ONEPAY",
-        },
-        orderBy: {
-          id: "desc",
-        },
-      });
-      
-      if (order) {
-        console.log(`🔍 Found recent order ${order.id} - updating to PENDING`);
-        
-        // Update the order status (assuming success since user was redirected back)
-        const updatedOrder = await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: "PENDING",
-            paymentMethod: "ONEPAY",
-            // We don't have transaction_id from OnePay, so we'll generate a placeholder
-            paymentTransactionId: `ONEPAY_${order.id}_${Date.now()}`,
-          },
-        });
-        
-        console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING`);
-        
-        // Redirect to order confirmation
-        return NextResponse.redirect(
-          new URL(`/order-confirmation?orderId=${order.id}`, request.url)
-        );
-      } else {
-        console.error("❌ No PENDING_PAYMENT order found");
-      }
-    } catch (error) {
-      console.error("❌ Error finding/updating order:", error);
-    }
-    
-    // Fallback: redirect to generic success
+    // Don't update any orders automatically
+    // Redirect to checkout with a message asking user to verify
     return NextResponse.redirect(
-      new URL("/checkout?success=payment_completed", request.url)
+      new URL("/checkout?error=payment_status_unknown&message=Please verify your payment status", request.url)
     );
   }
 
-  if (status === "1" || status === "SUCCESS") {
-    // Successful payment - redirect to order confirmation
-    if (transaction_id) {
-      // Find the order by transaction ID
+  // Only proceed if we have status information
+  if (status) {
+    console.log(`🔍 Processing payment with status: ${status}`);
+    
+    if (status === "1" || status === "SUCCESS" || status === "COMPLETED") {
+      // Payment successful - find and update order
       try {
-        const order = await prisma.order.findFirst({
-          where: {
-            paymentTransactionId: transaction_id,
-          },
-        });
+        let order;
+        
+        // Try to find by transaction ID first
+        if (transaction_id) {
+          order = await prisma.order.findFirst({
+            where: {
+              paymentTransactionId: transaction_id,
+            },
+          });
+        }
+        
+        // If not found by transaction ID, find most recent pending order
+        if (!order) {
+          order = await prisma.order.findFirst({
+            where: {
+              status: "PENDING_PAYMENT",
+              paymentMethod: "ONEPAY",
+            },
+            orderBy: {
+              id: "desc",
+            },
+          });
+        }
 
-        if (order) {
+        if (order && order.status === "PENDING_PAYMENT") {
+          // Update order to PENDING only if it's currently PENDING_PAYMENT
+          const updatedOrder = await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: "PENDING",
+              paymentMethod: "ONEPAY",
+              paymentTransactionId: transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+            },
+          });
+          
+          console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING (Success)`);
+          
           return NextResponse.redirect(
-            new URL(
-              `/order-confirmation?orderId=${order.id}&transactionId=${transaction_id}`,
-              request.url
-            )
+            new URL(`/order-confirmation?orderId=${order.id}`, request.url)
+          );
+        } else if (order) {
+          // Order found but already processed
+          console.log(`ℹ️ Order ${order.id} already processed with status: ${order.status}`);
+          return NextResponse.redirect(
+            new URL(`/order-confirmation?orderId=${order.id}`, request.url)
+          );
+        } else {
+          console.error("❌ No order found for successful payment");
+          return NextResponse.redirect(
+            new URL("/checkout?error=order_not_found", request.url)
           );
         }
       } catch (error) {
-        console.error("Error finding order for redirect:", error);
+        console.error("❌ Error processing successful payment:", error);
+        return NextResponse.redirect(
+          new URL("/checkout?error=processing_failed", request.url)
+        );
       }
+    } else {
+      // Payment failed - don't update any order status
+      console.log(`❌ Payment failed with status: ${status}`);
+      return NextResponse.redirect(
+        new URL(`/checkout?error=payment_failed&status=${status}`, request.url)
+      );
     }
-
-    // Fallback redirect to a generic success page
-    return NextResponse.redirect(
-      new URL("/checkout?success=payment_completed", request.url)
-    );
   } else {
-    // Failed payment - redirect to checkout with error
+    // No status parameter - redirect with unknown status
+    console.log("⚠️ No status parameter in GET callback");
     return NextResponse.redirect(
-      new URL("/checkout?error=payment_failed", request.url)
+      new URL("/checkout?error=payment_status_unknown", request.url)
     );
   }
 }
