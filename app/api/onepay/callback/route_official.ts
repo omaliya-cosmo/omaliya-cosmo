@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const isSuccess = status === 1;
     console.log(`💰 OnePay payment ${isSuccess ? "SUCCESS" : "FAILED"}:`, {
       transaction_id,
-      status: `${status} (${isSuccess ? 'SUCCESS' : 'FAILED'})`,
+      status: `${status} (${isSuccess ? "SUCCESS" : "FAILED"})`,
       status_message,
       additional_data,
     });
@@ -122,11 +122,12 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   console.log("⚠️ GET request received - OnePay only uses POST callbacks");
   return NextResponse.json(
-    { 
-      success: false, 
+    {
+      success: false,
       error: "OnePay callbacks only support POST method",
-      message: "According to OnePay documentation, only POST callbacks are supported"
-    }, 
+      message:
+        "According to OnePay documentation, only POST callbacks are supported",
+    },
     { status: 405 }
   );
 }
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   console.log("⚠️ PUT request received - OnePay only uses POST callbacks");
   return NextResponse.json(
-    { success: false, error: "OnePay callbacks only support POST method" }, 
+    { success: false, error: "OnePay callbacks only support POST method" },
     { status: 405 }
   );
 }
@@ -142,7 +143,7 @@ export async function PUT(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   console.log("⚠️ PATCH request received - OnePay only uses POST callbacks");
   return NextResponse.json(
-    { success: false, error: "OnePay callbacks only support POST method" }, 
+    { success: false, error: "OnePay callbacks only support POST method" },
     { status: 405 }
   );
 }
@@ -150,20 +151,23 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   console.log("⚠️ DELETE request received - OnePay only uses POST callbacks");
   return NextResponse.json(
-    { success: false, error: "OnePay callbacks only support POST method" }, 
+    { success: false, error: "OnePay callbacks only support POST method" },
     { status: 405 }
   );
 }
 
 export async function OPTIONS(request: NextRequest) {
   console.log("🔔 OPTIONS request received - CORS preflight");
-  return NextResponse.json({ success: true }, { 
-    status: 200,
-    headers: {
-      'Allow': 'POST, OPTIONS',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Origin': '*'
+  return NextResponse.json(
+    { success: true },
+    {
+      status: 200,
+      headers: {
+        Allow: "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Origin": "*",
+      },
     }
-  });
+  );
 }
