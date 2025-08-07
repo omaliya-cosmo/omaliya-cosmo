@@ -121,10 +121,66 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   console.log("🔔 OnePay callback received - GET method (user redirect)");
 
-  // For GET requests, redirect user to order confirmation or checkout
+  // For GET requests, check query parameters
   const { searchParams } = new URL(request.url);
   const transaction_id = searchParams.get("transaction_id");
   const status = searchParams.get("status");
+  
+  console.log("📋 GET callback parameters:", {
+    transaction_id,
+    status,
+    url: request.url,
+    searchParams: Object.fromEntries(searchParams.entries())
+  });
+  
+  // If no parameters, assume success and find the most recent order
+  if (!transaction_id && !status) {
+    console.log("⚠️ No parameters in GET callback - assuming successful payment");
+    
+    try {
+      // Find the most recent PENDING_PAYMENT OnePay order
+      const order = await prisma.order.findFirst({
+        where: {
+          status: "PENDING_PAYMENT",
+          paymentMethod: "ONEPAY",
+        },
+        orderBy: {
+          id: "desc",
+        },
+      });
+      
+      if (order) {
+        console.log(`🔍 Found recent order ${order.id} - updating to PENDING`);
+        
+        // Update the order status (assuming success since user was redirected back)
+        const updatedOrder = await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: "PENDING",
+            paymentMethod: "ONEPAY",
+            // We don't have transaction_id from OnePay, so we'll generate a placeholder
+            paymentTransactionId: `ONEPAY_${order.id}_${Date.now()}`,
+          },
+        });
+        
+        console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING`);
+        
+        // Redirect to order confirmation
+        return NextResponse.redirect(
+          new URL(`/order-confirmation?orderId=${order.id}`, request.url)
+        );
+      } else {
+        console.error("❌ No PENDING_PAYMENT order found");
+      }
+    } catch (error) {
+      console.error("❌ Error finding/updating order:", error);
+    }
+    
+    // Fallback: redirect to generic success
+    return NextResponse.redirect(
+      new URL("/checkout?success=payment_completed", request.url)
+    );
+  }
 
   if (status === "1" || status === "SUCCESS") {
     // Successful payment - redirect to order confirmation
