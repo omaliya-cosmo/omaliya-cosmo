@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const isSuccess = status === 1;
     console.log(`💰 OnePay payment ${isSuccess ? "SUCCESS" : "FAILED"}:`, {
       transaction_id,
-      status: `${status} (${isSuccess ? 'SUCCESS' : 'FAILED'})`,
+      status: `${status} (${isSuccess ? "SUCCESS" : "FAILED"})`,
       status_message,
       additional_data,
     });
@@ -125,18 +125,20 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const transaction_id = searchParams.get("transaction_id");
   const status = searchParams.get("status");
-  
+
   console.log("📋 GET callback parameters:", {
     transaction_id,
     status,
     url: request.url,
-    searchParams: Object.fromEntries(searchParams.entries())
+    searchParams: Object.fromEntries(searchParams.entries()),
   });
-  
+
   // OnePay often redirects back without parameters on success - this was working before
   if (!transaction_id && !status) {
-    console.log("ℹ️ OnePay redirected without parameters - assuming successful payment");
-    
+    console.log(
+      "ℹ️ OnePay redirected without parameters - assuming successful payment"
+    );
+
     try {
       // Find the most recent PENDING_PAYMENT order
       const order = await prisma.order.findFirst({
@@ -148,10 +150,10 @@ export async function GET(request: NextRequest) {
           id: "desc",
         },
       });
-      
+
       if (order) {
         console.log(`🔍 Found recent order ${order.id} - updating to PENDING`);
-        
+
         // Update the order status (assuming success since user was redirected back)
         const updatedOrder = await prisma.order.update({
           where: { id: order.id },
@@ -161,9 +163,11 @@ export async function GET(request: NextRequest) {
             paymentTransactionId: `ONEPAY_${order.id}_${Date.now()}`,
           },
         });
-        
-        console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING`);
-        
+
+        console.log(
+          `✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING`
+        );
+
         // Redirect to order confirmation
         return NextResponse.redirect(
           new URL(`/order-confirmation?orderId=${order.id}`, request.url)
@@ -185,14 +189,14 @@ export async function GET(request: NextRequest) {
   // If we have explicit status parameters, use them
   if (status) {
     console.log(`🔍 Processing payment with explicit status: ${status}`);
-    
+
     // Accept multiple success indicators
     if (status === "1" || status === "SUCCESS" || status === "COMPLETED") {
       console.log("✅ Payment successful - explicit status");
-      
+
       try {
         let order;
-        
+
         // Try to find by transaction ID first
         if (transaction_id) {
           order = await prisma.order.findFirst({
@@ -201,7 +205,7 @@ export async function GET(request: NextRequest) {
             },
           });
         }
-        
+
         // If not found by transaction ID, find most recent pending order
         if (!order) {
           order = await prisma.order.findFirst({
@@ -222,18 +226,23 @@ export async function GET(request: NextRequest) {
             data: {
               status: "PENDING",
               paymentMethod: "ONEPAY",
-              paymentTransactionId: transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+              paymentTransactionId:
+                transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
             },
           });
-          
-          console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING (Explicit Success)`);
-          
+
+          console.log(
+            `✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING (Explicit Success)`
+          );
+
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
         } else if (order) {
           // Order found but already processed
-          console.log(`ℹ️ Order ${order.id} already processed with status: ${order.status}`);
+          console.log(
+            `ℹ️ Order ${order.id} already processed with status: ${order.status}`
+          );
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
