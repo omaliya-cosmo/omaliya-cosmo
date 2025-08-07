@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const isSuccess = status === 1;
     console.log(`💰 OnePay payment ${isSuccess ? "SUCCESS" : "FAILED"}:`, {
       transaction_id,
-      status: `${status} (${isSuccess ? 'SUCCESS' : 'FAILED'})`,
+      status: `${status} (${isSuccess ? "SUCCESS" : "FAILED"})`,
       status_message,
       additional_data,
     });
@@ -120,33 +120,35 @@ export async function POST(request: NextRequest) {
 // Handle GET requests (OnePay redirects users back after payment completion)
 export async function GET(request: NextRequest) {
   console.log("🔔 OnePay user redirect received - GET method");
-  
+
   // Check query parameters from OnePay redirect
   const { searchParams } = new URL(request.url);
   const transaction_id = searchParams.get("transaction_id");
   const status = searchParams.get("status");
-  
+
   console.log("📋 OnePay redirect parameters:", {
     transaction_id,
     status,
     url: request.url,
-    allParams: Object.fromEntries(searchParams.entries())
+    allParams: Object.fromEntries(searchParams.entries()),
   });
-  
+
   // If OnePay redirects without parameters, redirect to profile to check orders
   if (!status && !transaction_id) {
-    console.log("ℹ️ OnePay redirect without parameters - redirecting to profile");
+    console.log(
+      "ℹ️ OnePay redirect without parameters - redirecting to profile"
+    );
     return NextResponse.redirect(
       new URL("/profile?tab=orders&message=check_payment_status", request.url)
     );
   }
-  
+
   // If we have status, process it
   if (status) {
     // OnePay success indicators in URL parameters
     if (status === "1" || status === "SUCCESS" || status === "COMPLETED") {
       console.log("✅ OnePay redirect indicates success");
-      
+
       try {
         // Find the most recent PENDING_PAYMENT order
         const order = await prisma.order.findFirst({
@@ -158,10 +160,10 @@ export async function GET(request: NextRequest) {
             id: "desc",
           },
         });
-        
+
         if (order) {
           console.log(`🔍 Found order ${order.id} for redirect`);
-          
+
           // Only update if still pending payment (avoid double processing)
           if (order.status === "PENDING_PAYMENT") {
             const updatedOrder = await prisma.order.update({
@@ -169,13 +171,16 @@ export async function GET(request: NextRequest) {
               data: {
                 status: "PENDING",
                 paymentMethod: "ONEPAY",
-                paymentTransactionId: transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+                paymentTransactionId:
+                  transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
               },
             });
-            
-            console.log(`✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`);
+
+            console.log(
+              `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
+            );
           }
-          
+
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
@@ -200,15 +205,15 @@ export async function GET(request: NextRequest) {
     }
   } else if (transaction_id) {
     // Has transaction ID but no status - redirect to profile to check
-    console.log(`ℹ️ OnePay redirect with transaction ${transaction_id} but no status`);
+    console.log(
+      `ℹ️ OnePay redirect with transaction ${transaction_id} but no status`
+    );
     return NextResponse.redirect(
       new URL("/profile?tab=orders&message=payment_processing", request.url)
     );
   }
-  
+
   // Fallback - redirect to profile
   console.log("ℹ️ OnePay redirect fallback - going to profile");
-  return NextResponse.redirect(
-    new URL("/profile?tab=orders", request.url)
-  );
+  return NextResponse.redirect(new URL("/profile?tab=orders", request.url));
 }
