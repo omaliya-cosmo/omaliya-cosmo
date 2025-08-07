@@ -235,7 +235,9 @@ export default function CheckoutPage() {
             toast.error("Invalid payment callback. Please contact support.");
             break;
           case "processing_failed":
-            toast.error("Payment processing failed. Please try again or contact support.");
+            toast.error(
+              "Payment processing failed. Please try again or contact support."
+            );
             break;
           default:
             toast.error("Payment processing error. Please try again.");

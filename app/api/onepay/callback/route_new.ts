@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const isSuccess = status === 1;
     console.log(`💰 OnePay payment ${isSuccess ? "SUCCESS" : "FAILED"}:`, {
       transaction_id,
-      status: `${status} (${isSuccess ? 'SUCCESS' : 'FAILED'})`,
+      status: `${status} (${isSuccess ? "SUCCESS" : "FAILED"})`,
       status_message,
       additional_data,
     });
@@ -125,37 +125,42 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const transaction_id = searchParams.get("transaction_id");
   const status = searchParams.get("status");
-  
+
   console.log("📋 GET callback parameters:", {
     transaction_id,
     status,
     url: request.url,
-    searchParams: Object.fromEntries(searchParams.entries())
+    searchParams: Object.fromEntries(searchParams.entries()),
   });
-  
+
   // If no parameters, we need to be careful - don't assume success
   if (!transaction_id && !status) {
-    console.log("⚠️ No parameters in GET callback - cannot determine payment status");
-    
+    console.log(
+      "⚠️ No parameters in GET callback - cannot determine payment status"
+    );
+
     // Don't update any orders automatically
     // Redirect to checkout with a message asking user to verify
     return NextResponse.redirect(
-      new URL("/checkout?error=payment_status_unknown&message=Please verify your payment status", request.url)
+      new URL(
+        "/checkout?error=payment_status_unknown&message=Please verify your payment status",
+        request.url
+      )
     );
   }
 
   // Only proceed if we have status information
   if (status) {
     console.log(`🔍 Processing payment with status: ${status}`);
-    
+
     // Only accept status = "1" as success (matching POST callback format)
     if (status === "1") {
       console.log("✅ Payment successful (status = 1)");
-      
+
       // Payment successful - find and update order
       try {
         let order;
-        
+
         // Try to find by transaction ID first
         if (transaction_id) {
           order = await prisma.order.findFirst({
@@ -164,7 +169,7 @@ export async function GET(request: NextRequest) {
             },
           });
         }
-        
+
         // If not found by transaction ID, find most recent pending order
         if (!order) {
           order = await prisma.order.findFirst({
@@ -185,18 +190,23 @@ export async function GET(request: NextRequest) {
             data: {
               status: "PENDING",
               paymentMethod: "ONEPAY",
-              paymentTransactionId: transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+              paymentTransactionId:
+                transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
             },
           });
-          
-          console.log(`✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING (Success)`);
-          
+
+          console.log(
+            `✅ Order ${updatedOrder.id} updated: PENDING_PAYMENT → PENDING (Success)`
+          );
+
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
         } else if (order) {
           // Order found but already processed
-          console.log(`ℹ️ Order ${order.id} already processed with status: ${order.status}`);
+          console.log(
+            `ℹ️ Order ${order.id} already processed with status: ${order.status}`
+          );
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
@@ -214,7 +224,9 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Payment failed - any status other than "1" is considered failure
-      console.log(`❌ Payment failed with status: ${status} (Only status="1" is success)`);
+      console.log(
+        `❌ Payment failed with status: ${status} (Only status="1" is success)`
+      );
       return NextResponse.redirect(
         new URL(`/checkout?error=payment_failed&status=${status}`, request.url)
       );
