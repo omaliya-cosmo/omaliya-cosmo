@@ -57,7 +57,7 @@ const checkoutRequestSchema = z
         })
     ),
     paymentMethod: z.enum([
-      "PAY_HERE",
+      "ONEPAY",
       "KOKO",
       "CASH_ON_DELIVERY",
       "BANK_TRANSFER",
@@ -69,6 +69,7 @@ const checkoutRequestSchema = z
     total: z.number(),
     notes: z.string().optional(),
     paymentSlip: z.string().optional().nullable(),
+    paymentTransactionId: z.string().optional(), // OnePay transaction ID
   })
   .refine(
     (data) => {
@@ -250,6 +251,7 @@ export async function POST(request: Request) {
             paymentMethod: validatedData.paymentMethod,
             notes: validatedData.notes,
             paymentSlip: validatedData.paymentSlip || null, // Include payment slip URL for bank transfers
+            paymentTransactionId: validatedData.paymentTransactionId || null, // Include OnePay transaction ID
             items: {
               create: orderItems.map((item) => ({
                 productId: item.productId,

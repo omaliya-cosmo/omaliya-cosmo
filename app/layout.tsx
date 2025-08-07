@@ -5,6 +5,7 @@ import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { CartProvider } from "./lib/hooks/CartContext";
 import Footer from "@/components/layout/Footer";
 import { UserProvider } from "@/app/lib/hooks/UserContext";
+import OnePayScript from "@/components/OnePay/OnePayScript";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -51,6 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.variable}>
+        <OnePayScript />
         <CartProvider>
           <UserProvider>
             <HeaderWrapper />

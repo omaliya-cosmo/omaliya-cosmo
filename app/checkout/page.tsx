@@ -18,6 +18,16 @@ import Cookies from "js-cookie";
 import { getCustomerFromToken } from "../actions";
 import { z } from "zod";
 import { useCart } from "../lib/hooks/CartContext";
+import { useOnePayIntegration } from "@/components/OnePay/useOnePayIntegration";
+
+// OnePay types
+interface OnePayResult {
+  code: "201" | "400";
+  transaction_id: string;
+  status: "SUCCESS" | "FAIL";
+}
+
+type OnePayEvent = CustomEvent<OnePayResult>;
 
 // Define the structure for promo code cookie data
 interface PromoCodeData {
@@ -61,7 +71,7 @@ const checkoutSchema = z
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
     paymentMethod: z.enum([
-      "PAY_HERE",
+      "ONEPAY",
       "KOKO",
       "CASH_ON_DELIVERY",
       "BANK_TRANSFER",
@@ -139,7 +149,7 @@ export default function CheckoutPage() {
     city: string;
     postalCode: string;
     country: string;
-    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
+    paymentMethod: "ONEPAY" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
     saveAddress: boolean;
     paymentSlip?: string;
   }>({
@@ -163,6 +173,72 @@ export default function CheckoutPage() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // OnePay state
+  const [onePayStatus, setOnePayStatus] = useState<OnePayResult | null>(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] =
+    useState<boolean>(false);
+
+  // OnePay integration hook
+  const { isScriptLoaded, initiatePayment } = useOnePayIntegration({
+    onSuccess: (result) => {
+      setOnePayStatus(result);
+      setIsPaymentProcessing(false);
+      console.log("✅ OnePay payment success", result);
+      toast.success("Payment successful! Your order is being processed...");
+      processOrderAfterPayment(result.transaction_id);
+    },
+    onError: (result) => {
+      setOnePayStatus(result);
+      setIsPaymentProcessing(false);
+      setProcessingOrder(false);
+      console.log("❌ OnePay payment failed", result);
+      toast.error("Payment failed. Please try again.");
+    },
+    onStatusChange: (isProcessing) => {
+      setIsPaymentProcessing(isProcessing);
+    },
+  });
+
+  // Handle OnePay callback errors
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get("error");
+      const orderRef = urlParams.get("orderRef");
+
+      if (error) {
+        switch (error) {
+          case "payment_failed":
+            toast.error(
+              `Payment failed for order ${
+                orderRef || "unknown"
+              }. Please try again.`
+            );
+            break;
+          case "order_not_found":
+            toast.error("Order not found. Please contact support.");
+            break;
+          case "db_update_failed":
+            toast.error(
+              "Payment was successful but order update failed. Please contact support."
+            );
+            break;
+          case "callback_error":
+            toast.error("Payment callback error. Please contact support.");
+            break;
+          case "invalid_callback":
+            toast.error("Invalid payment callback. Please contact support.");
+            break;
+          default:
+            toast.error("Payment processing error. Please try again.");
+        }
+
+        // Clean URL
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     async function loadCustomerData() {
       const customerData = await getCustomerFromToken();
@@ -173,7 +249,7 @@ export default function CheckoutPage() {
           );
           const addresses = data.addresses || [];
           const address =
-            addresses.find((addr) => addr.isDefault) || addresses[0] || {};
+            addresses.find((addr: any) => addr.isDefault) || addresses[0] || {};
           setFormData((prev) => ({
             ...prev,
             firstName: address.firstName || "",
@@ -271,17 +347,20 @@ export default function CheckoutPage() {
       setCartItems(cartItemsFromApi);
 
       // Calculate subtotal based on product or bundle prices
-      const calculatedSubtotal = cartItemsFromApi.reduce((sum, item) => {
-        const price = item.isBundle
-          ? country === "LK"
-            ? item.details?.offerPriceLKR || 0
-            : item.details?.offerPriceUSD || 0
-          : country === "LK"
-          ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
-          : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
+      const calculatedSubtotal = cartItemsFromApi.reduce(
+        (sum: number, item: any) => {
+          const price = item.isBundle
+            ? country === "LK"
+              ? item.details?.offerPriceLKR || 0
+              : item.details?.offerPriceUSD || 0
+            : country === "LK"
+            ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
+            : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
 
-        return sum + price * item.quantity;
-      }, 0);
+          return sum + price * item.quantity;
+        },
+        0
+      );
 
       // Check if we have a promo code applied
       const promoCodeCookie = Cookies.get("promoCodeDiscount");
@@ -337,6 +416,151 @@ export default function CheckoutPage() {
       setProcessingOrder(true);
       setError(null);
 
+      // If payment method is OnePay, initiate payment first
+      if (formData.paymentMethod === "ONEPAY") {
+        const validatedData = checkoutSchema.safeParse(formData);
+
+        if (!validatedData.success) {
+          const errorMessages = validatedData.error.errors.map(
+            (err) => err.message
+          );
+          const uniqueErrors = [...new Set(errorMessages)];
+          const errorMessage = uniqueErrors.join(", ");
+          setError(errorMessage);
+          toast.error(errorMessage);
+          setProcessingOrder(false);
+          return;
+        }
+
+        // Additional OnePay specific validation
+        if (!formData.firstName.trim() || !formData.lastName.trim()) {
+          setError("First name and last name are required for OnePay payments");
+          toast.error(
+            "First name and last name are required for OnePay payments"
+          );
+          setProcessingOrder(false);
+          return;
+        }
+
+        if (!formData.email.trim() && !formData.phoneNumber.trim()) {
+          setError(
+            "Either email or phone number is required for OnePay payments"
+          );
+          toast.error(
+            "Either email or phone number is required for OnePay payments"
+          );
+          setProcessingOrder(false);
+          return;
+        }
+
+        // Validate OnePay credentials are available
+        if (
+          !process.env.NEXT_PUBLIC_ONEPAY_APP_ID ||
+          !process.env.NEXT_PUBLIC_ONEPAY_HASH_TOKEN ||
+          !process.env.NEXT_PUBLIC_ONEPAY_APP_TOKEN
+        ) {
+          setError("Payment system is not configured. Please contact support.");
+          toast.error(
+            "Payment system is not configured. Please contact support."
+          );
+          setProcessingOrder(false);
+          return;
+        }
+
+        // Create order first, then redirect to OnePay
+        const onePayValidatedData = checkoutSchema.safeParse(formData);
+        if (!onePayValidatedData.success) {
+          const errorMessages = onePayValidatedData.error.errors.map(
+            (err: any) => err.message
+          );
+          const uniqueErrors = [...new Set(errorMessages)];
+          const errorMessage = uniqueErrors.join(", ");
+          setError(errorMessage);
+          toast.error(errorMessage);
+          setProcessingOrder(false);
+          return;
+        }
+
+        // Create order with PENDING_PAYMENT status for OnePay
+        const orderData = {
+          addressDetails: {
+            firstName: onePayValidatedData.data.firstName,
+            lastName: onePayValidatedData.data.lastName,
+            email: onePayValidatedData.data.email,
+            phoneNumber: onePayValidatedData.data.phoneNumber,
+            addressLine1: onePayValidatedData.data.addressLine1,
+            addressLine2: onePayValidatedData.data.addressLine2,
+            city: onePayValidatedData.data.city,
+            state: onePayValidatedData.data.state,
+            postalCode: onePayValidatedData.data.postalCode,
+            country: onePayValidatedData.data.country,
+            setDefault: formData.saveAddress,
+          },
+          subtotal,
+          discountAmount: discount,
+          shipping: shippingCost,
+          total,
+          currency: country === "LK" ? "LKR" : "USD",
+          paymentMethod: formData.paymentMethod,
+          status: "PENDING_PAYMENT", // Set initial status for OnePay orders
+          notes: formData.notes,
+          items: cartItems.map((item: any) => {
+            const price = item.isBundle
+              ? country === "LK"
+                ? item.details?.offerPriceLKR || 0
+                : item.details?.offerPriceUSD || 0
+              : country === "LK"
+              ? item.details?.discountPriceLKR || item.details?.priceLKR || 0
+              : item.details?.discountPriceUSD || item.details?.priceUSD || 0;
+
+            return {
+              productId: item.type === "product" ? item.id : null,
+              bundleId: item.type === "bundle" ? item.id : null,
+              quantity: item.quantity,
+              price: price,
+              isBundle: item.type === "bundle",
+            };
+          }),
+        };
+
+        try {
+          // Create the order
+          const { data: orderResponse } = await axios.post(
+            "/api/orders",
+            orderData
+          );
+          console.log("Order created for OnePay:", orderResponse);
+
+          // Now initiate OnePay payment with the order ID
+          const paymentData = {
+            amount: parseFloat(total.toFixed(2)),
+            currency: country === "LK" ? "LKR" : "USD",
+            orderReference: `OM${orderResponse.id.slice(-18)}`, // 10-21 chars: OM + 18 = 20 chars
+            customerFirstName: formData.firstName.trim(),
+            customerLastName: formData.lastName.trim(),
+            customerEmail: formData.email.trim() || "noemail@example.com",
+            customerPhoneNumber: formData.phoneNumber.trim() || "+94771234567",
+            additional_data:
+              formData.notes?.trim() || "Order from Omaliya Cosmetics",
+          };
+
+          const success = initiatePayment(paymentData);
+          if (!success) {
+            toast.error("Failed to initiate payment. Please try again.");
+            setProcessingOrder(false);
+          } else {
+            // Payment redirect initiated successfully
+            toast.info("Redirecting to OnePay payment gateway...");
+          }
+        } catch (error) {
+          console.error("Error creating order for OnePay:", error);
+          toast.error("Failed to create order. Please try again.");
+          setProcessingOrder(false);
+        }
+        return; // Exit here, payment completion will be handled by OnePay callbacks
+      }
+
+      // For other payment methods, continue with the original flow
       // If payment method is bank transfer and no slip is uploaded yet
       if (formData.paymentMethod === "BANK_TRANSFER" && !formData.paymentSlip) {
         if (!paymentFile) {
@@ -387,6 +611,13 @@ export default function CheckoutPage() {
           bundleId: item.isBundle ? item.productId : undefined, // In cart, bundleId is stored in productId field
           quantity: item.quantity,
           isBundle: item.isBundle,
+          price: item.isBundle
+            ? country === "LK"
+              ? item.details.bundlePriceLKR
+              : item.details.bundlePriceUSD
+            : country === "LK"
+            ? item.details.priceLKR
+            : item.details.priceUSD,
         })),
         paymentMethod: validatedData.data.paymentMethod,
         currency: country === "LK" ? "LKR" : "USD",
@@ -469,6 +700,61 @@ export default function CheckoutPage() {
       return null;
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const processOrderAfterPayment = async (transactionId: string) => {
+    try {
+      // Create order data with OnePay transaction ID
+      const orderData = {
+        addressDetails: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          addressLine1: formData.addressLine1,
+          addressLine2: formData.addressLine2,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          country: formData.country,
+          setDefault: formData.saveAddress,
+        },
+        items: cartItems.map((item) => ({
+          productId: item.isBundle ? undefined : item.productId,
+          bundleId: item.isBundle ? item.productId : undefined,
+          quantity: item.quantity,
+          isBundle: item.isBundle,
+        })),
+        paymentMethod: "ONEPAY",
+        currency: country === "LK" ? "LKR" : "USD",
+        subtotal: subtotal,
+        shipping: shippingCost,
+        discountAmount: (subtotal * discount) / 100,
+        total: total,
+        notes: formData.notes || "",
+        paymentTransactionId: transactionId, // Store OnePay transaction ID
+      };
+
+      const response = await axios.post("/api/checkout", orderData);
+
+      if (response.data.success) {
+        // Clear cart cookie
+        document.cookie =
+          "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        Cookies.remove("promoCodeDiscount");
+        setCartItems([]);
+        await refreshCart();
+        toast.success("Order placed successfully!");
+        router.push(`/order-confirmation?orderId=${response.data.order.id}`);
+      } else {
+        throw new Error(response.data.error || "Failed to place order");
+      }
+    } catch (error) {
+      console.error("Error processing order after payment:", error);
+      toast.error(
+        "Payment successful but order processing failed. Please contact support."
+      );
     }
   };
 
@@ -810,18 +1096,22 @@ export default function CheckoutPage() {
 
                 <button
                   type="submit"
-                  disabled={processingOrder}
+                  disabled={processingOrder || isPaymentProcessing}
                   className={`w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium py-4 px-6 rounded-xl ${
-                    processingOrder
+                    processingOrder || isPaymentProcessing
                       ? "opacity-70 cursor-wait"
                       : "hover:shadow-lg transform hover:-translate-y-0.5"
                   } transition-all duration-150`}
                 >
-                  {processingOrder ? (
+                  {processingOrder || isPaymentProcessing ? (
                     <div className="flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Processing Order...
+                      {isPaymentProcessing
+                        ? "Processing Payment..."
+                        : "Processing Order..."}
                     </div>
+                  ) : formData.paymentMethod === "ONEPAY" ? (
+                    "Pay with OnePay"
                   ) : (
                     "Complete Order"
                   )}
@@ -1021,18 +1311,17 @@ export default function CheckoutPage() {
                       />
                     </svg>
                   </label>
-                  {/* 
+
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="PAY_HERE"
-                      checked={formData.paymentMethod === "PAY_HERE"}
+                      value="ONEPAY"
+                      checked={formData.paymentMethod === "ONEPAY"}
                       onChange={handleInputChange}
                       className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      disabled
                     />
-                    <span className="flex-1">Pay Here</span>
+                    <span className="flex-1">OnePay</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-6 w-6 text-gray-400"
@@ -1074,7 +1363,7 @@ export default function CheckoutPage() {
                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
-                  </label> */}
+                  </label>
 
                   {formData.paymentMethod === "BANK_TRANSFER" && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">

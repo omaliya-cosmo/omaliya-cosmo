@@ -32,12 +32,20 @@ const OrderConfirmationPage = () => {
   const [orderDetails, setOrderDetails] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const transactionId = searchParams.get("transactionId");
   const { country } = useCountry();
 
   useEffect(() => {
+    // Check if this is from OnePay success
+    if (transactionId) {
+      setPaymentSuccess(true);
+      toast.success("🎉 Payment successful! Your order has been confirmed.");
+    }
+
     if (!orderId) {
       setLoading(false);
       setError("No order ID found");
@@ -153,7 +161,16 @@ const OrderConfirmationPage = () => {
             <h1 className="text-3xl font-bold text-white mb-2">
               Order Confirmed!
             </h1>
-            <p className="text-purple-100">Thank you for your purchase</p>
+            <p className="text-purple-100">
+              {paymentSuccess
+                ? "Payment successful! Thank you for your purchase"
+                : "Thank you for your purchase"}
+            </p>
+            {transactionId && (
+              <p className="text-purple-200 text-sm mt-2">
+                Transaction ID: {transactionId}
+              </p>
+            )}
           </div>
 
           {/* Order Info */}
@@ -176,9 +193,33 @@ const OrderConfirmationPage = () => {
               </div>
 
               <div className="mt-4 sm:mt-0">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {orderDetails?.status}
+                <p className="text-sm text-gray-600 mb-1">Order Status</p>
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                    orderDetails?.status === "PENDING_PAYMENT"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : orderDetails?.status === "PENDING"
+                      ? "bg-blue-100 text-blue-800"
+                      : orderDetails?.status === "PROCESSING"
+                      ? "bg-purple-100 text-purple-800"
+                      : orderDetails?.status === "SHIPPED"
+                      ? "bg-indigo-100 text-indigo-800"
+                      : orderDetails?.status === "DELIVERED"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {orderDetails?.status === "PENDING_PAYMENT"
+                    ? "Pending Payment"
+                    : orderDetails?.status === "PENDING"
+                    ? "Payment Received - Processing"
+                    : orderDetails?.status}
                 </span>
+                {orderDetails?.status === "PENDING" && transactionId && (
+                  <p className="text-sm text-green-600 mt-1">
+                    ✅ Payment confirmed
+                  </p>
+                )}
               </div>
             </div>
 

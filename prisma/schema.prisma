@@ -131,6 +131,7 @@ model Order {
   trackingNumber String?      @map("tracking_number")
   paymentMethod  PaymentMethod
   paymentSlip    String?      // Payment slip reference or image URL
+  paymentTransactionId String? @map("payment_transaction_id") // OnePay or other payment gateway transaction ID
   addressId      String        @unique @db.ObjectId @map("address_id")
   address        Address       @relation(fields: [addressId], references: [id])
 }
@@ -138,7 +139,7 @@ model Order {
 // Enum for payment methods
 enum PaymentMethod {
   CASH_ON_DELIVERY
-  PAY_HERE
+  ONEPAY
   KOKO
   BANK_TRANSFER
 }
@@ -218,6 +219,7 @@ model OrderItem {
 // Enum for order statuses
 enum OrderStatus {
   PENDING
+  PENDING_PAYMENT
   PROCESSING
   SHIPPED
   CANCELED
