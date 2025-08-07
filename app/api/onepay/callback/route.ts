@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const isSuccess = status === 1;
     console.log(`💰 OnePay payment ${isSuccess ? "SUCCESS" : "FAILED"}:`, {
       transaction_id,
-      status: `${status} (${isSuccess ? 'SUCCESS' : 'FAILED'})`,
+      status: `${status} (${isSuccess ? "SUCCESS" : "FAILED"})`,
       status_message,
       additional_data,
     });
@@ -120,33 +120,38 @@ export async function POST(request: NextRequest) {
 // Handle GET requests (OnePay redirects users back after payment completion)
 export async function GET(request: NextRequest) {
   console.log("🔔 OnePay user redirect received - GET method");
-  
+
   // Check query parameters from OnePay redirect
   const { searchParams } = new URL(request.url);
   const transaction_id = searchParams.get("transaction_id");
   const status = searchParams.get("status");
-  
+
   console.log("📋 OnePay redirect parameters:", {
     transaction_id,
     status,
     url: request.url,
-    allParams: Object.fromEntries(searchParams.entries())
+    allParams: Object.fromEntries(searchParams.entries()),
   });
-  
-  // If OnePay redirects without parameters, redirect to profile to check orders
+
+  // If OnePay redirects without parameters, redirect to checkout (payment status unknown)
   if (!status && !transaction_id) {
-    console.log("ℹ️ OnePay redirect without parameters - redirecting to profile");
+    console.log(
+      "⚠️ OnePay redirect without parameters - redirecting to checkout to retry"
+    );
     return NextResponse.redirect(
-      new URL("/profile?tab=orders&message=check_payment_status", request.url)
+      new URL(
+        "/checkout?error=payment_status_unknown&message=Payment status could not be determined. Please try again.",
+        request.url
+      )
     );
   }
-  
+
   // If we have status, process it
   if (status) {
     // OnePay success indicators in URL parameters
     if (status === "1" || status === "SUCCESS" || status === "COMPLETED") {
       console.log("✅ OnePay redirect indicates success");
-      
+
       try {
         // Find the most recent PENDING_PAYMENT order
         const order = await prisma.order.findFirst({
@@ -158,10 +163,10 @@ export async function GET(request: NextRequest) {
             id: "desc",
           },
         });
-        
+
         if (order) {
           console.log(`🔍 Found order ${order.id} for redirect`);
-          
+
           // Only update if still pending payment (avoid double processing)
           if (order.status === "PENDING_PAYMENT") {
             const updatedOrder = await prisma.order.update({
@@ -169,46 +174,69 @@ export async function GET(request: NextRequest) {
               data: {
                 status: "PENDING",
                 paymentMethod: "ONEPAY",
-                paymentTransactionId: transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+                paymentTransactionId:
+                  transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
               },
             });
-            
-            console.log(`✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`);
+
+            console.log(
+              `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
+            );
           }
-          
+
+          // SUCCESS: Redirect to order confirmation page
           return NextResponse.redirect(
             new URL(`/order-confirmation?orderId=${order.id}`, request.url)
           );
         } else {
-          console.error("❌ No PENDING_PAYMENT order found for redirect");
+          console.error(
+            "❌ No PENDING_PAYMENT order found for successful payment"
+          );
           return NextResponse.redirect(
-            new URL("/profile?tab=orders&error=order_not_found", request.url)
+            new URL(
+              "/checkout?error=order_not_found&message=Order not found for successful payment",
+              request.url
+            )
           );
         }
       } catch (error) {
-        console.error("❌ Error processing successful redirect:", error);
+        console.error("❌ Error processing successful payment:", error);
         return NextResponse.redirect(
-          new URL("/profile?tab=orders&error=processing_error", request.url)
+          new URL(
+            "/checkout?error=processing_error&message=Error processing successful payment",
+            request.url
+          )
         );
       }
     } else {
-      // Payment failed based on redirect status
-      console.log(`❌ OnePay redirect indicates failure: ${status}`);
+      // PAYMENT FAILED: Redirect to checkout so user can retry
+      console.log(`❌ OnePay redirect indicates payment failure: ${status}`);
       return NextResponse.redirect(
-        new URL(`/checkout?error=payment_failed&status=${status}`, request.url)
+        new URL(
+          `/checkout?error=payment_failed&status=${status}&message=Payment failed. Please try again.`,
+          request.url
+        )
       );
     }
   } else if (transaction_id) {
-    // Has transaction ID but no status - redirect to profile to check
-    console.log(`ℹ️ OnePay redirect with transaction ${transaction_id} but no status`);
+    // Has transaction ID but no status - redirect to checkout to retry
+    console.log(
+      `⚠️ OnePay redirect with transaction ${transaction_id} but no status - redirecting to checkout`
+    );
     return NextResponse.redirect(
-      new URL("/profile?tab=orders&message=payment_processing", request.url)
+      new URL(
+        "/checkout?error=payment_status_unknown&message=Payment status unknown. Please try again.",
+        request.url
+      )
     );
   }
-  
-  // Fallback - redirect to profile
-  console.log("ℹ️ OnePay redirect fallback - going to profile");
+
+  // Fallback - redirect to checkout
+  console.log("⚠️ OnePay redirect fallback - going to checkout");
   return NextResponse.redirect(
-    new URL("/profile?tab=orders", request.url)
+    new URL(
+      "/checkout?error=unexpected_callback&message=Unexpected payment callback. Please try again.",
+      request.url
+    )
   );
 }
