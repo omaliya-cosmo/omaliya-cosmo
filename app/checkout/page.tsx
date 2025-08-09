@@ -1022,6 +1022,32 @@ export default function CheckoutPage() {
                     <input
                       type="radio"
                       name="paymentMethod"
+                      value="ONEPAY"
+                      checked={formData.paymentMethod === "ONEPAY"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">OnePay</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
                       value="CASH_ON_DELIVERY"
                       checked={formData.paymentMethod === "CASH_ON_DELIVERY"}
                       onChange={handleInputChange}
@@ -1069,32 +1095,6 @@ export default function CheckoutPage() {
                       />
                     </svg>
                   </label>
-                  {/* 
-                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="ONEPAY"
-                      checked={formData.paymentMethod === "ONEPAY"}
-                      onChange={handleInputChange}
-                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="flex-1">OnePay</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                      />
-                    </svg>
-                  </label>
 
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
                     <input
@@ -1121,7 +1121,7 @@ export default function CheckoutPage() {
                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
-                  </label> */}
+                  </label>
 
                   {formData.paymentMethod === "BANK_TRANSFER" && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
