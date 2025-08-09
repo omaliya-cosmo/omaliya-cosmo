@@ -166,28 +166,57 @@ export async function GET(request: NextRequest) {
 
         if (order) {
           console.log(`🔍 Found order ${order.id} for redirect`);
+          console.log(`📋 Order details:`, {
+            id: order.id,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+            customerId: order.customerId,
+          });
 
           // Only update if still pending payment (avoid double processing)
           if (order.status === "PENDING_PAYMENT") {
-            const updatedOrder = await prisma.order.update({
-              where: { id: order.id },
-              data: {
-                status: "PENDING",
-                paymentMethod: "ONEPAY",
-                paymentTransactionId:
-                  transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
-              },
-            });
+            try {
+              const updatedOrder = await prisma.order.update({
+                where: { id: order.id },
+                data: {
+                  status: "PENDING",
+                  paymentMethod: "ONEPAY",
+                  paymentTransactionId:
+                    transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
+                },
+              });
 
+              console.log(
+                `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
+              );
+            } catch (updateError) {
+              console.error(
+                "❌ Error updating order via redirect:",
+                updateError
+              );
+              // Continue with redirect even if update fails
+            }
+          } else {
             console.log(
-              `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
+              `ℹ️ Order ${order.id} already processed with status: ${order.status}`
             );
           }
 
           // SUCCESS: Redirect to order confirmation page
-          return NextResponse.redirect(
-            new URL(`/order-confirmation?orderId=${order.id}`, request.url)
+          console.log(
+            `🚀 Redirecting to order confirmation: /order-confirmation?orderId=${order.id}&paymentSuccess=true`
           );
+          const redirectUrl = new URL(
+            `/order-confirmation?orderId=${
+              order.id
+            }&paymentSuccess=true&transactionId=${
+              transaction_id || "onepay-redirect"
+            }`,
+            request.url
+          );
+          console.log(`🔗 Full redirect URL: ${redirectUrl.toString()}`);
+
+          return NextResponse.redirect(redirectUrl, 302);
         } else {
           console.error(
             "❌ No PENDING_PAYMENT order found for successful payment"
