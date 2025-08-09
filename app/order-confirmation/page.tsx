@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
+import Cookies from "js-cookie";
 import "react-toastify/dist/ReactToastify.css";
 import { useCountry } from "../lib/hooks/useCountry";
 import {
@@ -40,8 +41,25 @@ const OrderConfirmationPage = () => {
   const { country } = useCountry();
 
   useEffect(() => {
+    // Check if we need to clear cart (from OnePay callback)
+    const clearCart = searchParams.get("clearCart");
+    const clearPromo = searchParams.get("clearPromo");
+    const paymentSuccessParam = searchParams.get("paymentSuccess");
+
+    if (clearCart === "true") {
+      // Clear cart cookie
+      Cookies.remove("cart");
+      console.log("🧹 Cart cleared from OnePay success");
+    }
+
+    if (clearPromo === "true") {
+      // Clear promo code cookie
+      Cookies.remove("promoCodeDiscount");
+      console.log("🧹 Promo code cleared from OnePay success");
+    }
+
     // Check if this is from OnePay success
-    if (transactionId) {
+    if (transactionId || paymentSuccessParam === "true") {
       setPaymentSuccess(true);
       toast.success("🎉 Payment successful! Your order has been confirmed.");
     }

@@ -749,12 +749,8 @@ export default function CheckoutPage() {
       const response = await axios.post("/api/checkout", orderData);
 
       if (response.data.success) {
-        // Clear cart cookie
-        document.cookie =
-          "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        Cookies.remove("promoCodeDiscount");
-        setCartItems([]);
-        await refreshCart();
+        // For OnePay, cart clearing will be handled by callback
+        // Just show success message and redirect
         toast.success("Order placed successfully!");
         router.push(`/order-confirmation?orderId=${response.data.order.id}`);
       } else {
