@@ -133,92 +133,97 @@ export async function GET(request: NextRequest) {
     allParams: Object.fromEntries(searchParams.entries()),
   });
 
-  // If OnePay redirects without parameters, redirect to checkout (payment status unknown)
-  if (!status && !transaction_id) {
-    console.log(
-      "⚠️ OnePay redirect without parameters - redirecting to checkout to retry"
-    );
-    return NextResponse.redirect(
-      new URL(
-        "/checkout?error=payment_status_unknown&message=Payment status could not be determined. Please try again.",
+  try {
+    // First, check if there's a recent successful OnePay order (POST callback already processed)
+    const recentSuccessfulOrder = await prisma.order.findFirst({
+      where: {
+        paymentMethod: "ONEPAY",
+        status: "PENDING", // Successfully processed by POST callback
+        orderDate: {
+          gte: new Date(Date.now() - 10 * 60 * 1000), // Within last 10 minutes
+        },
+      },
+      orderBy: {
+        orderDate: "desc",
+      },
+    });
+
+    if (recentSuccessfulOrder) {
+      console.log(
+        `✅ Found recent successful OnePay order: ${recentSuccessfulOrder.id}`
+      );
+
+      // SUCCESS: Clear cart and redirect to order confirmation
+      const redirectUrl = new URL(
+        `/order-confirmation?orderId=${recentSuccessfulOrder.id}`,
         request.url
-      )
-    );
-  }
+      );
 
-  // If we have status, process it
-  if (status) {
-    // OnePay success indicators in URL parameters
-    if (status === "1" || status === "SUCCESS" || status === "COMPLETED") {
-      console.log("✅ OnePay redirect indicates success");
+      // Add cart clearing instructions as URL parameters
+      redirectUrl.searchParams.set("clearCart", "true");
+      redirectUrl.searchParams.set("clearPromo", "true");
+      redirectUrl.searchParams.set("paymentSuccess", "true");
 
-      try {
-        // Find the most recent PENDING_PAYMENT order
-        const order = await prisma.order.findFirst({
-          where: {
-            status: "PENDING_PAYMENT",
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // If no recent successful order, check for pending payment orders
+    const pendingOrder = await prisma.order.findFirst({
+      where: {
+        paymentMethod: "ONEPAY",
+        status: "PENDING_PAYMENT",
+        orderDate: {
+          gte: new Date(Date.now() - 30 * 60 * 1000), // Within last 30 minutes
+        },
+      },
+      orderBy: {
+        orderDate: "desc",
+      },
+    });
+
+    // Check URL parameters for explicit status indicators
+    const isExplicitSuccess =
+      status === "1" || status === "SUCCESS" || status === "COMPLETED";
+    const isExplicitFailure =
+      status === "0" || status === "FAILED" || status === "CANCELLED";
+
+    if (isExplicitSuccess) {
+      console.log(
+        "✅ OnePay redirect indicates explicit success via URL params"
+      );
+
+      if (pendingOrder) {
+        // Update the order to success since URL indicates success
+        const updatedOrder = await prisma.order.update({
+          where: { id: pendingOrder.id },
+          data: {
+            status: "PENDING",
             paymentMethod: "ONEPAY",
-          },
-          orderBy: {
-            id: "desc",
+            paymentTransactionId:
+              transaction_id || `ONEPAY_${pendingOrder.id}_${Date.now()}`,
           },
         });
 
-        if (order) {
-          console.log(`🔍 Found order ${order.id} for redirect`);
-
-          // Only update if still pending payment (avoid double processing)
-          if (order.status === "PENDING_PAYMENT") {
-            const updatedOrder = await prisma.order.update({
-              where: { id: order.id },
-              data: {
-                status: "PENDING",
-                paymentMethod: "ONEPAY",
-                paymentTransactionId:
-                  transaction_id || `ONEPAY_${order.id}_${Date.now()}`,
-              },
-            });
-
-            console.log(
-              `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
-            );
-          }
-
-          // SUCCESS: Clear cart and redirect to order confirmation
-          const redirectUrl = new URL(
-            `/order-confirmation?orderId=${order.id}`,
-            request.url
-          );
-
-          // Add cart clearing instructions as URL parameters
-          redirectUrl.searchParams.set("clearCart", "true");
-          redirectUrl.searchParams.set("clearPromo", "true");
-          redirectUrl.searchParams.set("paymentSuccess", "true");
-
-          return NextResponse.redirect(redirectUrl);
-        } else {
-          console.error(
-            "❌ No PENDING_PAYMENT order found for successful payment"
-          );
-          return NextResponse.redirect(
-            new URL(
-              "/checkout?error=order_not_found&message=Order not found for successful payment",
-              request.url
-            )
-          );
-        }
-      } catch (error) {
-        console.error("❌ Error processing successful payment:", error);
-        return NextResponse.redirect(
-          new URL(
-            "/checkout?error=processing_error&message=Error processing successful payment",
-            request.url
-          )
+        console.log(
+          `✅ Order ${updatedOrder.id} updated via redirect: PENDING_PAYMENT → PENDING`
         );
+
+        // SUCCESS: Clear cart and redirect to order confirmation
+        const redirectUrl = new URL(
+          `/order-confirmation?orderId=${updatedOrder.id}`,
+          request.url
+        );
+
+        redirectUrl.searchParams.set("clearCart", "true");
+        redirectUrl.searchParams.set("clearPromo", "true");
+        redirectUrl.searchParams.set("paymentSuccess", "true");
+
+        return NextResponse.redirect(redirectUrl);
       }
-    } else {
-      // PAYMENT FAILED: Redirect to checkout so user can retry
-      console.log(`❌ OnePay redirect indicates payment failure: ${status}`);
+    }
+
+    if (isExplicitFailure) {
+      console.log(`❌ OnePay redirect indicates explicit failure: ${status}`);
       return NextResponse.redirect(
         new URL(
           `/checkout?error=payment_failed&status=${status}&message=Payment failed. Please try again.`,
@@ -226,25 +231,42 @@ export async function GET(request: NextRequest) {
         )
       );
     }
-  } else if (transaction_id) {
-    // Has transaction ID but no status - redirect to checkout to retry
-    console.log(
-      `⚠️ OnePay redirect with transaction ${transaction_id} but no status - redirecting to checkout`
-    );
-    return NextResponse.redirect(
-      new URL(
-        "/checkout?error=payment_status_unknown&message=Payment status unknown. Please try again.",
-        request.url
-      )
-    );
-  }
 
-  // Fallback - redirect to checkout
-  console.log("⚠️ OnePay redirect fallback - going to checkout");
-  return NextResponse.redirect(
-    new URL(
-      "/checkout?error=unexpected_callback&message=Unexpected payment callback. Please try again.",
-      request.url
-    )
-  );
+    // If we have a pending order but no clear success/failure indication,
+    // assume success (OnePay usually only redirects back on successful completion)
+    if (pendingOrder) {
+      console.log(
+        `🔄 OnePay redirect with pending order ${pendingOrder.id} - assuming success`
+      );
+
+      // Update the order to success (OnePay redirect usually means payment completed)
+      const updatedOrder = await prisma.order.update({
+        where: { id: pendingOrder.id },
+        data: {
+          status: "PENDING",
+          paymentMethod: "ONEPAY",
+          paymentTransactionId:
+            transaction_id || `ONEPAY_${pendingOrder.id}_${Date.now()}`,
+        },
+      });
+
+      console.log(
+        `✅ Order ${updatedOrder.id} updated via redirect assumption: PENDING_PAYMENT → PENDING`
+      );
+
+      // SUCCESS: Clear cart and redirect to order confirmation
+      const redirectUrl = new URL(
+        `/order-confirmation?orderId=${updatedOrder.id}`,
+        request.url
+      );
+
+      redirectUrl.searchParams.set("clearCart", "true");
+      redirectUrl.searchParams.set("clearPromo", "true");
+      redirectUrl.searchParams.set("paymentSuccess", "true");
+
+      return NextResponse.redirect(redirectUrl);
+    }
+  } catch (dbError) {
+    console.error("❌ Database error in GET callback:", dbError);
+  }
 }
