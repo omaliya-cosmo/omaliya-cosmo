@@ -138,7 +138,7 @@ model Order {
 // Enum for payment methods
 enum PaymentMethod {
   CASH_ON_DELIVERY
-  PAY_HERE
+  ONEPAY
   KOKO
   BANK_TRANSFER
 }
@@ -222,6 +222,8 @@ enum OrderStatus {
   SHIPPED
   CANCELED
   DELIVERED
+  PAID
+  PAYMENT_FAILED
 }
 
 model ShippingRate {

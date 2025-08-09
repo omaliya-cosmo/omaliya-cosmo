@@ -50,6 +50,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          src="https://storage.googleapis.com/onepayjs/onepayv2.js"
+          async
+        ></script>
+      </head>
       <body className={poppins.variable}>
         <CartProvider>
           <UserProvider>

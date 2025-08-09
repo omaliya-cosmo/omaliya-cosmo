@@ -57,7 +57,7 @@ const checkoutRequestSchema = z
         })
     ),
     paymentMethod: z.enum([
-      "PAY_HERE",
+      "ONEPAY",
       "KOKO",
       "CASH_ON_DELIVERY",
       "BANK_TRANSFER",
