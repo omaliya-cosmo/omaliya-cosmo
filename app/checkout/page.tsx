@@ -406,10 +406,13 @@ export default function CheckoutPage() {
         // If payment method is OnePay, redirect to OnePay payment gateway
         if (validatedData.data.paymentMethod === "ONEPAY") {
           try {
+            // Generate a reference (OnePay: 10-21 chars)
+            const shortReference = `OMALIYA-${order.id.slice(-12)}`; // "OMALIYA-" + last 12 chars of order ID (20 chars total)
+
             const onePayPayload = {
               currency: country === "LK" ? "LKR" : "USD",
               amount: total,
-              reference: order.id, // Use order ID as reference
+              reference: shortReference, // Use shortened reference
               customer_first_name: validatedData.data.firstName,
               customer_last_name: validatedData.data.lastName,
               customer_phone_number: validatedData.data.phoneNumber || "",
