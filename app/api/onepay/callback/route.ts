@@ -8,6 +8,8 @@ const ONEPAY_CALLBACK_TOKEN =
   "95eab8d9d2d688f97b3f4adbf7a8639b802c15a9ed72af80d2b40c293155ef6d";
 
 export async function POST(request: NextRequest) {
+  console.log("=== OnePay Callback POST Received ===");
+
   try {
     const body = await request.json();
 
@@ -19,6 +21,14 @@ export async function POST(request: NextRequest) {
       status,
       status_message,
       additional_data,
+      fullBody: body,
+    });
+
+    // Also log headers for debugging
+    console.log("Request headers:", {
+      contentType: request.headers.get("content-type"),
+      authorization: request.headers.get("authorization"),
+      userAgent: request.headers.get("user-agent"),
     });
 
     // Validate required fields
@@ -48,12 +58,12 @@ export async function POST(request: NextRequest) {
         where: {
           // Search by payment method and recent orders
           paymentMethod: "ONEPAY",
-          createdAt: {
+          orderDate: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
           },
         },
         orderBy: {
-          createdAt: "desc",
+          orderDate: "desc",
         },
       });
     }
@@ -109,4 +119,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// GET endpoint for testing callback URL accessibility
+export async function GET(request: NextRequest) {
+  console.log("=== OnePay Callback GET Test ===");
+
+  return NextResponse.json({
+    success: true,
+    message: "OnePay callback endpoint is accessible",
+    timestamp: new Date().toISOString(),
+    url: request.url,
+  });
 }
