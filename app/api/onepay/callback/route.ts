@@ -3,7 +3,9 @@ import { prisma } from "@/app/lib/prisma";
 import crypto from "crypto";
 
 // OnePay callback token from your OnePay portal
-const ONEPAY_CALLBACK_TOKEN = process.env.ONEPAY_CALLBACK_TOKEN || "95eab8d9d2d688f97b3f4adbf7a8639b802c15a9ed72af80d2b40c293155ef6d";
+const ONEPAY_CALLBACK_TOKEN =
+  process.env.ONEPAY_CALLBACK_TOKEN ||
+  "95eab8d9d2d688f97b3f4adbf7a8639b802c15a9ed72af80d2b40c293155ef6d";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Find the order by additional_data (which contains our order ID)
     let order = null;
-    
+
     if (additional_data) {
       // Try to find by order ID stored in additional_data
       order = await prisma.order.findUnique({
@@ -57,7 +59,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!order) {
-      console.error(`Order not found for transaction: ${transaction_id}, additional_data: ${additional_data}`);
+      console.error(
+        `Order not found for transaction: ${transaction_id}, additional_data: ${additional_data}`
+      );
       return NextResponse.json(
         { success: false, error: "Order not found" },
         { status: 404 }
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Update order status based on OnePay callback
     let orderStatus = order.status;
-    
+
     if (status === 1 && status_message === "SUCCESS") {
       orderStatus = "PAID";
       console.log(`Order ${order.id} payment successful`);
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
       data: {
         status: orderStatus,
         // Store transaction details for reference
-        notes: order.notes 
+        notes: order.notes
           ? `${order.notes}\nOnePay Transaction: ${transaction_id}, Status: ${status_message}`
           : `OnePay Transaction: ${transaction_id}, Status: ${status_message}`,
       },

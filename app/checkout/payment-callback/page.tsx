@@ -21,19 +21,82 @@ function PaymentCallbackContent() {
       }
 
       try {
-        // You can implement additional logic here to verify payment status
-        // For now, we'll assume success and redirect to order confirmation
+        // Check the actual order status from our database
+        const response = await axios.get(`/api/orders/${orderId}`);
 
-        // Optional: Check with OnePay API for transaction status
-        // const response = await axios.get(`/api/onepay?transaction_id=${orderId}`);
+        if (response.data && response.data.id) {
+          const order = response.data;
 
-        setStatus("success");
-        setMessage("Payment processed successfully!");
+          console.log("Order status:", order.status);
 
-        // Redirect to order confirmation after a short delay
-        setTimeout(() => {
-          router.push(`/order-confirmation?orderId=${orderId}`);
-        }, 2000);
+          // Check the actual payment status from the order
+          if (order.status === "PAID") {
+            setStatus("success");
+            setMessage("Payment processed successfully!");
+
+            // Redirect to order confirmation after a short delay
+            setTimeout(() => {
+              router.push(`/order-confirmation?orderId=${orderId}`);
+            }, 2000);
+          } else if (order.status === "PAYMENT_FAILED") {
+            setStatus("failed");
+            setMessage(
+              "Payment was not successful. Please try again or contact support."
+            );
+          } else {
+            // Still pending - keep checking for a bit longer
+            setMessage("Payment is being processed. Please wait...");
+
+            // Retry checking status after 3 seconds, up to 5 times
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            const checkAgain = async () => {
+              if (retryCount >= maxRetries) {
+                setStatus("failed");
+                setMessage(
+                  "Payment status could not be confirmed. Please contact support with your order ID: " +
+                    orderId
+                );
+                return;
+              }
+
+              retryCount++;
+
+              try {
+                const retryResponse = await axios.get(`/api/orders/${orderId}`);
+                if (retryResponse.data && retryResponse.data.id) {
+                  const updatedOrder = retryResponse.data;
+
+                  if (updatedOrder.status === "PAID") {
+                    setStatus("success");
+                    setMessage("Payment processed successfully!");
+                    setTimeout(() => {
+                      router.push(`/order-confirmation?orderId=${orderId}`);
+                    }, 2000);
+                  } else if (updatedOrder.status === "PAYMENT_FAILED") {
+                    setStatus("failed");
+                    setMessage(
+                      "Payment was not successful. Please try again or contact support."
+                    );
+                  } else {
+                    // Still pending, try again
+                    setTimeout(checkAgain, 3000);
+                  }
+                }
+              } catch (error) {
+                console.error("Retry payment check error:", error);
+                setTimeout(checkAgain, 3000);
+              }
+            };
+
+            // Start retry checking after 3 seconds
+            setTimeout(checkAgain, 3000);
+          }
+        } else {
+          setStatus("failed");
+          setMessage("Order not found. Please contact support.");
+        }
       } catch (error) {
         console.error("Payment verification error:", error);
         setStatus("failed");
