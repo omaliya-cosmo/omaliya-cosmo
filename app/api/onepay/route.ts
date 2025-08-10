@@ -39,6 +39,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("OnePay request body:", body);
 
+    // Debug environment variables (without exposing sensitive data)
+    console.log("OnePay config check:", {
+      appIdExists: !!ONEPAY_APP_ID,
+      hashSaltExists: !!ONEPAY_HASH_SALT,
+      apiTokenExists: !!process.env.ONEPAY_API_TOKEN,
+      appIdLength: ONEPAY_APP_ID?.length,
+      hashSaltLength: ONEPAY_HASH_SALT?.length,
+      apiTokenLength: process.env.ONEPAY_API_TOKEN?.length,
+    });
+
     const validatedData = onePayRequestSchema.parse(body);
 
     // Ensure phone number has country code format
@@ -86,7 +96,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.ONEPAY_API_TOKEN || ""}`,
+        "X-Api-Token": process.env.ONEPAY_API_TOKEN || "",
       },
       body: JSON.stringify(onePayPayload),
     });
