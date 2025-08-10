@@ -96,10 +96,6 @@ export async function POST(request: NextRequest) {
       where: { id: order.id },
       data: {
         status: orderStatus,
-        // Store transaction details for reference
-        notes: order.notes
-          ? `${order.notes}\nOnePay Transaction: ${transaction_id}, Status: ${status_message}`
-          : `OnePay Transaction: ${transaction_id}, Status: ${status_message}`,
       },
     });
 
