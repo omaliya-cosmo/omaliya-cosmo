@@ -245,8 +245,8 @@ const OrderViewPage = ({ params }: { params: { orderId: string } }) => {
           </div>
         </section>
 
-        {/* Tracking Input for Pending */}
-        {order.status === "PENDING" && (
+        {/* Tracking Input for Pending and Paid */}
+        {(order.status === "PENDING" || order.status === "PAID") && (
           <section className="space-y-2">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700 border-b pb-2">
               Fulfillment
