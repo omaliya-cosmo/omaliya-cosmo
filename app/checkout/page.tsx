@@ -61,7 +61,7 @@ const checkoutSchema = z
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
     paymentMethod: z.enum([
-      "PAY_HERE",
+      "ONEPAY",
       "KOKO",
       "CASH_ON_DELIVERY",
       "BANK_TRANSFER",
@@ -139,7 +139,7 @@ export default function CheckoutPage() {
     city: string;
     postalCode: string;
     country: string;
-    paymentMethod: "PAY_HERE" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
+    paymentMethod: "ONEPAY" | "KOKO" | "CASH_ON_DELIVERY" | "BANK_TRANSFER";
     saveAddress: boolean;
     paymentSlip?: string;
   }>({
@@ -401,14 +401,65 @@ export default function CheckoutPage() {
       const response = await axios.post("/api/checkout", orderData);
 
       if (response.data.success) {
-        // Clear cart cookie
-        document.cookie =
-          "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        Cookies.remove("promoCodeDiscount");
-        setCartItems([]);
-        await refreshCart(); // Refresh cart context
-        toast.success("Order placed successfully!");
-        router.push(`/order-confirmation?orderId=${response.data.order.id}`);
+        const order = response.data.order;
+
+        // If payment method is OnePay, redirect to OnePay payment gateway
+        if (validatedData.data.paymentMethod === "ONEPAY") {
+          try {
+            // Generate a reference (OnePay: 10-21 chars)
+            const shortReference = `OMALIYA-${order.id.slice(-12)}`; // "OMALIYA-" + last 12 chars of order ID (20 chars total)
+
+            const onePayPayload = {
+              currency: country === "LK" ? "LKR" : "USD",
+              amount: total,
+              reference: shortReference, // Use shortened reference
+              customer_first_name: validatedData.data.firstName,
+              customer_last_name: validatedData.data.lastName,
+              customer_phone_number: validatedData.data.phoneNumber || "",
+              customer_email: validatedData.data.email || "",
+              transaction_redirect_url: `${window.location.origin}/checkout/payment-callback?orderId=${order.id}`,
+              additionalData: order.id, // Store order ID for callback reference
+            };
+
+            const onePayResponse = await axios.post(
+              "/api/onepay",
+              onePayPayload
+            );
+
+            if (onePayResponse.data.success) {
+              // Clear cart and redirect to OnePay
+              document.cookie =
+                "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+              Cookies.remove("promoCodeDiscount");
+              setCartItems([]);
+              await refreshCart();
+
+              // Redirect to OnePay payment gateway
+              window.location.href =
+                onePayResponse.data.data.gateway.redirect_url;
+              return;
+            } else {
+              throw new Error(
+                onePayResponse.data.error ||
+                  "Failed to create OnePay payment link"
+              );
+            }
+          } catch (onePayError) {
+            console.error("OnePay error:", onePayError);
+            toast.error("Failed to initiate OnePay payment. Please try again.");
+            return;
+          }
+        } else {
+          // For other payment methods (COD, Bank Transfer, etc.)
+          // Clear cart cookie
+          document.cookie =
+            "cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          Cookies.remove("promoCodeDiscount");
+          setCartItems([]);
+          await refreshCart(); // Refresh cart context
+          toast.success("Order placed successfully!");
+          router.push(`/order-confirmation?orderId=${order.id}`);
+        }
       } else {
         throw new Error(response.data.error || "Failed to place order");
       }
@@ -974,6 +1025,32 @@ export default function CheckoutPage() {
                     <input
                       type="radio"
                       name="paymentMethod"
+                      value="ONEPAY"
+                      checked={formData.paymentMethod === "ONEPAY"}
+                      onChange={handleInputChange}
+                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="flex-1">OnePay</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
                       value="CASH_ON_DELIVERY"
                       checked={formData.paymentMethod === "CASH_ON_DELIVERY"}
                       onChange={handleInputChange}
@@ -1021,33 +1098,6 @@ export default function CheckoutPage() {
                       />
                     </svg>
                   </label>
-                  {/* 
-                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="PAY_HERE"
-                      checked={formData.paymentMethod === "PAY_HERE"}
-                      onChange={handleInputChange}
-                      className="form-radio h-5 w-5 text-purple-600 focus:ring-purple-500"
-                      disabled
-                    />
-                    <span className="flex-1">Pay Here</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                      />
-                    </svg>
-                  </label>
 
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
                     <input
@@ -1074,7 +1124,7 @@ export default function CheckoutPage() {
                         d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
-                  </label> */}
+                  </label>
 
                   {formData.paymentMethod === "BANK_TRANSFER" && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">

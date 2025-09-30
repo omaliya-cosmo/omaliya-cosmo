@@ -61,23 +61,19 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Customer as PrismaCustomer,
-  Review,
-  Order as PrismaOrder,
+  Order,
+  OrderItem as OrderItemPrisma,
   Address,
-  CustomerAddress,
-  OrderItem as PrismaOrderItem,
+  ProductCategory,
   Product,
+  Review,
+  CustomerAddress,
   BundleOffer,
+  OrderStatus,
 } from "@prisma/client";
 
 // Using types based on the provided schema
-type OrderStatus =
-  | "PENDING"
-  | "PROCESSING"
-  | "SHIPPED"
-  | "CANCELED"
-  | "DELIVERED";
-type PaymentMethod = "CASH_ON_DELIVERY" | "PAY_HERE" | "KOKO";
+type PaymentMethod = "CASH_ON_DELIVERY" | "ONEPAY" | "KOKO";
 type Currency = "LKR" | "USD";
 
 // Required type definitions based on the schema
@@ -193,7 +189,10 @@ export default function ProfileOrders({ customer }: ProfileOrdersProps) {
       | "shipped"
       | "delivered"
       | "canceled"
-      | "pending";
+      | "pending"
+      | "paid"
+      | "payment_failed"
+      | "pending_payment";
 
     switch (statusLower) {
       case "pending":
@@ -202,6 +201,27 @@ export default function ProfileOrders({ customer }: ProfileOrdersProps) {
           label: "Pending",
           color: "bg-yellow-50 text-yellow-700 border-yellow-200",
           description: "Your order is pending",
+        };
+      case "pending_payment":
+        return {
+          icon: <Clock className="h-4 w-4" />,
+          label: "Pending Payment",
+          color: "bg-orange-50 text-orange-700 border-orange-200",
+          description: "Waiting for payment",
+        };
+      case "paid":
+        return {
+          icon: <CheckCircle className="h-4 w-4" />,
+          label: "Paid",
+          color: "bg-green-50 text-green-700 border-green-200",
+          description: "Payment received successfully",
+        };
+      case "payment_failed":
+        return {
+          icon: <XCircle className="h-4 w-4" />,
+          label: "Payment Failed",
+          color: "bg-red-50 text-red-700 border-red-200",
+          description: "Payment failed, please try again",
         };
       case "processing":
         return {
