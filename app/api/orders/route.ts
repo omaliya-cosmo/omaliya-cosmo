@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
 
     let whereCondition: any = {};
 
-    // Support Pending + Paid together
+    // If page requests "PENDING" → return pending + paid
     if (status) {
-      if (status === "PENDING_AND_PAID") {
+      if (status === "PENDING") {
         whereCondition = {
           status: { in: ["PENDING", "PAID"] },
         };
@@ -24,22 +24,9 @@ export async function GET(request: NextRequest) {
 
     const orders = await prisma.order.findMany({
       where: whereCondition,
+      orderBy: { orderDate: "desc" },
       include: {
-        customer: {
-          include: {
-            orders: {
-              include: {
-                items: {
-                  include: {
-                    product: true,
-                    bundle: true,
-                  },
-                },
-                address: true,
-              },
-            },
-          },
-        },
+        customer: true,
         items: {
           include: {
             product: true,
