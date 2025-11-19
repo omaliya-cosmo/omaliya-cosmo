@@ -1,315 +1,129 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { FiEdit2, FiTrash2, FiSearch, FiRefreshCw } from "react-icons/fi";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Customer,
-  Order as PrismaOrder,
-  Product,
-  OrderItem as PrismaOrderItem,
-  Address,
-  BundleOffer,
-} from "@prisma/client";
+import { useRouter } from "next/navigation";
+import OrderToggleButtons from "../common/order-toggle-buttons";
 
-interface OrderItem extends PrismaOrderItem {
-  product: Product;
-  bundle: BundleOffer;
-}
+type OrderProps = {
+  orderId: string;
+  name: string;
+  email: string;
+  address: string;
+  phone: string;
+  deliveryFee: number;
+  orderDate: string;
+  total: number;
+  status: string;
+};
 
-interface Order extends PrismaOrder {
-  customer?: Customer;
-  items: OrderItem[];
-  address: Address;
-}
-
-const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState("order_date");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-
+export default function PendingOrders() {
   const router = useRouter();
-  const status = params.orderStatus.toUpperCase() || "PROCESSING";
+  const [orders, setOrders] = useState<OrderProps[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchOrders = () => {
-    setLoading(true);
-    axios
-      .get(`/api/orders?status=${status}`)
-      .then((res) => {
-        setOrders(res.data.orders);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+  // Fetch Pending + Paid orders
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+
+      const { data } = await axios.get(`/api/orders?includePendingAndPaid=true`);
+      setOrders(data);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchOrders();
-  }, [status]);
+  }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this order?")) return;
-    try {
-      const res = await fetch(`/api/orders/${id}`, {
-        method: "DELETE",
-      });
+  if (loading) return <p>Loading orders...</p>;
 
-      if (!res.ok) throw new Error("Failed to delete order");
-
-      setOrders((prev) => prev.filter((o) => o.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete order");
-    }
-  };
-
-  const filteredOrders = orders
-    .filter((order) =>
-      (order.customer?.firstName ?? "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortField === "order_date") {
-        return sortDirection === "asc"
-          ? new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime()
-          : new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
-      } else if (sortField === "total") {
-        return sortDirection === "asc" ? a.total - b.total : b.total - a.total;
-      }
-      return 0;
-    });
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  const titleMap: Record<string, string> = {
-    PENDING: "Pending Orders",
-    PROCESSING: "Processing Orders",
-    SHIPPED: "Shipped Orders",
-    CANCELED: "Canceled Orders",
-    DELIVERED: "Delivered Orders",
-    PAID: "Paid Orders", // <-- ADDED
-    PAYMENT_FAILED: "Payment Failed Orders",
-  };
+  const capitalizeFirstLetter = (word: string) =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
   return (
-    <>
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {titleMap[status]}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage orders with status: {status}
-            </p>
-          </div>
-        </div>
+    <div>
+      <OrderToggleButtons status="PENDING" />
 
-        <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 pb-6 border-b">
-          <div className="relative flex-grow max-w-md">
-            <input
-              type="text"
-              placeholder="Search by customer name..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FiSearch
-              className="absolute left-3 top-2.5 text-gray-400"
-              size={18}
-            />
-          </div>
-          <button
-            onClick={() => setSearchTerm("")}
-            className="flex items-center text-gray-600 hover:text-blue-600 py-2"
-          >
-            <FiRefreshCw className="mr-2" size={16} />
-            Reset
-          </button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold mb-4">Pending & Paid Orders</h1>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-center">Loading...</div>
-        ) : error ? (
-          <div className="p-6 text-center text-red-500">{error}</div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">No orders found</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    onClick={() => handleSort("order_date")}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      Order Date
-                      {sortField === "order_date" && (
-                        <span className="ml-1">
-                          {sortDirection === "asc" ? "↑" : "↓"}
-                        </span>
-                      )}
-                    </div>
-                  </th>
+      <div className="overflow-x-auto shadow-lg rounded-lg">
+        <table className="min-w-full table-auto bg-white rounded-lg shadow-md">
+          <thead className="bg-gray-100 sticky top-0 z-10">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Order ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium"></th>
+            </tr>
+          </thead>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Items
-                  </th>
+          <tbody>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  No pending or paid orders found.
+                </td>
+              </tr>
+            ) : (
+              orders.map((order) => (
+                <tr key={order.orderId} className="border-t hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">{order.orderId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{order.name}</td>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Customer
-                  </th>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {new Date(order.orderDate).toLocaleDateString()}
+                  </td>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Phone/Email
-                  </th>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    Rs. {order.total.toFixed(2)}
+                  </td>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total
-                  </th>
+                  {/* Status Column: Pending or Paid */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold
+                      ${
+                        order.status === "PAID"
+                          ? "bg-green-200 text-green-700"
+                          : "bg-yellow-200 text-yellow-700"
+                      }
+                    `}
+                    >
+                      {capitalizeFirstLetter(order.status)}
+                    </span>
+                  </td>
 
-                  {status === "DELIVERED" && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Delivered At
-                    </th>
-                  )}
-
-                  {(status === "SHIPPED" || status === "PROCESSING") && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Tracking No
-                    </th>
-                  )}
-
-                  {status === "PAID" && (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Payment Method
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Payment Slip
-                      </th>
-                    </>
-                  )}
-
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => router.push(`/dashboard/orders/${order.orderId}`)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      View Order
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(order.orderDate).toLocaleDateString()} <br />
-                      {new Date(order.orderDate).toLocaleTimeString()}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.items.map((item) => (
-                        <div key={item.id}>
-                          {item.isBundle && item.bundle
-                            ? `Bundle: ${item.bundle.bundleName} x ${item.quantity}`
-                            : item.product
-                            ? `${item.product.name} x ${item.quantity}`
-                            : "Unknown Item"}
-                        </div>
-                      ))}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap capitalize">
-                      {order.address.firstName} {order.address.lastName}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.address.phoneNumber || order.address.email}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      Rs {order.total.toFixed(2)}
-                    </td>
-
-                    {status === "DELIVERED" && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.deliveredAt
-                          ? new Date(order.deliveredAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-                    )}
-
-                    {(status === "SHIPPED" || status === "PROCESSING") && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.trackingNumber || "N/A"}
-                      </td>
-                    )}
-
-                    {status === "PAID" && (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {order.paymentMethod}
-                        </td>
-
-                          <td className="px-6 py-4 whitespace-nowrap">
-                          {order.paymentSlip ? (
-                            <a
-                              href={order.paymentSlip}
-                              target="_blank"
-                              className="text-blue-600 underline"
-                            >
-                              View Slip
-                            </a>
-                          ) : (
-                            "No Slip"
-                          )}
-                        </td>
-                      </>
-                    )}
-
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => router.push(`/admin/orders/${order.id}`)}
-                        className="text-indigo-600 hover:text-indigo-900 flex items-center"
-                      >
-                        <FiEdit2 className="mr-1" size={16} />
-                        View
-                      </button>
-
-                      {status !== "DELIVERED" && status !== "CANCELED" && (
-                        <button
-                          onClick={() => handleDelete(order.id)}
-                          className="text-red-600 hover:text-red-900 flex items-center mt-2"
-                        >
-                          <FiTrash2 className="mr-1" size={16} />
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-    </>
+    </div>
   );
-};
-
-export default StatusOrdersPage;
+}
