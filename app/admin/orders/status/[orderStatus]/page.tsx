@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { FiEdit2, FiTrash2, FiSearch, FiRefreshCw } from "react-icons/fi";
 import axios from "axios";
 import {
@@ -101,6 +101,8 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
     SHIPPED: "Shipped Orders",
     CANCELED: "Canceled Orders",
     DELIVERED: "Delivered Orders",
+    PAID: "Paid Orders", // <-- ADDED
+    PAYMENT_FAILED: "Payment Failed Orders",
   };
 
   return (
@@ -166,33 +168,52 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                       )}
                     </div>
                   </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Items
                   </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Customer
                   </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Phone/Email
                   </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Total
                   </th>
+
                   {status === "DELIVERED" && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Delivered At
                     </th>
                   )}
+
                   {(status === "SHIPPED" || status === "PROCESSING") && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Tracking No
                     </th>
                   )}
+
+                  {status === "PAID" && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Payment Method
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Payment Slip
+                      </th>
+                    </>
+                  )}
+
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
+
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
@@ -200,6 +221,7 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                       {new Date(order.orderDate).toLocaleDateString()} <br />
                       {new Date(order.orderDate).toLocaleTimeString()}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
                       {order.items.map((item) => (
                         <div key={item.id}>
@@ -211,15 +233,19 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                         </div>
                       ))}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap capitalize">
                       {order.address.firstName} {order.address.lastName}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
                       {order.address.phoneNumber || order.address.email}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
                       Rs {order.total.toFixed(2)}
                     </td>
+
                     {status === "DELIVERED" && (
                       <td className="px-6 py-4 whitespace-nowrap">
                         {order.deliveredAt
@@ -227,11 +253,35 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                           : "N/A"}
                       </td>
                     )}
+
                     {(status === "SHIPPED" || status === "PROCESSING") && (
                       <td className="px-6 py-4 whitespace-nowrap">
                         {order.trackingNumber || "N/A"}
                       </td>
                     )}
+
+                    {status === "PAID" && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {order.paymentMethod}
+                        </td>
+
+                          <td className="px-6 py-4 whitespace-nowrap">
+                          {order.paymentSlip ? (
+                            <a
+                              href={order.paymentSlip}
+                              target="_blank"
+                              className="text-blue-600 underline"
+                            >
+                              View Slip
+                            </a>
+                          ) : (
+                            "No Slip"
+                          )}
+                        </td>
+                      </>
+                    )}
+
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => router.push(`/admin/orders/${order.id}`)}
@@ -240,6 +290,7 @@ const StatusOrdersPage = ({ params }: { params: { orderStatus: string } }) => {
                         <FiEdit2 className="mr-1" size={16} />
                         View
                       </button>
+
                       {status !== "DELIVERED" && status !== "CANCELED" && (
                         <button
                           onClick={() => handleDelete(order.id)}
