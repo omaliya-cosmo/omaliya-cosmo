@@ -114,8 +114,6 @@ export default function Footer() {
                     </svg>
                     +94 75 205 2050
                     <br />
-                    +94 75 537 2920
-                    <br />
                     +94 75 679 4690
                   </p>
                 </div>
