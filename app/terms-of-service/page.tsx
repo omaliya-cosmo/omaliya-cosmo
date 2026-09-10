@@ -1,1 +1,6 @@
-export { default, metadata } from "../terms-and-conditions/page";
+import TermsAndConditionsPage, { metadata } from "../terms-and-conditions/page";
+
+export { metadata };
+export default function TermsOfServicePage() {
+  return <TermsAndConditionsPage />;
+}
