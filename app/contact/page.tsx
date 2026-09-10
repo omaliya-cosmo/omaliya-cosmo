@@ -421,19 +421,19 @@ export default function ContactPage() {
                         Email Us
                       </h3>
                       <a
-                        href="mailto:info@omaliyacosmo.com"
+                        href="mailto:info@omaliya.com"
                         className="text-purple-600 hover:text-purple-800 transition-colors"
                       >
-                        info@omaliyacosmo.com
+                        info@omaliya.com
                       </a>
                       <p className="text-gray-600 mt-1">
                         For customer support:
                         <br />
                         <a
-                          href="mailto:support@omaliyacosmo.com"
+                          href="mailto:support@omaliya.com"
                           className="text-purple-600 hover:text-purple-800 transition-colors"
                         >
-                          support@omaliyacosmo.com
+                          support@omaliya.com
                         </a>
                       </p>
                     </div>
