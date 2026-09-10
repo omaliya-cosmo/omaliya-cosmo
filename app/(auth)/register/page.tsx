@@ -274,11 +274,11 @@ const RegisterForm = () => {
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-600">
               I agree to the{" "}
-              <Link href="#" className="text-purple-600 hover:text-purple-500">
+              <Link href="/terms-and-conditions" className="text-purple-600 hover:text-purple-500 underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="#" className="text-purple-600 hover:text-purple-500">
+              <Link href="/privacy-policy" className="text-purple-600 hover:text-purple-500 underline">
                 Privacy Policy
               </Link>
             </label>

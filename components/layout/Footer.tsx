@@ -182,15 +182,7 @@ export default function Footer() {
                 <ul className="space-y-2">
                   <li>
                     <Link
-                      href="/about"
-                      className="text-gray-600 hover:text-purple-600 text-sm"
-                    >
-                      Shipping Policy
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/about"
+                      href="/refund-policy"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Returns & Exchanges
@@ -198,7 +190,15 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="/about"
+                      href="/refund-policy"
+                      className="text-gray-600 hover:text-purple-600 text-sm"
+                    >
+                      Refund Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/privacy-policy"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
                       Privacy Policy
@@ -206,18 +206,10 @@ export default function Footer() {
                   </li>
                   <li>
                     <Link
-                      href="/about"
+                      href="/terms-and-conditions"
                       className="text-gray-600 hover:text-purple-600 text-sm"
                     >
-                      Terms of Service
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/about"
-                      className="text-gray-600 hover:text-purple-600 text-sm"
-                    >
-                      Warranty Information
+                      Terms and Conditions
                     </Link>
                   </li>
                 </ul>
@@ -406,7 +398,7 @@ export default function Footer() {
                   <ul className="flex space-x-4">
                     <li>
                       <Link
-                        href="#"
+                        href="/privacy-policy"
                         className="text-gray-600 hover:text-purple-600 text-sm"
                       >
                         Privacy
@@ -414,7 +406,7 @@ export default function Footer() {
                     </li>
                     <li>
                       <Link
-                        href="#"
+                        href="/terms-and-conditions"
                         className="text-gray-600 hover:text-purple-600 text-sm"
                       >
                         Terms
@@ -422,10 +414,10 @@ export default function Footer() {
                     </li>
                     <li>
                       <Link
-                        href="#"
+                        href="/refund-policy"
                         className="text-gray-600 hover:text-purple-600 text-sm"
                       >
-                        Sitemap
+                        Refund Policy
                       </Link>
                     </li>
                   </ul>
